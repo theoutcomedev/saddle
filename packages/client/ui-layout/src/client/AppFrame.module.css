@@ -42,6 +42,9 @@
     width: 100%;
     margin-left: 56px; /* Leave space for collapsed rail */
   }
+  .detailsCol {
+    display: none !important;
+  }
 }
 
 .sidebarCol {
