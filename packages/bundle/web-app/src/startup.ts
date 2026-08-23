@@ -6,6 +6,7 @@
  * @module @deepseek-ai/dsh-web-app/startup
  */
 
+import { networkInterfaces } from 'node:os'
 import { Command } from 'commander'
 import type { Context } from '@deepseek-ai/cordis'
 import { parseCmdline } from '@deepseek-ai/dsh-cmdline'
@@ -71,6 +72,9 @@ export function apply(ctx: Context): void {
   const program = webCommand()
   program.action(() => {
     const options = program.opts<WebOptions>()
+    const lanAddresses = options.host === '0.0.0.0' ? Object.values(networkInterfaces()).flat()
+      .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && iface.family === 'IPv4' && !iface.internal)
+      .map(iface => iface.address) : []
     if (options.port !== undefined && !/^\d+$/.test(options.port)) {
       program.error(`error: --port must be a number, got ${JSON.stringify(options.port)}`)
     }
@@ -78,7 +82,7 @@ export function apply(ctx: Context): void {
       openBrowser: options.open,
       ...options.host !== undefined && { host: options.host },
       ...options.port !== undefined && { port: Number(options.port) },
-      trustedHosts: options.trustedHost ?? [],
+      trustedHosts: [...lanAddresses, ...(options.trustedHost ?? [])],
     } satisfies WebStartupValues)
   })
   parseCmdline(ctx, program)
