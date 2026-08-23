@@ -199,6 +199,12 @@ export function AppFrame({
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
       {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {!sidebarCollapsed && narrow && (
+        <div
+          className={css.mobileBackdrop}
+          onClick={() => actions.toggleSidebar()}
+        />
+      )}
     </div>
   )
 }

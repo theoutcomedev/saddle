@@ -151,3 +151,11 @@
     background: var(--dsw-alias-bg-base);
   }
 }
+
+.mobileBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+}

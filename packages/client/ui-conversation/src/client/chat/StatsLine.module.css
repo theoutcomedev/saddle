@@ -15,8 +15,12 @@
   line-height: 20px;
   color: var(--dsw-alias-label-tertiary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.root::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .sep {
