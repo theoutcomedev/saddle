@@ -5,6 +5,7 @@ RUN npm install -g pnpm
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy all package.json files for workspace setup
+COPY patches/ patches/
 COPY packages/ packages/
 COPY apps/ apps/
 COPY scripts/ scripts/
