@@ -32,6 +32,10 @@ const CUBES: readonly { id: ThemePreference; labelKey: ThemeKey; Icon: typeof Ic
   { id: 'light', labelKey: 'appearance.light', Icon: IconLightOutline16 },
   { id: 'dark', labelKey: 'appearance.dark', Icon: IconDarkOutline16 },
   { id: 'system', labelKey: 'appearance.system', Icon: IconFollowsystemOutline16 },
+  { id: 'palomino', labelKey: 'appearance.palomino', Icon: IconLightOutline16 },
+  { id: 'chestnut', labelKey: 'appearance.chestnut', Icon: IconDarkOutline16 },
+  { id: 'friesian', labelKey: 'appearance.friesian', Icon: IconDarkOutline16 },
+  { id: 'roan', labelKey: 'appearance.roan', Icon: IconDarkOutline16 },
 ]
 
 /**
