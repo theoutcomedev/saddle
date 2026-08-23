@@ -18,4 +18,4 @@ COPY --from=builder /app /app
 ENV NODE_ENV=production
 EXPOSE 3080
 
-CMD ["pm2-runtime", "apps/cli/src/bin.ts", "--interpreter", "tsx", "--", "web", "--port", "3080", "--host", "0.0.0.0"]
+CMD ["pm2-runtime", "--node-args=--expose-internals", "apps/cli/src/bin.ts", "--interpreter", "tsx", "--", "web", "--port", "3080", "--host", "0.0.0.0"]
