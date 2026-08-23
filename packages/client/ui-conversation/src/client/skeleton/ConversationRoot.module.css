@@ -373,5 +373,6 @@
 @media (max-width: 768px) {
   .header {
     padding-left: 64px !important;
+    padding-right: 8px !important;
   }
 }
