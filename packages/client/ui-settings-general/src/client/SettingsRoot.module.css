@@ -211,12 +211,9 @@
   .nav {
     width: 100%;
     flex-direction: row;
-    padding: 12px 16px;
-    padding-top: max(54px, calc(env(safe-area-inset-top) + 12px));
-    padding-bottom: 12px;
-    padding-left: max(16px, env(safe-area-inset-left));
-    padding-right: max(56px, calc(env(safe-area-inset-right) + 48px));
-    gap: 8px;
+    padding: 12px;
+    padding-right: 52px;
+    gap: 6px;
     border-bottom: 1px solid var(--dsw-alias-border-l2);
     overflow-x: auto;
     align-items: center;
@@ -228,22 +225,25 @@
   .navList {
     flex-direction: row;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
   }
   .navCell {
-    height: 36px;
-    padding: 6px 12px;
+    height: 40px;
+    padding: 8px 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 8px;
   }
   .navLabel {
     display: none;
   }
   .close {
     position: absolute;
-    top: max(50px, calc(env(safe-area-inset-top) + 8px));
-    right: max(14px, env(safe-area-inset-right));
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
     z-index: 100;
     background: var(--dsw-alias-bg-layer-2);
     box-shadow: -4px 0 8px var(--dsw-alias-bg-layer-2);
@@ -253,6 +253,6 @@
     overflow-y: auto;
   }
   .options {
-    padding: 16px 16px max(24px, env(safe-area-inset-bottom));
+    padding: 12px 16px max(24px, env(safe-area-inset-bottom));
   }
 }
