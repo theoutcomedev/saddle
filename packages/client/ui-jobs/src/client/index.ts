@@ -28,9 +28,9 @@ export const inject = ['sessions', 'slots', 'locale']
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-job: dictionaries')
   ctx.slots.inject(
-    'conversation.session.header.actions',
+    'conversation.input.dock',
     () => ctx.slots.register({
-      name: 'conversation.session.header.actions',
+      name: 'conversation.input.dock',
       id: 'job-list',
       // After the subagent catalog: session lineage reads before process work.
       order: 20,

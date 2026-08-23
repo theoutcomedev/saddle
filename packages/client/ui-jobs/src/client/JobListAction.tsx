@@ -8,7 +8,7 @@ import css from './JobListAction.module.css'
 
 /** Full props for the session-header background-job action. */
 export type JobListActionProps =
-  PropsRuntime<'conversation.session.header.actions'> & PropsLocale<typeof NS>
+  PropsRuntime<'conversation.input.dock'> & PropsLocale<typeof NS>
 
 /** Stable empty list so a session with no jobs keeps one array identity. */
 const NO_TASKS: readonly JobView[] = []
@@ -132,29 +132,29 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
   }
 
   return (
-    <div ref={rootRef} className={css.root} onKeyDown={onKeyDown}>
-      <button
-        ref={triggerRef}
-        type="button"
-        className={css.trigger}
-        aria-expanded={open}
-        aria-label={countLabel}
-        onClick={() => {
-          // Sample the clock in the same commit that opens the list: the
-          // mount-time value predates every job, so the first painted frame
-          // would otherwise clamp a long-running row to zero until the
-          // open effect corrects it a frame later.
-          setNow(Date.now())
-          setOpen(current => !current)
-        }}
-      >
-        {liveCount > 0 ? <StateDot state="ongoing" className={css.triggerDot} /> : null}
-        <span className={css.count}>{countLabel}</span>
-        <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />
-      </button>
-      {open
-        ? (
-          <ul className={css.menu} aria-label={t('list.aria')}>
+    <div className={css.dock} data-job-dock>
+      <div className={css.panel} ref={rootRef} onKeyDown={onKeyDown}>
+        <button
+          ref={triggerRef}
+          type="button"
+          className={css.header}
+          aria-expanded={open}
+          aria-label={countLabel}
+          onClick={() => {
+            setNow(Date.now())
+            setOpen(current => !current)
+          }}
+        >
+          <span className={css.lead}>
+            {liveCount > 0 ? <StateDot state="ongoing" /> : null}
+          </span>
+          <span className={css.count}>{countLabel}</span>
+          <span className={css.chevron}>
+            <IconChevronDownOutline14 className={open ? css.chevronOpen : undefined} />
+          </span>
+        </button>
+        {open && (
+          <ul className={css.list} aria-label={t('list.aria')}>
             {rows.map((job) => {
               const live = isLive(job)
               const elapsed = live ? now - job.startedAt : (job.finishedAt ?? job.startedAt) - job.startedAt
@@ -176,8 +176,8 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
               )
             })}
           </ul>
-        )
-        : null}
+        )}
+      </div>
     </div>
   )
 }
