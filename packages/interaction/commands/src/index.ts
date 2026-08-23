@@ -256,7 +256,7 @@ export class CommandRuntime extends TypertRemoteService {
   /** Monotonic per-instance counter behind {@link mintCommandId}. */
   private commandSeq = 0
   /** Instance token keeping minted ids unique across process restarts over one resumed log. */
-  private readonly instanceToken = crypto.randomUUID().slice(0, 8)
+  private readonly instanceToken = (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16) })).slice(0, 8)
 
   constructor(ctx: Context) {
     super(ctx, 'commands')

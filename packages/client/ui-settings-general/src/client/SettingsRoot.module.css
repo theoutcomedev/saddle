@@ -211,6 +211,7 @@
     width: 100%;
     flex-direction: row;
     padding: 12px;
+    padding-top: max(12px, env(safe-area-inset-top));
     padding-right: 48px;
     gap: 8px;
     border-bottom: 1px solid var(--dsw-alias-border-l2);
@@ -231,7 +232,7 @@
   }
   .close {
     position: absolute;
-    top: 12px;
+    top: max(12px, env(safe-area-inset-top));
     right: 12px;
     z-index: 100;
     background: var(--dsw-alias-bg-layer-2);
