@@ -20,7 +20,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 RUN apk add --no-cache git
-RUN npm install -g pnpm pm2
+RUN npm install -g pnpm pm2 tsx
 
 COPY --from=builder /app /app
 
