@@ -81,6 +81,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `id` is added beside the shipped entries instead of replacing them.
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
+    /**
+     * Mobile sidebar trigger slot (hamburger or custom trigger).
+     * Occupied by default with standard responsive hamburger button in AppFrame.
+     * Can be customized or replaced by themes, branded logos, or bottom-dock navigators.
+     */
+    'shell.mobile_trigger': { kind: 'single'; scope: 'root'; owner: MobileTriggerOwnerProps }
   }
 }
 
@@ -89,6 +95,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 // through the four-share intersection (PropsRuntime & PropsRenderSlots &
 // PropsStore & I). Conversation business state and actions arrive through
 // framework-standard hooks and each registrant's inject face, not owner props.
+
+/** Mobile trigger owner share: collapsed state and onToggle action. */
+export interface MobileTriggerOwnerProps {
+  /** True when sidebar is currently collapsed on mobile. */
+  collapsed: boolean
+  /** Callback to toggle sidebar open/closed. */
+  onToggle: () => void
+}
 
 /** Sidebar owner share: live column state from the frame's concession solve. */
 export interface SidebarOwnerProps {
@@ -109,7 +123,7 @@ export const inject = ['slots', 'theme']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
- * into 'root' with the four child-slot declarations, the layout store seat,
+ * into 'root' with the five child-slot declarations, the layout store seat,
  * and the inject hook that hands the store's bound actions to the service.
  * @param ctx - client root context.
  */
@@ -124,6 +138,7 @@ export function apply(ctx: ClientContext): void {
         'conversation': { kind: 'single', scope: 'session-maybe' },
         'details': { kind: 'single', scope: 'session' },
         'shell.overlay': { kind: 'list', scope: 'root' },
+        'shell.mobile_trigger': { kind: 'single', scope: 'root' },
       },
       // Exclusive store: the factory itself — the framework instantiates per
       // entry and delivers useStore/actions to AppFrame as standard props.
