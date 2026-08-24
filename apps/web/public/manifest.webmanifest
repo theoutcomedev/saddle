@@ -1,10 +1,12 @@
 {
   "id": "/",
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "Saddle | The Autonomous AI OS",
+  "short_name": "Saddle",
   "start_url": "/",
   "scope": "/",
-  "display": "fullscreen",
+  "display": "standalone",
+  "background_color": "#121110",
+  "theme_color": "#121110",
   "icons": [
     {
       "src": "/favicon.svg",
