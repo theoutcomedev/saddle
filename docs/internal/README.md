@@ -48,15 +48,18 @@
 
 ---
 
-## ⚡ Part 3: Scale, Global Competitiveness & New Paradigms
+## ⚡ Part 3: Scale, Distribution, Competitiveness & New Paradigms
 
-11. **[`saddle_definitive_global_superiority_matrix.md`](./saddle_definitive_global_superiority_matrix.md)**
+11. **[`saddle_app_store_launch_and_native_mobile_strategy.md`](./saddle_app_store_launch_and_native_mobile_strategy.md)**
+    * **Title:** *Saddle App Store Launch & Native Mobile Strategy: The Global Distribution Blueprint*
+    * **Summary:** Architectural blueprint for wrapping Saddle into native iOS (Apple App Store), Android (Google Play Store), and macOS packages using Capacitor/Tauri, with Apple Guideline 3.1.3(b) Multiplatform IAP tax defense.
+12. **[`saddle_definitive_global_superiority_matrix.md`](./saddle_definitive_global_superiority_matrix.md)**
     * **Title:** *The Saddle Global Supremacy Matrix & Architectural Sign-Off*
     * **Summary:** Head-to-head competitive analysis pitting Saddle neck-and-neck against 20 global tech titans (ChatGPT, Claude, Cursor, Apple iOS, Meta/Instagram, TikTok, WeChat, AWS, Discord, Figma, Stripe, etc.) with formal architectural certification.
-12. **[`saddle_billion_user_viral_contingency_plan.md`](./saddle_billion_user_viral_contingency_plan.md)**
+13. **[`saddle_billion_user_viral_contingency_plan.md`](./saddle_billion_user_viral_contingency_plan.md)**
     * **Title:** *Billion-User Viral Contingency Plan: The Hyper-Scale Blueprint*
     * **Summary:** Multi-tier contingency plan detailing Cloudflare Anycast edge caching, stateless Kubernetes autoscaling, PgBouncer sharding, multi-model fallback routers, and the **10K → 100K → 1M → 10M → 100M → 1B User Milestone Matrix**.
-13. **[`saddle_social_network_architecture.md`](./saddle_social_network_architecture.md)**
+14. **[`saddle_social_network_architecture.md`](./saddle_social_network_architecture.md)**
     * **Title:** *Building the Next-Generation Autonomous Social Network on Saddle*
     * **Summary:** Complete architectural and economic blueprint for hosting a "Cyber-Society" social network where humans and autonomous AI agents co-create living interactive deliverables with 70/30 creator revenue splits.
 
@@ -64,9 +67,9 @@
 
 ## 💳 Part 4: Business Model & Monetization Architecture
 
-14. **[`saddle_business_model.md`](./saddle_business_model.md)**
+15. **[`saddle_business_model.md`](./saddle_business_model.md)**
     * **Title:** *The Saddle Business Model & Revenue Engine*
-    * **Summary:** Detailed breakdown of the 4 core monetization channels: 3x–5x compute markups on usage packs, /mo BYOK subscriptions, 30% creator marketplace taxes, and ,000/mo enterprise white-label sandboxes.
-15. **[`billing_engine_architecture.md`](./billing_engine_architecture.md)**
+    * **Summary:** Detailed breakdown of the 4 core monetization channels: 3x–5x compute markups on usage packs, $10/mo BYOK subscriptions, 30% creator marketplace taxes, and $5,000/mo enterprise white-label sandboxes.
+16. **[`billing_engine_architecture.md`](./billing_engine_architecture.md)**
     * **Title:** *Stripe Billing & Margin Protection Architecture*
     * **Summary:** Technical specification of Stripe webhook lifecycles, real-time token credit meters, Redis concurrency caps, and margin defense layers.
