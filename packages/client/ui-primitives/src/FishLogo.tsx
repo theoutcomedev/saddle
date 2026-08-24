@@ -2,10 +2,10 @@ import type { IconProps } from './icons/props.ts'
 import { SaddleLogo } from './SaddleLogo.tsx'
 
 /**
- * Render the brand logo mark (aliased to SaddleLogo for complete backwards compatibility).
+ * Render the brand logo mark (aliased to SaddleLogo with amber gold gradient for backwards compatibility).
  * @param props - IconProps sizing and styling.
  * @returns the logo svg.
  */
 export function FishLogo(props: IconProps) {
-  return <SaddleLogo {...props} />
+  return <SaddleLogo colored {...props} />
 }
