@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   saddle-app:
+    container_name: saddle-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -25,6 +26,7 @@ services:
       - saddle-data:/app/data
 
   postgres:
+    container_name: saddle-postgres
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=saddle
@@ -42,6 +44,7 @@ services:
     restart: unless-stopped
 
   redis:
+    container_name: saddle-redis
     image: redis:7-alpine
     ports:
       - "127.0.0.1:6379:6379"
