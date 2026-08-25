@@ -262,10 +262,10 @@ export function apply(ctx: Context, config: Config): void {
       const lanCandidate = runtime.lanAddresses[0]
       const port = ctx.webServer.port
       if (config.printUrl) {
-        console.log(`Saddle OS v1.0: ${webUrl}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
+        console.log(`Saddle OS v0.1: ${webUrl}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
       }
       if (handoffBrowser) {
-        console.log('Saddle OS v1.0: opening the default browser; pass --no-open to disable')
+        console.log('Saddle OS v0.1: opening the default browser; pass --no-open to disable')
         void internals.openBrowser(webUrl).catch((error: unknown) => {
           const reason = error instanceof Error ? error.message : String(error)
           console.error(`web-app: could not open the default browser because ${reason}; visit ${webUrl} manually`)
