@@ -47,7 +47,7 @@ graph LR
    * Web App manifest, theme colors (Palomino, Friesian, Chestnut), and favicons updated.
 2. **Infrastructure & CLI Renaming:**
    * CLI command alias: `saddle` (e.g. `saddle web`, `saddle start`).
-   * Startup terminal banner: `"Welcome to Saddle OS v1.0"`.
+   * Startup terminal banner: `"Welcome to Saddle OS v0.1"`.
    * Docker container naming: `saddle-app-1`, `saddle-postgres-1`, `saddle-redis-1`.
 
 ---
