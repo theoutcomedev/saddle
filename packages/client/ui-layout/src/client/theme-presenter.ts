@@ -19,10 +19,15 @@ export class ThemePresenter {
   /** The single metadata node this presenter inserts and removes. */
   private readonly themeColorMeta: HTMLMetaElement
 
-  /** Create the presenter-owned metadata node before the first snapshot arrives. */
+  /** Create the presenter-owned metadata node or take over the existing one before the first snapshot arrives. */
   constructor() {
-    this.themeColorMeta = document.createElement('meta')
-    this.themeColorMeta.name = 'theme-color'
+    const existing = document.querySelector('meta[name="theme-color"]')
+    if (existing && existing instanceof HTMLMetaElement) {
+      this.themeColorMeta = existing
+    } else {
+      this.themeColorMeta = document.createElement('meta')
+      this.themeColorMeta.name = 'theme-color'
+    }
   }
 
   /**
