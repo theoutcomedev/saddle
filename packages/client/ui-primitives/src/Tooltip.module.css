@@ -47,3 +47,9 @@
     animation: none;
   }
 }
+
+@media (hover: none) {
+  .bubble {
+    display: none !important;
+  }
+}
