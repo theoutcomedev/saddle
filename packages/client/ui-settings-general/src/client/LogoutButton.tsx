@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Modal, Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './SettingsRoot.module.css'
 import clsx from 'clsx'
 
@@ -10,20 +12,54 @@ const LogoutIcon = ({ className }: { className?: string | undefined }) => (
 )
 
 export function LogoutButton() {
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [isLoggingOut, setLoggingOut] = useState(false)
+
   const handleLogout = async () => {
+    setLoggingOut(true)
     await fetch('/api/auth/logout', { method: 'POST' })
     window.location.reload()
   }
 
   return (
-    <button
-      type="button"
-      className={clsx(css.navCell, css.logoutBtn)}
-      onClick={handleLogout}
-      style={{ marginTop: 'auto', color: 'var(--dsw-alias-state-error-primary, #ef4444)' }}
-    >
-      <LogoutIcon className={css.navIcon} />
-      <span className={css.navLabel}>Logout</span>
-    </button>
+    <>
+      <button
+        type="button"
+        className={clsx(css.navCell, css.logoutBtn)}
+        onClick={() => setModalOpen(true)}
+        style={{ marginTop: 'auto', color: 'var(--dsw-alias-state-error-primary, #ef4444)' }}
+      >
+        <LogoutIcon className={css.navIcon} />
+        <span className={css.navLabel}>Logout</span>
+      </button>
+
+      <Modal
+        open={isModalOpen}
+        onClose={() => { if (!isLoggingOut) setModalOpen(false) }}
+        title="Confirm Logout"
+        closeLabel="Close"
+        description="Are you sure you want to log out?"
+        footer={(
+          <>
+            <Button
+              variant="outline"
+              autoFocus
+              disabled={isLoggingOut}
+              onClick={() => setModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              disabled={isLoggingOut}
+              onClick={() => { void handleLogout() }}
+              style={{ color: 'var(--dsw-alias-state-error-primary, #ef4444)', borderColor: 'var(--dsw-alias-state-error-primary, #ef4444)' }}
+            >
+              {isLoggingOut ? 'Logging out...' : 'Log out'}
+            </Button>
+          </>
+        )}
+      />
+    </>
   )
 }
