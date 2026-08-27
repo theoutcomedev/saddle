@@ -832,7 +832,9 @@ export function InputBar({
           </div>
         </div>
       </div>
-      {footer}
+      <div className={css.footerRow}>
+        {footer}
+      </div>
     </div>
   )
 }
