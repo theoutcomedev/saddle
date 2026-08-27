@@ -1,0 +1,51 @@
+.button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.button:hover {
+  background: var(--dsw-alias-interactive-bg-hover-danger, rgba(239, 68, 68, 0.1));
+  color: var(--dsw-alias-state-error-primary, #ef4444);
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+.label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsed {
+  width: 36px;
+  height: 36px;
+  margin: 0 0 8px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 12px;
+}

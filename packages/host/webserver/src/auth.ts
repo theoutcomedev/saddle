@@ -56,6 +56,16 @@ export async function handleAuth(req: IncomingMessage, res: ServerResponse): Pro
     return false // Handled
   }
 
+  // Allow logout
+  if (rawPath === '/api/auth/logout' && req.method === 'POST') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'saddle_session=; HttpOnly; Path=/; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    })
+    res.end(JSON.stringify({ success: true }))
+    return false // Handled
+  }
+
   // For all other /api/ routes, enforce the cookie
   if (getSessionCookie(req) !== ADMIN_TOKEN) {
     res.writeHead(401, { 'Content-Type': 'application/json' })
