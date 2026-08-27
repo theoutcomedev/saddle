@@ -182,7 +182,8 @@
   .frame[data-sidebar-collapsed] .mobileHamburger {
     display: flex;
     position: absolute;
-    top: 12px;
+    /* Respect iOS notch safe area */
+    top: calc(12px + var(--safe-top, 0px));
     left: 12px;
     width: 40px;
     height: 40px;
