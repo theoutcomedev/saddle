@@ -86,7 +86,7 @@
 
 .button {
   width: 100%;
-  background: #4176e6;
+  background: var(--dsw-static-amber-500, #f59e0b);
   color: #ffffff;
   border: none;
   padding: 14px;
