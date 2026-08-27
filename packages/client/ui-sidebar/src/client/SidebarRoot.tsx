@@ -22,7 +22,6 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarRootComponentProps } from './contract/slots.ts'
 import css from './SidebarRoot.module.css'
-import { LogoutButton } from './LogoutButton.tsx'
 
 /** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
 const COLLAPSE_SETTLE_MS = 150
@@ -204,7 +203,7 @@ export function SidebarRoot({
         </div>
         <div className={css.settingsArea}>
           {renderSlot('sidebar.settings', { wide })}
-          <LogoutButton wide={wide} />
+
         </div>
       </div>
     </div>

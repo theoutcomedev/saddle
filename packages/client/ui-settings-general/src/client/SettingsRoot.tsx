@@ -78,6 +78,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
               </button>
             ))}
           </div>
+          <LogoutButton />
         </nav>
         <div className={css.content}>
           <div className={css.header}>
