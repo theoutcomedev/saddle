@@ -8,18 +8,18 @@ export const WELCOME_NOTICE_ACK_FIELD = 'welcomeNoticeVersion'
  * Bump only when the notice changes materially and every user should see it
  * again. The acknowledgement is compared for exact equality.
  */
-export const WELCOME_NOTICE_VERSION = '2026-08-13.1'
+export const WELCOME_NOTICE_VERSION = '2026-08-26.1'
 
 /** The complete editable internal-testing notice in both supported GUI locales. */
 export const WELCOME_NOTICE_COPY = {
   zh: {
-    title: '内测声明',
-    body: 'DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。',
+    title: 'Saddle OS 开发者预览版',
+    body: '欢迎来到 Saddle OS。我们的多态 UI 引擎目前正处于高速迭代的开发者预览阶段。系统核心 API 和动态生成组件将在未来几个月内快速演进。\n\n我们期待与您一起打破软件边界，共同构建未来的智能交互体验。准备好掌控一切了吗？',
     continueLabel: '继续',
   },
   en: {
-    title: 'Internal Testing Notice',
-    body: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
+    title: 'Welcome to Saddle OS',
+    body: 'Saddle OS is currently in Developer Preview. The Metamorphic UI Engine and core foundational APIs will continue to evolve rapidly as we build the future of dynamic software.\n\nWe look forward to breaking the boundaries of traditional interfaces with you. Get ready to ride on the cutting edge of autonomous application generation. Take the reins.',
     continueLabel: 'Continue',
   },
 } as const

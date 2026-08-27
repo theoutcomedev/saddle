@@ -88,8 +88,8 @@ function mount(
 describe('WelcomeNotice', () => {
   it('uses the exact owner copy in both GUI locales', () => {
     expect(WELCOME_NOTICE_COPY.en).toEqual({
-      title: 'Internal Testing Notice',
-      body: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
+      title: 'Welcome to Saddle OS',
+      body: 'Saddle OS is currently in Developer Preview. The Metamorphic UI Engine and core foundational APIs will continue to evolve rapidly as we build the future of dynamic software.\n\nWe look forward to breaking the boundaries of traditional interfaces with you. Get ready to ride on the cutting edge of autonomous application generation. Take the reins.',
       continueLabel: 'Continue',
     })
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
