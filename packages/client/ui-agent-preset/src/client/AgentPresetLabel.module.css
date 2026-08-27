@@ -21,3 +21,21 @@
   flex: none;
   opacity: 0.7;
 }
+
+.desktopOnly {
+  display: contents;
+}
+@media (max-width: 768px) {
+  .desktopOnly {
+    display: none;
+  }
+}
+
+.mobileOnly {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobileOnly {
+    display: contents;
+  }
+}

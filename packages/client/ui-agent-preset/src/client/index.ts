@@ -20,7 +20,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: pulls the settings shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import { AgentPresetLabel } from './AgentPresetLabel.tsx'
+import { AgentPresetLabelDesktop, AgentPresetLabelMobile } from './AgentPresetLabel.tsx'
 import type { AgentPresetLabelInjected } from './AgentPresetLabel.tsx'
 import { AgentPresetRow } from './AgentPresetRow.tsx'
 import type { AgentPresetRowInjected } from './AgentPresetRow.tsx'
@@ -167,14 +167,24 @@ export function apply(ctx: ClientContext): void {
         locale: 'settings.agentPreset',
         inject: seatInjected,
       }, AgentPresetSeat)
-      const label = scope.slots.register({
+      const labelMobile = scope.slots.register({
         name: 'conversation.composer.dock',
         id: 'agent-preset',
         // Place it before the stats line (order 0)
         order: -10,
         locale: 'settings.agentPreset',
         inject: labelInjected,
-      }, AgentPresetLabel)
+      }, AgentPresetLabelMobile)
+
+      const labelDesktop = scope.slots.register({
+        name: 'conversation.session.header.actions',
+        id: 'agent-preset',
+        // Static session context occupies the header's leading negative-order band.
+        order: -10,
+        locale: 'settings.agentPreset',
+        inject: labelInjected,
+      }, AgentPresetLabelDesktop)
+
       return () => {
         stop()
         settingsMoved()
@@ -182,7 +192,8 @@ export function apply(ctx: ClientContext): void {
         rosterReaders.delete(readRoster)
         creatorDraft = undefined
         chip()
-        label()
+        labelMobile()
+        labelDesktop()
       }
     }, 'ui-agent-preset: new-session chip and header label')
   })

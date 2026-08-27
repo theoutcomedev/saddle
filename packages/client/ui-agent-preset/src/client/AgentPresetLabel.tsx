@@ -62,3 +62,19 @@ export function AgentPresetLabel({
     </span>
   )
 }
+
+export function AgentPresetLabelDesktop(props: AgentPresetLabelProps) {
+  return (
+    <div className={css.desktopOnly}>
+      <AgentPresetLabel {...props} />
+    </div>
+  )
+}
+
+export function AgentPresetLabelMobile(props: AgentPresetLabelProps) {
+  return (
+    <div className={css.mobileOnly}>
+      <AgentPresetLabel {...props} />
+    </div>
+  )
+}
