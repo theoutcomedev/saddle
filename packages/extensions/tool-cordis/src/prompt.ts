@@ -21,7 +21,7 @@ Dynamic Cordis plugins temporarily extend the current DSH process. A Plugin uses
 
 ## Recommended workflow and Tools
 
-Before creating, modifying, or repairing a Plugin, load the cordis-plugin-development Skill. The Skill provides requirement navigation, capability composition, complete examples, and troubleshooting. Treat Inspect Provider results as the source of truth for exact APIs.
+Before creating, modifying, or repairing a Plugin, treat Inspect Provider results as the source of truth for exact APIs.
 
 1. cordis_inspect_list: discover the current Host and Client Providers and their read-only query methods.
 2. cordis_inspect_query: use the returned platform, provider, method, and schema to query exact Service, Event, Builtin, Slot, Theme token, or Tool information.
@@ -89,7 +89,6 @@ return {
 
 - Services, Events, Tools, handlers, timers, Slots, styles, and theme overrides must all belong to the current Fiber.
 - Use ctx.effect(), ctx.on(), or official APIs that return a disposer so stop, update, or undefine removes every side effect.
-- The cordis-plugin-development Skill contains complete timer, Waterfall, Slot, theme, Tool, RPC, and React examples and troubleshooting guidance.
 
 ## Host and Client
 
@@ -103,5 +102,4 @@ return {
 
 - Do not wait inside a Tool for approval or browser work that can happen only after the current turn ends.
 - Asynchronous success, rejection, and runtime errors update Run state and notify you through steering context.
-- After a technical failure, use cordis_inspect_self to read the exact Package source and its message/stack. Define a corrected Package under the same Plugin and retry autonomously.
-- Use the cordis-plugin-development Skill for other failure causes, repair procedures, and complete extension patterns.`
+- After a technical failure, use cordis_inspect_self to read the exact Package source and its message/stack. Define a corrected Package under the same Plugin and retry autonomously.`
