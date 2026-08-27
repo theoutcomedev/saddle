@@ -442,11 +442,13 @@
 
   .footer {
     align-items: flex-end;
-    padding: 0 10px;
+    padding: 4px 14px 6px 14px;
   }
 
   .footerActions {
     flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
 
