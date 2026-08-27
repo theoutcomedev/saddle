@@ -3,24 +3,30 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   background-color: var(--dsw-alias-bg-base, #11131a);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(245, 158, 11, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(65, 118, 230, 0.05), transparent 25%);
   color: var(--dsw-alias-text-p1, #e5e7eb);
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: var(--dsw-alias-bg-layer-1, #1a1d24);
-  border: 1px solid var(--dsw-alias-border-l2, #374151);
-  border-radius: 16px;
-  padding: 48px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: var(--dsw-alias-bg-layer-1, rgba(26, 29, 36, 0.6));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--dsw-alias-border-l1, rgba(55, 65, 81, 0.5));
+  border-radius: 24px;
+  padding: 40px 32px;
+  width: calc(100% - 32px);
+  max-width: 380px;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
 }
 
@@ -29,11 +35,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   background: var(--dsw-alias-bg-layer-2, #262a33);
   border: 1px solid var(--dsw-alias-border-l1, #374151);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .logoIcon {
