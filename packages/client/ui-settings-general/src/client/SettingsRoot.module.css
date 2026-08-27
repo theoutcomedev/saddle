@@ -211,8 +211,7 @@
   .nav {
     width: 100%;
     flex-direction: row;
-    padding: 12px;
-    padding-right: 52px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) calc(52px + env(safe-area-inset-right, 0px)) 12px calc(12px + env(safe-area-inset-left, 0px));
     gap: 6px;
     border-bottom: 1px solid var(--dsw-alias-border-l2);
     overflow-x: auto;
@@ -240,8 +239,8 @@
   }
   .close {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
     width: 40px;
     height: 40px;
     z-index: 100;
@@ -253,7 +252,7 @@
     overflow-y: auto;
   }
   .options {
-    padding: 12px 16px max(24px, env(safe-area-inset-bottom));
+    padding: 12px calc(16px + env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left, 0px));
   }
 }
 
