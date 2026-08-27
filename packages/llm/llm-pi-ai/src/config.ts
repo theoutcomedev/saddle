@@ -331,7 +331,10 @@ const profile = z.object({
 
 /** Runtime schema for {@link Config}. */
 export const Config: z<Config> = z.object({
-  providers: z.dict(profile).default({}),
+  providers: z.dict(profile).default({
+    openai: {} as never,
+    anthropic: {} as never,
+  }),
 })
 
 /**

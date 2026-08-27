@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
+import type { ModelsSettingsState, ModelsSettingsStore, ProviderRow } from './store.ts'
 import { onboardingReadiness } from './store.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import { ProviderEditor } from './ProviderEditor.tsx'
@@ -80,13 +80,12 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
       return assertNever(readiness)
   }
 
-  const row = state.rows.find(candidate =>
-    candidate.entry.provider === 'deepseek-official'
-    && candidate.entry.settingsNs === 'llm-deepseek'
-    && candidate.entry.settingsPath.length === 0)
-  const namespace = state.namespaces.get('llm-deepseek')
-  /* v8 ignore next 2 -- credential-missing is derived only from this exact joined row. */
-  if (row === undefined || namespace === undefined) return null
+  const targetProviders = ['deepseek-official', 'openai', 'anthropic']
+  const rows = targetProviders
+    .map(p => state.rows.find(candidate => candidate.entry.provider === p))
+    .filter((row): row is ProviderRow => row !== undefined)
+
+  if (rows.length === 0) return null
 
   const finishCredential = (changed: boolean): void => {
     if (!changed) {
@@ -99,26 +98,33 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
   return (
     <OnboardingModal title={t('onboardingTitle')}>
       <p className={styles.description}>{t('onboardingDescription')}</p>
-      <div className={styles.editor}>
-        <ProviderEditor
-          provider={row.entry.provider}
-          displayName={row.entry.displayName}
-          namespace={namespace}
-          schema={schema}
-          settingsPath={row.entry.settingsPath}
-          api={api}
-          t={t}
-          readOnly={false}
-          hideTitle
-          credentialOnly
-          credentialRequired
-          autoFocusCredential
-          cancelLabel="onboardingLater"
-          submitLabel="onboardingSave"
-          submitBusyLabel="onboardingSaving"
-          onClose={finishCredential}
-        />
-      </div>
+      {rows.map((row, index) => {
+        const namespace = state.namespaces.get(row.entry.settingsNs)
+        if (!namespace) return null
+        return (
+          <div key={row.entry.provider} className={styles.editor} style={{ marginBottom: index !== rows.length - 1 ? '16px' : '0', paddingBottom: index !== rows.length - 1 ? '16px' : '0', borderBottom: index !== rows.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
+            <div style={{ marginBottom: '8px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.entry.displayName}</div>
+            <ProviderEditor
+              provider={row.entry.provider}
+              displayName={row.entry.displayName}
+              namespace={namespace}
+              schema={schema}
+              settingsPath={row.entry.settingsPath}
+              api={api}
+              t={t}
+              readOnly={false}
+              hideTitle
+              credentialOnly
+              credentialRequired
+              autoFocusCredential={index === 0}
+              cancelLabel="onboardingLater"
+              submitLabel="onboardingSave"
+              submitBusyLabel="onboardingSaving"
+              onClose={finishCredential}
+            />
+          </div>
+        )
+      })}
     </OnboardingModal>
   )
 }
