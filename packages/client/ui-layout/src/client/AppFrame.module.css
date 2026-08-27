@@ -6,12 +6,13 @@
   overflow: hidden;
   background: var(--dsw-alias-bg-base);
 
-  /* PWA iOS safe area insets */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-  box-sizing: border-box;
+  /* PWA iOS safe area: expose as custom properties so child components
+     (header, composer seat) can consume individually without compressing
+     the grid columns by padding the frame itself. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 
   /* Collapse/expand animates the tracks on the deepsuite sider curve
      (--ds-ease-in-out / --ds-transition-duration-slow, ui-theme base.css). */

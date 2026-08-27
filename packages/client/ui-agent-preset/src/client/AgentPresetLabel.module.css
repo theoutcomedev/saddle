@@ -34,9 +34,3 @@
 .mobileOnly {
   display: none;
 }
-@media (max-width: 768px) {
-  .mobileOnly {
-    display: flex;
-    align-items: center;
-  }
-}

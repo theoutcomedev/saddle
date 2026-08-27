@@ -15,8 +15,9 @@
   /* Side pads ride the shared clearance (figma Input_Bottom drew L32/R32/B8;
      the sides narrow with the shared width axis); the bottom gradient mask
      is owned by the chat scroller. No top pad: the composer stack's gap owns
-     the space above; the status strip still carries its own margin. */
-  padding: 0 var(--dsh-composer-side-clearance) 8px;
+     the space above; the status strip still carries its own margin.
+     Safe area bottom ensures the composer clears the iOS home indicator in PWA. */
+  padding: 0 var(--dsh-composer-side-clearance) calc(8px + var(--safe-bottom, 0px));
 }
 
 .hero {

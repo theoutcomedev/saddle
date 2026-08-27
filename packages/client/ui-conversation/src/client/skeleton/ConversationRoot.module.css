@@ -28,7 +28,8 @@
 .header {
   position: relative;
   flex: none;
-  padding: 12px 28px 0 20px;
+  /* Base padding + safe area top for notch/Dynamic Island in iOS PWA */
+  padding: calc(12px + var(--safe-top, 0px)) 28px 0 20px;
   border-bottom: 1px solid transparent;
 }
 
