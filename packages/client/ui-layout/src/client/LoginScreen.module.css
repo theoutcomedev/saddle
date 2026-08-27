@@ -86,8 +86,8 @@
 
 .button {
   width: 100%;
-  background: var(--dsw-alias-brand-primary, #4176e6);
-  color: var(--dsw-alias-brand-primary-invert, #11131a);
+  background: #4176e6;
+  color: #ffffff;
   border: none;
   padding: 14px;
   border-radius: 8px;
