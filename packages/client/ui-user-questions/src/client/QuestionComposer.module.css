@@ -4,6 +4,8 @@
 .frame {
   display: flex;
   justify-content: center;
+  width: 100%;
+  min-width: 0;
   padding: 6px calc(var(--dsh-composer-side-clearance) + 16px) 10px;
 }
 
@@ -13,6 +15,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
   max-width: var(--dsh-chat-content-width);
   /* Composer seat sits in a fixed-height conversation column (overflow
      hidden): cap the card against the viewport and scroll the option list
@@ -418,6 +421,10 @@
 }
 
 @media (max-width: 720px) {
+  .frame {
+    padding: 6px var(--dsh-composer-side-clearance) 10px;
+  }
+
   .card {
     border-radius: 16px;
   }
@@ -441,6 +448,7 @@
   }
 
   .footer {
+    flex-wrap: wrap;
     align-items: flex-end;
     padding: 4px 14px 6px 14px;
   }
