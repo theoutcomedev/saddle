@@ -51,7 +51,13 @@ export class ThemePresenter {
       body.style.setProperty(name, value)
       this.appliedTokens.push(name)
     }
-    this.themeColorMeta.content = getComputedStyle(body).backgroundColor
+
+    // Defer the read to the next frame. This ensures that any CSS transitions
+    // or repaints triggered by the token/attribute updates have started,
+    // and iOS Safari reliably picks up the new theme-color.
+    requestAnimationFrame(() => {
+      this.themeColorMeta.content = getComputedStyle(body).backgroundColor
+    })
     if (!this.themeColorMeta.isConnected) document.head.append(this.themeColorMeta)
   }
 
