@@ -490,6 +490,9 @@
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    -webkit-text-size-adjust: 100%;
+    /* Add some padding so the badge isn't crushed against the left edge */
+    padding-left: 12px;
   }
   .footerRow::-webkit-scrollbar {
     display: none;

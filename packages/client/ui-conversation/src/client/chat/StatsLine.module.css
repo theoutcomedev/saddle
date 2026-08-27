@@ -17,6 +17,7 @@
 @media (max-width: 768px) {
   .root {
     overflow-x: visible;
+    padding: 4px 12px 0px 0px;
   }
 }
 
