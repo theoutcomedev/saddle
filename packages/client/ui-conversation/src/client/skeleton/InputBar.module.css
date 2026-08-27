@@ -483,3 +483,15 @@
   margin: 0 auto;
   box-sizing: border-box;
 }
+
+@media (max-width: 768px) {
+  .footerRow {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .footerRow::-webkit-scrollbar {
+    display: none;
+  }
+}
