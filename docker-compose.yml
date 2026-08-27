@@ -24,6 +24,7 @@ services:
     restart: unless-stopped
     volumes:
       - saddle-data:/app/data
+      - saddle-root:/root
 
   postgres:
     container_name: saddle-postgres
@@ -57,3 +58,4 @@ volumes:
   postgres-data:
   redis-data:
   saddle-data:
+  saddle-root:
