@@ -15,6 +15,7 @@ import type { Duplex } from 'node:stream'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { renderIndexInjections, type IndexInjection } from './injections.ts'
+import { handleAuth, handleUpgradeAuth } from './auth.ts'
 
 export { renderIndexInjections } from './injections.ts'
 export type { IndexInjection, IndexInjectionPlacement } from './injections.ts'
@@ -162,6 +163,8 @@ export class WebServer extends Service {
   /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init](): Promise<void> {
     const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+      if (!(await handleAuth(req, res))) return
+
       /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server
       requests; the field is only optional on the client-side IncomingMessage type */
       const rawPath = new URL(req.url ?? '/', 'http://x').pathname
@@ -194,6 +197,8 @@ export class WebServer extends Service {
       })
     })
     this.server.on('upgrade', (req, socket, head) => {
+      if (!handleUpgradeAuth(req, socket)) return
+
       const onError = (error: Error): void => {
         this.ctx.logger.warn(error)
         socket.destroy()

@@ -10,6 +10,7 @@ services:
       - "3080:3080"
     environment:
       - NODE_ENV=production
+      - SADDLE_ADMIN_PASSWORD=${SADDLE_ADMIN_PASSWORD:-}
       - POSTGRES_URL=postgresql://saddle:fuckyoumoney@postgres:5432/saddle
       - REDIS_URL=redis://redis:6379
       # BYOK and billing protection flags

@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { LoginScreen } from './LoginScreen.tsx'
 import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
 import type { createLayoutStore } from './stores.ts'
@@ -84,7 +85,7 @@ function DragHandle(props: { side: 'sidebar' | 'details'; left: number; onStart:
 }
 
 /** The three-column frame (see module doc). */
-export function AppFrame({
+function AppFrameInner({
   useStore,
   useSessions,
   actions,
@@ -221,4 +222,29 @@ export function AppFrame({
       )}
     </div>
   )
+}
+
+
+export function AppFrame(props: AppFrameProps) {
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
+
+  useEffect(() => {
+    fetch('/api/auth/status')
+      .then(r => r.json())
+      .then((data) => {
+        if (data.authEnabled && !data.authenticated) {
+          setAuthStatus('unauthenticated')
+        } else {
+          setAuthStatus('authenticated')
+        }
+      })
+      .catch(() => {
+        setAuthStatus('authenticated')
+      })
+  }, [])
+
+  if (authStatus === 'loading') return null
+  if (authStatus === 'unauthenticated') return <LoginScreen onLoginSuccess={() => setAuthStatus('authenticated')} />
+
+  return <AppFrameInner {...props} />
 }
