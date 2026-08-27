@@ -144,7 +144,9 @@ export function SidebarRoot({
                   fallback: (
                     <>
                       <span className={css.fallbackBrandName}>Saddle</span>
-                      <span className={css.buildRevision}>v0.1</span>
+                      {process.env.DSH_CLIENT_COMMIT_HASH
+                        ? <span className={css.buildRevision}>{process.env.DSH_CLIENT_COMMIT_HASH}</span>
+                        : null}
                     </>
                   ),
                 })}
