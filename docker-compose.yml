@@ -1,6 +1,23 @@
-version: '3.8'
-
 services:
+  traefik:
+    container_name: saddle-traefik
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=saddle-network"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - saddle-network
+    restart: unless-stopped
+
   saddle-app:
     container_name: saddle-app
     build:
@@ -13,6 +30,7 @@ services:
       - SADDLE_ADMIN_PASSWORD=${SADDLE_ADMIN_PASSWORD:-}
       - POSTGRES_URL=postgresql://saddle:fuckyoumoney@postgres:5432/saddle
       - REDIS_URL=redis://redis:6379
+      - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-91.99.165.95}
       # BYOK and billing protection flags
       - ENFORCE_BILLING_GATE=true
       - MAX_CONCURRENT_JOBS_BYOK=2
@@ -26,6 +44,15 @@ services:
     volumes:
       - saddle-data:/app/data
       - saddle-root:/root
+      - /var/run/docker.sock:/var/run/docker.sock
+      - saddle-apps:/app/apps
+    networks:
+      - saddle-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.saddle.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.saddle.priority=1"
+      - "traefik.http.services.saddle.loadbalancer.server.port=3080"
 
   postgres:
     container_name: saddle-postgres
@@ -38,6 +65,8 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - saddle-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U saddle -d saddle"]
       interval: 5s
@@ -52,11 +81,19 @@ services:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - saddle-network
     command: redis-server --appendonly yes
     restart: unless-stopped
+
+networks:
+  saddle-network:
+    name: saddle-network
+    driver: bridge
 
 volumes:
   postgres-data:
   redis-data:
   saddle-data:
   saddle-root:
+  saddle-apps:
