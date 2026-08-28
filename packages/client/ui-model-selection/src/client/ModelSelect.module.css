@@ -97,19 +97,7 @@
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
-@media (max-width: 720px) {
-  .menu {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: calc(var(--safe-bottom, 0px) + 72px);
-    width: auto;
-    min-width: 0;
-    max-width: calc(100vw - 24px);
-    max-height: min(380px, calc(100vh - 140px));
-    z-index: 1000;
-  }
-}
+
 
 .status,
 .empty {
