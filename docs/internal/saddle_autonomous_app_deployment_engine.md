@@ -132,3 +132,36 @@ To use your own custom domain (e.g. `*.apps.yourdomain.com`):
 1. Point a Wildcard A record `*.apps.yourdomain.com` ➔ `91.99.165.95`.
 2. Update the Traefik router rule to match `Host(`<app-name>.apps.yourdomain.com`)`.
 3. Traefik will automatically issue a free Let's Encrypt SSL certificate for seamless HTTPS.
+
+---
+
+## 6. Bare Metal & Non-Docker Deployment Mode
+
+If Saddle is deployed on a raw Bare Metal Linux server without Docker (e.g. Node.js process managed directly by `systemd` or `pm2`), the routing and DNS engine operates with the following principles:
+
+### A. `sslip.io` Magic DNS (100% Platform Agnostic)
+`sslip.io` is pure DNS. It resolves hostnames to IP addresses before traffic ever touches your server:
+- `<app>.<IP>.sslip.io` resolves directly to `<IP>` regardless of whether the server runs Docker, Bare Metal, or Kubernetes.
+
+### B. Direct Port Exposure (Zero-Config Bare Metal)
+On Bare Metal, every process started by an agent (e.g. `pnpm start --port 3001` or `uvicorn main:app --port 8000`) binds directly to the host network interface `0.0.0.0`:
+- **Direct Access:** Any app is immediately accessible via `http://<SERVER_IP>:<PORT>` (e.g. `http://91.99.165.95:3001`).
+
+### C. Traefik File Provider / Caddy on Bare Metal (Named Subdomains)
+To have named subdomains (`http://saypixels.<IP>.sslip.io`) without Docker:
+1. Traefik runs as a native binary / service on host port `80`.
+2. Traefik watches a dynamic configuration folder (`/etc/traefik/dynamic/*.yml`).
+3. When the agent launches a host process on port `3001`, it drops a lightweight YAML file into `/etc/traefik/dynamic/saypixels.yml`:
+   ```yaml
+   http:
+     routers:
+       saypixels:
+         rule: "Host(`saypixels.91.99.165.95.sslip.io`)"
+         service: saypixels
+     services:
+       saypixels:
+         loadBalancer:
+           servers:
+             - url: "http://127.0.0.1:3001"
+   ```
+4. Traefik reloads the route instantly with zero downtime.
