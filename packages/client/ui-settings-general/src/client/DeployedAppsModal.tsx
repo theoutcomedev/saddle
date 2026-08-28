@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { Button, IconCloseOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DeployedAppsStore } from './apps-store.ts'
+import { IconAppsOutline16 } from './DeployedAppsButton.tsx'
 import css from './DeployedAppsModal.module.css'
 
 export interface DeployedAppsModalProps {
@@ -50,7 +51,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="deployed-apps-title">
         <div className={css.header}>
           <div className={css.titleArea}>
-            <span aria-hidden="true">🚀</span>
+            <IconAppsOutline16 size={18} />
             <h2 id="deployed-apps-title" className={css.title}>Deployed Apps</h2>
             {apps.length > 0 && (
               <span className={css.badge}>{runningCount} active</span>
@@ -80,10 +81,10 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
         <div className={css.content}>
           {apps.length === 0 ? (
             <div className={css.emptyState}>
-              <span className={css.emptyIcon} aria-hidden="true">📦</span>
+              <IconAppsOutline16 size={36} className={css.emptyIcon} />
               <h3 className={css.emptyTitle}>No Deployed Applications</h3>
               <p className={css.emptyDesc}>
-                You haven't deployed any apps yet. Ask Saddle to build and host an application:
+                You haven't deployed any apps yet. Ask Saddle in any session to build and host an application:
                 <br />
                 <em>"Create a React countdown timer and deploy it live."</em>
               </p>
@@ -171,7 +172,6 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
           <div className={css.logsOverlay}>
             <div className={css.header}>
               <div className={css.titleArea}>
-                <span aria-hidden="true">📜</span>
                 <h3 className={css.title}>Logs: {activeLogs.name}</h3>
               </div>
               <div className={css.headerControls}>

@@ -9,6 +9,18 @@ import type { DeployedAppsStore } from './apps-store.ts'
 import { DeployedAppsModal } from './DeployedAppsModal.tsx'
 import css from './DeployedAppsButton.module.css'
 
+/** Clean 16x16 App Grid icon matching Saddle design system. */
+export function IconAppsOutline16({ size = 16, className }: { size?: number | undefined; className?: string | undefined }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="9.2" y="2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="2" y="9.2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="9.2" y="9.2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  )
+}
+
 export interface DeployedAppsButtonInjected {
   controller: DeployedAppsStore
   hooks: {
@@ -40,7 +52,7 @@ export function DeployedAppsButton({ wide = true, controller, useSnapshot }: Dep
       title={!wide ? 'Deployed Apps' : undefined}
       onClick={() => { setOpen(true) }}
     >
-      <span className={css.icon} aria-hidden="true">🚀</span>
+      <IconAppsOutline16 size={16} className={css.icon} />
       {wide && <span className={css.label}>Deployed Apps</span>}
       {wide && runningCount > 0 && (
         <span className={css.countBadge}>{runningCount}</span>

@@ -168,6 +168,13 @@ export interface IApiClient {
     models(payload: RequestPayload<'llm.models'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.models'>>>
     discoverModels(payload: RequestPayload<'llm.discoverModels'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.discoverModels'>>>
   }
+  apps: {
+    list(payload: RequestPayload<'apps.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.list'>>>
+    restart(payload: RequestPayload<'apps.restart'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.restart'>>>
+    stop(payload: RequestPayload<'apps.stop'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.stop'>>>
+    delete(payload: RequestPayload<'apps.delete'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.delete'>>>
+    logs(payload: RequestPayload<'apps.logs'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.logs'>>>
+  }
   /** client-response passthrough (rpcId is a backfill of the server-request's id — never minted here). */
   respond(message: ClientResponse, signal?: AbortSignal): Promise<RpcReceipt>
 }
@@ -510,6 +517,14 @@ export abstract class AbstractApiClient implements IApiClient {
     providers: (payload, signal) => this.callUnary('llm.providers', payload, signal),
     models: (payload, signal) => this.callUnary('llm.models', payload, signal),
     discoverModels: (payload, signal) => this.callUnary('llm.discoverModels', payload, signal),
+  }
+
+  readonly apps: IApiClient['apps'] = {
+    list: (payload, signal) => this.callUnary('apps.list', payload, signal),
+    restart: (payload, signal) => this.callUnary('apps.restart', payload, signal),
+    stop: (payload, signal) => this.callUnary('apps.stop', payload, signal),
+    delete: (payload, signal) => this.callUnary('apps.delete', payload, signal),
+    logs: (payload, signal) => this.callUnary('apps.logs', payload, signal),
   }
 
   readonly events: IApiClient['events'] = {
