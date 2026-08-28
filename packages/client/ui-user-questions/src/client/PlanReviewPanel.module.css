@@ -5,13 +5,13 @@
    is scrollable markdown, that one's is a headline plus a command line. Warn
    semantics ride the alias state tokens; no hardcoded colors. */
 
-/* Mirrors the question card's frame so the takeover is a content swap. */
 .frame {
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
-  /* Sides = clearance + 16px: the card lands on the shared content width
-     (input card - 32) at every viewport. */
-  padding: 6px calc(var(--dsh-composer-side-clearance) + 16px) 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px calc(var(--dsh-composer-side-clearance) + 16px) calc(10px + var(--safe-bottom, 0px));
 }
 
 .card {
@@ -108,6 +108,13 @@
 }
 
 @media (max-width: 720px) {
+  .frame {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 6px var(--dsh-composer-side-clearance) calc(10px + var(--safe-bottom, 0px));
+  }
+
   .card {
     border-radius: 16px;
   }
@@ -117,7 +124,18 @@
   }
 
   .footer {
-    align-items: flex-end;
-    padding: 8px 12px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px calc(10px + var(--safe-bottom, 0px));
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 }

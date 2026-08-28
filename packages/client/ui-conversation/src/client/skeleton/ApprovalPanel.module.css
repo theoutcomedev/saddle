@@ -3,19 +3,21 @@
    justification headline, a muted command line, and right-aligned actions.
    Warn semantics ride the alias state tokens; no hardcoded colors. */
 
-/* Mirrors InputBar .root so the takeover is a content swap, not a layout jump. */
 .root {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Sides = clearance + 16px so the card lands on the shared content width
-     (input card - 32) at every viewport. */
-  padding: 8px calc(var(--dsh-composer-side-clearance) + 16px) 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px calc(var(--dsh-composer-side-clearance) + 16px) calc(12px + var(--safe-bottom, 0px));
 }
 
 .card {
+  box-sizing: border-box;
   overflow: hidden;
   width: 100%;
+  min-width: 0;
   max-width: var(--dsh-chat-content-width);
   border: 1px solid var(--dsw-alias-state-warn-secondary);
   border-radius: 20px;
@@ -100,4 +102,22 @@
   background: var(--dsw-alias-interactive-bg-hover-danger);
   color: var(--dsw-alias-state-error-primary);
   border-color: transparent;
+}
+
+@media (max-width: 720px) {
+  .root {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 6px var(--dsh-composer-side-clearance) calc(10px + var(--safe-bottom, 0px));
+  }
+
+  .card {
+    border-radius: 16px;
+  }
+
+  .actionRow {
+    flex-wrap: wrap;
+    padding: 10px 12px calc(10px + var(--safe-bottom, 0px));
+  }
 }
