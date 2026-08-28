@@ -160,9 +160,9 @@
 .toBottomSlot {
   position: sticky;
   bottom: 16px;
-  /* Above the sticky composer (z-index 7) so the control stays clickable and
-     visible over the input card. */
-  z-index: 8;
+  /* Below the sticky composer (z-index 7) so that menus popping up from the composer
+     render above this button. It still clears the composer vertically so it won't be hidden. */
+  z-index: 6;
   height: 0;
   display: flex;
   justify-content: flex-end;
