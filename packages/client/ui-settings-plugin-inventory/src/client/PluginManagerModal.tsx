@@ -94,7 +94,7 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
         </div>
         <div className={css.content}>
           <div className={css.sidebar}>
-            {categories.map(cat => (
+            {categories.map((cat: string) => (
               <button
                 key={cat}
                 className={css.categoryButton}
@@ -142,7 +142,7 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
 
                   <div className={css.cardFooter}>
                     <div className={css.tags}>
-                      {entry.tags?.slice(0, 3).map(t => (
+                      {entry.tags?.slice(0, 3).map((t: string) => (
                         <span key={t} className={css.tag}>{t}</span>
                       ))}
                     </div>
@@ -163,13 +163,11 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
                     <div className={css.metaRow}>
                       <span className={css.metaItem}>
                         <span className={css.metaLabel}>Phase:</span>
-                        <span className={css.metaValue}>{entry.phase}</span>
+                        <span className={css.metaValue}>{entry.fiberPhase}</span>
                       </span>
                       <span className={css.metaItem}>
-                        <span className={css.metaLabel}>Config:</span>
-                        <span className={css.metaValue}>
-                          {entry.options?.configurable ? 'Yes' : 'No'}
-                        </span>
+                        <span className={css.metaLabel}>ID:</span>
+                        <span className={css.metaValue} style={{ fontSize: '9px' }}>{entry.entryId}</span>
                       </span>
                     </div>
                   </details>
