@@ -367,6 +367,28 @@ export class SystemPrompt extends Service {
       // The fallback narrows the optional input type; the schema already defaults it.
       text: config.persona ?? '',
     })
+
+    const serverIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP || '91.99.165.95'
+    this.section({
+      name: 'saddle:deployment',
+      order: 10,
+      text: [
+        '### Autonomous App Deployment & Live Hosting',
+        'You have the built-in capability to deploy websites, web applications, and services to live public URLs using Traefik and sslip.io.',
+        `The public server IP is ${serverIp}.`,
+        'When asked to create, host, or deploy any website, web app, or service and give a URL:',
+        '1. Create the project files (e.g. static HTML/CSS/JS, Vite/React, Next.js, FastAPI, Node).',
+        '2. Write a production Dockerfile or docker-compose.yml attached to the shared "saddle-network" with Traefik discovery labels:',
+        '   - "traefik.enable=true"',
+        `   - "traefik.http.routers.<app-name>.rule=Host(\`<app-name>.${serverIp}.sslip.io\`)"`,
+        '   - "traefik.http.services.<app-name>.loadbalancer.server.port=<internal-port>"',
+        `3. Start the container in the background: "docker compose up -d" or "docker run -d --name app-<app-name> --network saddle-network -l traefik.enable=true -l traefik.http.routers.<app-name>.rule=Host(\`<app-name>.${serverIp}.sslip.io\`) -l traefik.http.services.<app-name>.loadbalancer.server.port=<port> <image>".`,
+        `4. ALWAYS provide the user with their live public URL: http://<app-name>.${serverIp}.sslip.io/ (or custom domain if requested).`,
+        'CRITICAL RULES:',
+        '- NEVER serve on 127.0.0.1 or provide "http://127.0.0.1:..." or "http://*.127.0.0.1.sslip.io/".',
+        `- ALWAYS use the real server IP (${serverIp}) in the sslip.io domain: http://<app-name>.${serverIp}.sslip.io/.`,
+      ].join('\n'),
+    })
     if (!(config.includeRuntimeContext ?? true)) this.suppressRuntimeContext()
   }
 

@@ -33,10 +33,15 @@ services:
       - POSTGRES_URL=postgresql://saddle:fuckyoumoney@postgres:5432/saddle
       - REDIS_URL=redis://redis:6379
       - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-91.99.165.95}
+      - HOST_PUBLIC_IP=${HOST_PUBLIC_IP:-91.99.165.95}
       # BYOK and billing protection flags
       - ENFORCE_BILLING_GATE=true
       - MAX_CONCURRENT_JOBS_BYOK=2
       - STORAGE_QUOTA_MB_BYOK=1024
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
     depends_on:
       postgres:
         condition: service_healthy
