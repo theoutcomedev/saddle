@@ -278,3 +278,40 @@
 .toggleSwitch[aria-checked="true"] .switchThumb {
   transform: translateX(16px);
 }
+
+@media (max-width: 768px) {
+  .mask {
+    padding: 8px;
+  }
+  .modal {
+    max-height: 95vh;
+  }
+  .content {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 12px 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--dsw-alias-border-l2);
+    /* Hide scrollbar for a cleaner look */
+    scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .categoryButton {
+    white-space: nowrap;
+    width: auto;
+  }
+  .searchBar {
+    padding: 12px 16px;
+  }
+  .grid {
+    padding: 16px;
+    grid-template-columns: 1fr;
+  }
+}
