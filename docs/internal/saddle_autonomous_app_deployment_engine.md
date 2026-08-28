@@ -165,3 +165,36 @@ To have named subdomains (`http://saypixels.<IP>.sslip.io`) without Docker:
              - url: "http://127.0.0.1:3001"
    ```
 4. Traefik reloads the route instantly with zero downtime.
+
+---
+
+## 7. Sandbox Execution & Docker Socket Permissions
+
+### Why `workspace-write` mode does not apply to container deployment:
+* **Filesystem Confined (`workspace-write`):** In `workspace-write` sandbox mode, Linux namespaces (via bubblewrap/landlock) lock the process into the local project directory and strictly block access to UNIX domain sockets (including `/var/run/docker.sock`).
+* **Container Orchestration (`danger-full-access` / Unconfined):** To build Docker images and command the Docker daemon to attach sibling containers to `saddle-network`, the agent operates with unconfined socket permissions.
+* The container is configured with `cap_add: [SYS_ADMIN]` and `security_opt: [apparmor:unconfined]` so both confined and unconfined tool calls execute reliably.
+
+---
+
+## 8. Multi-Tenant SaaS Architecture & Data Isolation Roadmap
+
+When Saddle scales to multi-tenant hosting, the engine operates as an autonomous multi-tenant Micro-PaaS:
+
+### A. Tenant Subdomain Namespacing
+* Container naming & Traefik rules are auto-scoped to the tenant:
+  `http://<app-name>-<tenant-id>.<SERVER_IP>.sslip.io` (or `http://<app-name>.<username>.saddle.app`).
+* Prevents name collisions between users.
+
+### B. Data & File Isolation
+* Dedicated volume mount directories per tenant:
+  `/data/tenants/<tenant-id>/apps/<app-name>/uploads/`
+* User A's container only mounts User A's directory. User A cannot view, read, or modify User B's files.
+
+### C. Database Isolation
+* **SQLite Model:** Each tenant app gets its own isolated SQLite database file. Zero RAM idle cost, zero cross-tenant bleeding, instant 1-click backups.
+* **Postgres Model:** Saddle auto-provisions tenant-scoped databases (`CREATE DATABASE db_<tenantId>_<appId>`) with private random credentials.
+
+### D. Auto-Sleep / Hibernation (Replit Model)
+* Idle containers (no web traffic for 15m) are paused to save RAM.
+* Traefik or a wake proxy intercepts incoming HTTP requests and revives the container in ~1.5 seconds.
