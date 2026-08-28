@@ -32,6 +32,20 @@ Once the build is finished, open your web browser and navigate to:
 **http://localhost:3080**
 *(If you are deploying on a cloud VPS, replace `localhost` with your server's IP address).*
 
+## 4. Hosting "Deployed Apps" Locally (Advanced)
+
+Saddle OS has the unique ability to **autonomously deploy web apps** and backend services right from the chat. It uses an internal Traefik reverse proxy and `sslip.io` magic DNS to route traffic to these apps.
+
+By default, Saddle attempts to auto-detect your home router's public IP so it can generate sharing links. However, if you are running Saddle locally on your personal Mac, Windows, or Linux machine, your home router will likely block these connections!
+
+To ensure seamless, one-click local app deployments, you should force Saddle to use `localhost` for routing. Before running `docker compose up`, create a `.env` file in the `deepseek-harness` folder:
+
+```bash
+echo "HOST_PUBLIC_IP=127.0.0.1" > .env
+```
+
+Now, when Saddle deploys an app, it will generate a live URL like `http://my-app.127.0.0.1.sslip.io` which routes perfectly through your local Traefik proxy.
+
 ---
 
 ## Stopping the Engine
