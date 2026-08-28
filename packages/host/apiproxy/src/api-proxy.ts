@@ -3539,8 +3539,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       async list(request) {
         try {
           const { execFile } = await import('node:child_process')
-          const serverIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP || '91.99.165.95'
-          const domain = process.env.PUBLIC_DOMAIN || `${serverIp}.sslip.io`
+          const rawIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP || 'localhost'
+          const serverIp = rawIp === 'auto' ? 'localhost' : rawIp
+          const domain = process.env.PUBLIC_DOMAIN || (serverIp === 'localhost' ? 'localhost' : `${serverIp}.sslip.io`)
 
           const stdout = await new Promise<string>((resolve) => {
             execFile('docker', ['ps', '-a', '--format', '{{json .}}'], { timeout: 8000 }, (error, out) => {

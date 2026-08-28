@@ -32,8 +32,8 @@ services:
       - SADDLE_ADMIN_PASSWORD=${SADDLE_ADMIN_PASSWORD:-}
       - POSTGRES_URL=postgresql://saddle:fuckyoumoney@postgres:5432/saddle
       - REDIS_URL=redis://redis:6379
-      - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-91.99.165.95}
-      - HOST_PUBLIC_IP=${HOST_PUBLIC_IP:-91.99.165.95}
+      - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-auto}
+      - HOST_PUBLIC_IP=${HOST_PUBLIC_IP:-auto}
       # BYOK and billing protection flags
       - ENFORCE_BILLING_GATE=true
       - MAX_CONCURRENT_JOBS_BYOK=2

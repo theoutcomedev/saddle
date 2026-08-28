@@ -14,8 +14,8 @@ Use this skill whenever the user asks to deploy, host, run, or publish a web app
 All deployed apps run as Docker containers attached to the shared `saddle-network`.
 Traefik automatically discovers the container via Docker labels and routes HTTP traffic on port 80 based on the subdomain.
 
-* **Server IP:** `91.99.165.95` (or `$SADDLE_SERVER_IP` environment variable).
-* **Live App URL:** `http://<app-name>.<SERVER_IP>.sslip.io`
+* **Server IP:** Auto-detected from host via `$SADDLE_SERVER_IP` or `$HOST_PUBLIC_IP` (e.g. `91.99.165.95` or any VPS IP).
+* **Live App URL:** `http://<app-name>.<SERVER_IP>.sslip.io` (or `http://<app-name>.localhost` if running locally)
 * **Direct Port Access (optional backup):** `http://<SERVER_IP>:<allocated_port>`
 * **Traefik Dashboard:** `http://<SERVER_IP>:8080`
 
