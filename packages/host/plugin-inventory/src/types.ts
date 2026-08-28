@@ -26,6 +26,8 @@ export interface PluginInventoryEntry {
   readonly categories?: readonly string[] | undefined
   readonly tags?: readonly string[] | undefined
   readonly developer?: string | undefined
+  /** Origin of the plugin: bundled with the harness, created by AI, or user-installed */
+  readonly source?: 'bundled' | 'ai-generated' | 'user-installed' | undefined
 }
 
 /** Point-in-time inventory returned by the plugin inventory Remote. */

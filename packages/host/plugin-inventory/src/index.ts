@@ -66,6 +66,7 @@ export class PluginInventoryGateway extends TypertRemoteService {
       let developer: string | undefined
       let tags: string[] | undefined
       let categories: string[] | undefined
+      let source: 'bundled' | 'ai-generated' | 'user-installed' | undefined
 
       try {
         const url = import.meta.resolve(entry.options.name)
@@ -82,6 +83,7 @@ export class PluginInventoryGateway extends TypertRemoteService {
           if (pkg.saddle) {
             icon = pkg.saddle.icon
             categories = pkg.saddle.categories
+            source = pkg.saddle.source
           }
         }
       } catch (_e) {
@@ -98,6 +100,7 @@ export class PluginInventoryGateway extends TypertRemoteService {
         ...(developer && { developer }),
         ...(tags && { tags }),
         ...(categories && { categories }),
+        ...(source && { source }),
       }
 
       entries.push(entryObj as PluginInventoryEntry)

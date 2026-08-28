@@ -122,7 +122,7 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
                   Loading plugins...
                 </div>
               ) : filtered.map(entry => (
-                <div key={entry.entryId} className={css.card}>
+                <div key={entry.entryId} className={`${css.card}${entry.source === 'ai-generated' ? ` ${css.cardAIBuilt}` : ''}`}>
                   <div className={css.cardHeader}>
                     <div className={css.iconWrapper}>
                       {entry.icon ? (
@@ -132,7 +132,12 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
                       )}
                     </div>
                     <div className={css.cardTitleArea}>
-                      <h3 className={css.cardTitle}>{moduleShortName(entry.moduleName)}</h3>
+                      <div className={css.cardTitleRow}>
+                        <h3 className={css.cardTitle}>{moduleShortName(entry.moduleName)}</h3>
+                        {entry.source === 'ai-generated' && (
+                          <span className={css.aiBadge}>✦ AI Built</span>
+                        )}
+                      </div>
                       {entry.developer && <p className={css.cardAuthor}>by {entry.developer}</p>}
                     </div>
                   </div>

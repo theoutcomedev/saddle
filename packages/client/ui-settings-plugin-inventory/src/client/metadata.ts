@@ -8,6 +8,8 @@ export const ICONS = {
   Host: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>',
   Workflow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>',
   Database: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>',
+  /** Sparkle star used for AI-generated plugins */
+  AIBuilt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>',
 }
 
 import type { PluginInventoryEntry } from '@deepseek-ai/dsh-host-plugin-inventory/types'
@@ -17,11 +19,23 @@ export type RichPluginEntry = PluginInventoryEntry & {
   tags?: string[]
   icon?: string
   developer?: string
+  source?: 'bundled' | 'ai-generated' | 'user-installed'
 }
 
 export function injectMetadata(raw: PluginInventoryEntry): RichPluginEntry {
   const entry = raw as RichPluginEntry
   const name = entry.moduleName || ''
+
+  // AI-generated plugins get their own special category and icon regardless of name
+  if (entry.source === 'ai-generated') {
+    return {
+      ...entry,
+      developer: entry.developer ?? 'Saddle AI',
+      categories: ['AI Built'],
+      tags: entry.tags ?? ['ai-generated', 'custom'],
+      icon: entry.icon ?? ICONS.AIBuilt,
+    }
+  }
 
   if (entry.categories && entry.categories.length > 0) return entry // Already has seeded metadata
 
@@ -69,7 +83,7 @@ export function injectMetadata(raw: PluginInventoryEntry): RichPluginEntry {
 
   return {
     ...entry,
-    developer: entry.developer || 'DeepSeek Harness',
+    developer: entry.developer ?? 'DeepSeek Harness',
     categories: [category],
     tags: tags,
     icon: icon,
