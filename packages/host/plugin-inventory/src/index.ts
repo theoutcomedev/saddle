@@ -88,17 +88,17 @@ export class PluginInventoryGateway extends TypertRemoteService {
         // Ignore resolution errors for virtual or dynamic modules
       }
 
-      const entryObj: Partial<PluginInventoryEntry> = {
+      const entryObj = {
         entryId: pluginEntryId(entry.id),
         moduleName: entry.options.name,
         enabled: !entry.disabled,
         fiberPhase: entry.fiber === undefined ? null : FIBER_PHASE[entry.fiber.state],
+        ...(description && { description }),
+        ...(icon && { icon }),
+        ...(developer && { developer }),
+        ...(tags && { tags }),
+        ...(categories && { categories }),
       }
-      if (description) entryObj.description = description
-      if (icon) entryObj.icon = icon
-      if (developer) entryObj.developer = developer
-      if (tags) entryObj.tags = tags
-      if (categories) entryObj.categories = categories
 
       entries.push(entryObj as PluginInventoryEntry)
     }
