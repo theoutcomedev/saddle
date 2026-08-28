@@ -1,5 +1,7 @@
 /** Read-only projection of the current Cordis Loader plugin entries. */
-
+import * as fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import type { Context, FiberState } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
@@ -58,14 +60,64 @@ export class PluginInventoryGateway extends TypertRemoteService {
     const entries: PluginInventoryEntry[] = []
     for (const entry of this.ctx.loader.entries()) {
       if (entry.options.group) continue
-      entries.push({
+
+      let description: string | undefined
+      let icon: string | undefined
+      let developer: string | undefined
+      let tags: string[] | undefined
+      let categories: string[] | undefined
+
+      try {
+        const url = import.meta.resolve(entry.options.name)
+        let dir = dirname(fileURLToPath(url))
+        while (dir !== '/' && !fs.existsSync(join(dir, 'package.json'))) {
+          dir = dirname(dir)
+        }
+        if (fs.existsSync(join(dir, 'package.json'))) {
+          const pkg = JSON.parse(fs.readFileSync(join(dir, 'package.json'), 'utf8'))
+          description = pkg.description
+          developer = pkg.author
+          tags = pkg.keywords
+          // Parse saddle-specific metadata if present
+          if (pkg.saddle) {
+            icon = pkg.saddle.icon
+            categories = pkg.saddle.categories
+          }
+        }
+      } catch (_e) {
+        // Ignore resolution errors for virtual or dynamic modules
+      }
+
+      const entryObj: Partial<PluginInventoryEntry> = {
         entryId: pluginEntryId(entry.id),
         moduleName: entry.options.name,
         enabled: !entry.disabled,
         fiberPhase: entry.fiber === undefined ? null : FIBER_PHASE[entry.fiber.state],
-      })
+      }
+      if (description) entryObj.description = description
+      if (icon) entryObj.icon = icon
+      if (developer) entryObj.developer = developer
+      if (tags) entryObj.tags = tags
+      if (categories) entryObj.categories = categories
+
+      entries.push(entryObj as PluginInventoryEntry)
     }
     return { entries }
+  }
+
+  /**
+   * Toggle a plugin's enablement state in the Loader configuration.
+   */
+  @Remote('toggle')
+  toggle(entryId: PluginEntryId, enabled: boolean): void {
+    for (const entry of this.ctx.loader.entries()) {
+      if (entry.id === entryId) {
+        // The loader's update method persists the change to cordis.yml
+        void entry.update({ disabled: !enabled })
+        return
+      }
+    }
+    throw new Error(`Plugin entry not found: ${entryId}`)
   }
 }
 

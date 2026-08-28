@@ -20,6 +20,12 @@ export interface PluginInventoryEntry {
   /** Effective Loader enablement, including disabled ancestor groups. */
   readonly enabled: boolean
   readonly fiberPhase: PluginFiberPhase
+  /** Plugin metadata from package.json */
+  readonly description?: string | undefined
+  readonly icon?: string | undefined
+  readonly categories?: readonly string[] | undefined
+  readonly tags?: readonly string[] | undefined
+  readonly developer?: string | undefined
 }
 
 /** Point-in-time inventory returned by the plugin inventory Remote. */
