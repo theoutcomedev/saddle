@@ -207,6 +207,7 @@
     height: 100vh;
     height: 100dvh;
     max-width: 100vw;
+    background: var(--dsw-alias-bg-base);
   }
   .nav {
     width: 100%;
