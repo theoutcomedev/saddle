@@ -10,6 +10,8 @@ export const zh = {
   'appearance.chestnut': 'Chestnut',
   'appearance.friesian': 'Friesian',
   'appearance.roan': 'Roan',
+  'appearance.bay': 'Bay',
+  'appearance.dapple': 'Dapple',
 } satisfies Record<string, string>
 
 /** The settings.theme namespace key union. */
@@ -25,4 +27,6 @@ export const en = {
   'appearance.chestnut': 'Chestnut',
   'appearance.friesian': 'Friesian',
   'appearance.roan': 'Roan',
+  'appearance.bay': 'Bay',
+  'appearance.dapple': 'Dapple',
 } satisfies Record<ThemeKey, string>
