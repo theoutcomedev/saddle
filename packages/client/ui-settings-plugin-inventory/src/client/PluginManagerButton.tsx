@@ -14,9 +14,11 @@ export function IconPuzzleOutline16({ size = 16, className }: { size?: number | 
 
 export interface PluginManagerButtonProps {
   wide?: boolean
+  list?: () => Promise<PluginInventorySnapshot>
+  toggle?: (entryId: string, enabled: boolean) => Promise<void>
 }
 
-export function PluginManagerButton({ wide = true }: PluginManagerButtonProps) {
+export function PluginManagerButton({ wide = true, list, toggle }: PluginManagerButtonProps) {
   const [open, setOpen] = useState(false)
 
   const button = (
@@ -44,6 +46,8 @@ export function PluginManagerButton({ wide = true }: PluginManagerButtonProps) {
 
       {open && (
         <PluginManagerModal
+          list={list}
+          toggle={toggle}
           onClose={() => { setOpen(false) }}
         />
       )}
