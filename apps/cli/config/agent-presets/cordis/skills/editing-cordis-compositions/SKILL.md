@@ -63,6 +63,11 @@ return {
 
 Unmount the plugin with `cordis_unmount` when you are done; it is a probe, not a capability to leave behind.
 
+## Creating Permanent Plugin Packages
+
+When a user asks to make a dynamic plugin permanent, you will need to port its logic into a real NPM package on the server so it can be composed.
+**CRITICAL:** When generating the `package.json` for any permanent plugin you create, you MUST ALWAYS include `"saddle": { "source": "ai-generated" }` at the root level of the JSON object. This exact metadata ensures the Saddle UI correctly identifies and visually badges the plugin as "AI Built".
+
 ## Authoring a preset
 
 1. **Start from a copy.** `copy(from, id, name)` copies a whole preset directory into the user root — composition, metadata, skill directories, assets. It validates the id against `[a-z0-9][a-z0-9-]*` (it becomes the directory name, so no leading hyphen), refuses an id any root already supplies, rolls a failed copy back, and rewrites the copy's `preset.yml` to keep the source's description while dropping its name and roster `order`. Prefer it over a shell copy: it needs no sandbox escalation, it lands the copy in whichever root this deployment made writable, and the copy is exactly as loadable as its source. `resolve(id)` then names the file it created — that path, not a guessed one, is what the following edits target. `standard` is the full coding agent and the usual source.
