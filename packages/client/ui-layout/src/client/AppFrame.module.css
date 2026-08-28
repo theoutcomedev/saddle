@@ -188,9 +188,10 @@
     width: 40px;
     height: 40px;
     border-radius: 8px;
-    background: var(--dsw-alias-bg-base);
-    border: 1px solid var(--dsw-alias-border-l1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
     z-index: 10;
     align-items: center;
     justify-content: center;
