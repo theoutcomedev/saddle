@@ -120,3 +120,9 @@
   line-height: 22px;
   color: var(--dsw-alias-label-dimmed);
 }
+
+@media (max-width: 720px) {
+  .menu {
+    max-height: min(280px, calc(100vh - 180px));
+  }
+}

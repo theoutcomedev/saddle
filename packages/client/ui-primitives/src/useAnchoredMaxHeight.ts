@@ -10,6 +10,22 @@ import type { RefObject } from 'react'
 /** Safe distance kept between the overlay and the viewport top edge (mirrors the Menu portal margin). */
 const MARGIN = 12
 
+/** Dynamic safe clearance from the top of the viewport (protects against colliding with header / hamburger icon). */
+function getTopClearance(): number {
+  if (typeof window === 'undefined') return MARGIN
+  const isMobile = window.matchMedia('(max-width: 720px)').matches
+  if (!isMobile) return MARGIN
+
+  const headerEl = document.querySelector('[data-slot="conversation.header"]')
+    || document.querySelector('[data-slot="shell.mobile_trigger"]')
+    || document.querySelector('header')
+  if (headerEl) {
+    const rect = headerEl.getBoundingClientRect()
+    return Math.max(92, rect.bottom + 16)
+  }
+  return 92
+}
+
 /**
  * Clamp a bottom-anchored overlay's max-height to the viewport.
  * @param ref - the overlay element; a null current (overlay closed) skips measuring.
@@ -24,7 +40,8 @@ export function useAnchoredMaxHeight(ref: RefObject<HTMLElement>, cap: number, s
     const el = ref.current
     if (el === null) return
     const fit = () => {
-      setMaxHeight(Math.min(cap, Math.max(0, el.getBoundingClientRect().bottom - MARGIN)))
+      const clearance = getTopClearance()
+      setMaxHeight(Math.min(cap, Math.max(0, el.getBoundingClientRect().bottom - clearance)))
     }
     fit()
     window.addEventListener('resize', fit)
