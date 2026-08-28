@@ -282,6 +282,13 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
         return { rpcId: request.rpcId, result: { ok: true, value: { models: [] } } }
       },
     },
+    apps: {
+      async list(request) { return { rpcId: request.rpcId, result: { ok: true, value: { apps: [] } } } },
+      async restart(request) { return { rpcId: request.rpcId, result: { ok: true, value: { success: true } } } },
+      async stop(request) { return { rpcId: request.rpcId, result: { ok: true, value: { success: true } } } },
+      async delete(request) { return { rpcId: request.rpcId, result: { ok: true, value: { success: true } } } },
+      async logs(request) { return { rpcId: request.rpcId, result: { ok: true, value: { logs: 'stub logs' } } } },
+    },
     events: {
       mux: (_request, signal) => stream(muxFrames, signal),
       host: (_request, signal) => stream(hostFrames, signal),

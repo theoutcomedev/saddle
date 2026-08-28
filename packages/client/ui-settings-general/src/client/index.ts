@@ -25,6 +25,8 @@ import { GeneralSection } from './GeneralSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
+import { DeployedAppsButton, type DeployedAppsButtonInjected } from './DeployedAppsButton.tsx'
+import { DeployedAppsStore } from './apps-store.ts'
 import { en, zh, type SettingsKey } from './locales.ts'
 
 export type {
@@ -78,6 +80,21 @@ export function apply(ctx: ClientContext): void {
       hooks: { snapshot: documentController.store },
     })
   ctx.effect(() => () => { documentController?.dispose() }, 'ui-settings-general: document action directory')
+
+  const appsController = new DeployedAppsStore(connection.api)
+  const appsInjected = (): DeployedAppsButtonInjected => ({
+    controller: appsController,
+    hooks: { snapshot: appsController.store },
+  })
+  ctx.effect(() => () => { appsController.dispose() }, 'ui-settings-general: apps controller')
+
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action',
+    id: 'deployed-apps',
+    order: -10,
+    locale: NS,
+    inject: appsInjected,
+  }, DeployedAppsButton))
   // The settings shell: this package occupies the sidebar-owned hole and
   // declares the settings slots. Ledger → nav-row projection as an observable
   // source (uSES contract: getSnapshot returns the cached rows until the

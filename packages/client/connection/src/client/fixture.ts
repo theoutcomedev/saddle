@@ -3056,6 +3056,13 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         models: fixtureModelGroups().flatMap(group => group.models.map(model => ({ id: model.id, name: model.name }))),
       }),
     },
+    apps: {
+      list: request => ok(request, { apps: [] }),
+      restart: request => ok(request, { success: true }),
+      stop: request => ok(request, { success: true }),
+      delete: request => ok(request, { success: true }),
+      logs: request => ok(request, { logs: 'fixture container logs' }),
+    },
     respond(message: ClientResponse): Promise<RpcReceipt> {
       // Same routing discipline as the host: rpcId first, then the payload's
       // audit correlation; a settled or unknown id is not-pending.
@@ -3227,6 +3234,11 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'llm.providers': return this.api.llm.providers(request)
       case 'llm.models': return this.api.llm.models(request)
       case 'llm.discoverModels': return this.api.llm.discoverModels(request, signal)
+      case 'apps.list': return this.api.apps.list(request)
+      case 'apps.restart': return this.api.apps.restart(request)
+      case 'apps.stop': return this.api.apps.stop(request)
+      case 'apps.delete': return this.api.apps.delete(request)
+      case 'apps.logs': return this.api.apps.logs(request)
     }
   }
 

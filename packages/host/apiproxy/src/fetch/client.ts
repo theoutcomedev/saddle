@@ -67,6 +67,13 @@ import {
   subagentListValueSchema,
   subagentPromptValueSchema,
 } from '../api/subagents.schema.ts'
+import {
+  appsDeleteValueSchema,
+  appsListValueSchema,
+  appsLogsValueSchema,
+  appsRestartValueSchema,
+  appsStopValueSchema,
+} from '../api/apps.schema.ts'
 
 /**
  * Client consumption face of the contract (shape a): same domain tree as ApiProxy, but unary
@@ -222,6 +229,11 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'llm.providers': llmProvidersValueSchema,
   'llm.models': llmModelsValueSchema,
   'llm.discoverModels': llmDiscoverModelsValueSchema,
+  'apps.list': appsListValueSchema,
+  'apps.restart': appsRestartValueSchema,
+  'apps.stop': appsStopValueSchema,
+  'apps.delete': appsDeleteValueSchema,
+  'apps.logs': appsLogsValueSchema,
 }
 
 /** Default timeout for bounded unary calls (rpc-compare 2026-07-19: a hung host must not leave callers pending forever). */

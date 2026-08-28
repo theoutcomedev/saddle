@@ -41,7 +41,7 @@ import type {
   ModelCatalogFailure, ModelProviderGroup,
   ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem,
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
-  WorkspaceId, WorkspaceView,
+  WorkspaceId, WorkspaceView, DeployedAppView,
 } from './api/index.ts'
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
@@ -3532,6 +3532,154 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           )),
         ]
         return queue.iterate(signal, () => { for (const dispose of disposers) dispose() })
+      },
+    },
+
+    apps: {
+      async list(request) {
+        try {
+          const { execFile } = await import('node:child_process')
+          const serverIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP || '91.99.165.95'
+          const domain = process.env.PUBLIC_DOMAIN || `${serverIp}.sslip.io`
+
+          const stdout = await new Promise<string>((resolve) => {
+            execFile('docker', ['ps', '-a', '--format', '{{json .}}'], { timeout: 8000 }, (error, out) => {
+              if (error) resolve('')
+              else resolve(out || '')
+            })
+          })
+
+          if (!stdout.trim()) {
+            return ok(request, { apps: [] })
+          }
+
+          const lines = stdout.trim().split('\n').filter(Boolean)
+          const systemContainers = new Set(['saddle-app', 'saddle-traefik', 'saddle-redis', 'saddle-postgres'])
+          const apps: DeployedAppView[] = []
+
+          for (const line of lines) {
+            try {
+              const item = JSON.parse(line)
+              const rawName = String(item.Names || item.ID || '').replace(/^\//, '')
+              if (systemContainers.has(rawName)) continue
+
+              const labelsStr = String(item.Labels || '')
+              const isApp = rawName.startsWith('app-')
+                || labelsStr.includes('traefik.enable=true')
+                || labelsStr.includes('saddle-network')
+                || String(item.Networks || '').includes('saddle-network')
+
+              if (!isApp) continue
+
+              const cleanName = rawName.replace(/^app-/, '')
+
+              // Find Traefik Host rule
+              let appUrl = `http://${cleanName}.${domain}/`
+              const hostMatch = /traefik\.http\.routers\.[^=]+\.rule=Host\(`([^`]+)`\)/.exec(labelsStr)
+                || /traefik\.http\.routers\.[^=]+\.rule=Host\("([^"]+)"\)/.exec(labelsStr)
+              if (hostMatch && hostMatch[1]) {
+                appUrl = `http://${hostMatch[1]}/`
+              }
+
+              // Find port
+              let portNum: number | undefined
+              const portMatch = /loadbalancer\.server\.port=([0-9]+)/.exec(labelsStr)
+              if (portMatch && portMatch[1]) {
+                portNum = parseInt(portMatch[1], 10)
+              } else if (item.Ports) {
+                const p = /([0-9]+)\/tcp/.exec(String(item.Ports))
+                if (p && p[1]) portNum = parseInt(p[1], 10)
+              }
+
+              const rawState = String(item.State || '').toLowerCase()
+              let status: DeployedAppView['status'] = 'stopped'
+              if (rawState === 'running') status = 'running'
+              else if (rawState === 'restarting') status = 'restarting'
+              else if (rawState === 'paused') status = 'paused'
+
+              apps.push({
+                id: rawName,
+                name: cleanName,
+                status,
+                url: appUrl,
+                port: portNum,
+                image: String(item.Image || ''),
+                uptime: String(item.Status || ''),
+                createdAt: String(item.CreatedAt || ''),
+              })
+            } catch {
+              // skip unparseable line
+            }
+          }
+
+          return ok(request, { apps })
+        } catch {
+          return ok(request, { apps: [] })
+        }
+      },
+
+      async restart(request) {
+        const name = request.payload.name
+        try {
+          const { execFile } = await import('node:child_process')
+          const result = await new Promise<{ success: boolean; message?: string }>((resolve) => {
+            execFile('docker', ['restart', name], { timeout: 15000 }, (error, stdout, stderr) => {
+              if (error) resolve({ success: false, message: stderr || error.message })
+              else resolve({ success: true, message: stdout })
+            })
+          })
+          return ok(request, result)
+        } catch (error) {
+          return ok(request, { success: false, message: String(error) })
+        }
+      },
+
+      async stop(request) {
+        const name = request.payload.name
+        try {
+          const { execFile } = await import('node:child_process')
+          const result = await new Promise<{ success: boolean; message?: string }>((resolve) => {
+            execFile('docker', ['stop', name], { timeout: 15000 }, (error, stdout, stderr) => {
+              if (error) resolve({ success: false, message: stderr || error.message })
+              else resolve({ success: true, message: stdout })
+            })
+          })
+          return ok(request, result)
+        } catch (error) {
+          return ok(request, { success: false, message: String(error) })
+        }
+      },
+
+      async delete(request) {
+        const name = request.payload.name
+        try {
+          const { execFile } = await import('node:child_process')
+          const result = await new Promise<{ success: boolean; message?: string }>((resolve) => {
+            execFile('docker', ['rm', '-f', name], { timeout: 15000 }, (error, stdout, stderr) => {
+              if (error) resolve({ success: false, message: stderr || error.message })
+              else resolve({ success: true, message: stdout })
+            })
+          })
+          return ok(request, result)
+        } catch (error) {
+          return ok(request, { success: false, message: String(error) })
+        }
+      },
+
+      async logs(request) {
+        const name = request.payload.name
+        const tail = request.payload.tail || 100
+        try {
+          const { execFile } = await import('node:child_process')
+          const logsOutput = await new Promise<string>((resolve) => {
+            execFile('docker', ['logs', '--tail', String(tail), name], { timeout: 10000 }, (error, stdout, stderr) => {
+              resolve(stdout || stderr || (error ? error.message : 'No logs available.'))
+            })
+          })
+          return ok(request, { logs: logsOutput })
+        } catch (error) {
+          return ok(request, { logs: String(error) })
+        }
       },
     },
 

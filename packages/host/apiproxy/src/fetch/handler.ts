@@ -70,6 +70,13 @@ import {
   subagentListRequestSchema,
   subagentPromptRequestSchema,
 } from '../api/subagents.schema.ts'
+import {
+  appsDeleteRequestSchema,
+  appsListRequestSchema,
+  appsLogsRequestSchema,
+  appsRestartRequestSchema,
+  appsStopRequestSchema,
+} from '../api/apps.schema.ts'
 
 /**
  * Unary dispatch table, keyed by (and compiler-locked to) RpcMethodMap: a map row without a
@@ -140,6 +147,11 @@ const UNARY_ROUTES: UnaryRoutes = {
   'llm.providers': { schema: llmProvidersRequestSchema, invoke: (api, r) => api.llm.providers(r) },
   'llm.models': { schema: llmModelsRequestSchema, invoke: (api, r) => api.llm.models(r) },
   'llm.discoverModels': { schema: llmDiscoverModelsRequestSchema, invoke: (api, r, signal) => api.llm.discoverModels(r, signal) },
+  'apps.list': { schema: appsListRequestSchema, invoke: (api, r) => api.apps.list(r) },
+  'apps.restart': { schema: appsRestartRequestSchema, invoke: (api, r) => api.apps.restart(r) },
+  'apps.stop': { schema: appsStopRequestSchema, invoke: (api, r) => api.apps.stop(r) },
+  'apps.delete': { schema: appsDeleteRequestSchema, invoke: (api, r) => api.apps.delete(r) },
+  'apps.logs': { schema: appsLogsRequestSchema, invoke: (api, r) => api.apps.logs(r) },
 }
 
 /** Route lookup that narrows an arbitrary path segment to a map key (single cast point for the string→key refinement). */
@@ -174,7 +186,6 @@ function fullResponse(narrow: RpcResponse<unknown>): Response {
  */
 // K appears once in the signature but ties the UNARY_ROUTES[K] row lookup to its own
 // schema/invoke pairing; a union parameter degrades the row to an uninvokable intersection.
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
 async function handleUnary<K extends keyof RpcMethodMap>(
   api: ApiProxy, method: K, message: ClientRequest, signal: AbortSignal,
 ): Promise<Response> {
