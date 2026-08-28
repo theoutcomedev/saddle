@@ -65,6 +65,18 @@ export class SettingsDocumentStore {
     try {
       const response = await this.api.settings.openDocument({})
       if (!response.result.ok) throw new Error(response.result.error.message)
+      const value = response.result.value
+      if (typeof value.content === 'string' && typeof document !== 'undefined') {
+        const blob = new Blob([value.content], { type: 'text/yaml' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = value.filename || 'config.yaml'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
     } catch (error) {
       this.store.update((state) => { state.error = messageOf(error) })
     } finally {

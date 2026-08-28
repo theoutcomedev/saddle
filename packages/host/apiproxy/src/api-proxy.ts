@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname } from 'node:path'
 import { z as zod } from 'zod'
@@ -3202,14 +3202,15 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             details: {},
           })
         }
-        if (isAborted(signal)) {
-          return err(request, {
-            code: 'cancelled',
-            message: 'settings document open was aborted',
-            details: {},
-          })
+        if (canOpenPaths()) {
+          return openTextFile(request, path, signal)
         }
-        return openTextFile(request, path, signal)
+        try {
+          const content = await readFile(path, 'utf8')
+          return ok(request, { opened: true as const, content, filename: 'config.yaml' })
+        } catch {
+          return openTextFile(request, path, signal)
+        }
       },
       update: request => settingsWrite(request, request.payload.ns, 'update', request.payload.patch, request.payload.expectedRevision),
       replace: request => settingsWrite(request, request.payload.ns, 'replace', request.payload.section, request.payload.expectedRevision),
