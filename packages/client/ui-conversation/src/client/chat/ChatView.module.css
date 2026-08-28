@@ -76,28 +76,31 @@
   flex: none;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   height: 26px;
   font: var(--dsw-font-s-strong-14);
   white-space: nowrap;
+}
+
+.turnStatusLabel {
   background: linear-gradient(
     90deg,
-    var(--dsw-static-amber-500) 0%,
-    var(--dsw-static-amber-500) 40%,
-    var(--dsw-static-amber-200) 50%,
-    var(--dsw-static-amber-500) 60%,
-    var(--dsw-static-amber-500) 100%
+    #f59e0b 0%,
+    #f59e0b 40%,
+    #fef3c7 50%,
+    #f59e0b 60%,
+    #f59e0b 100%
   );
   background-position: 100% 0;
   background-size: 250% 100%;
   background-clip: text;
-  color: transparent;
+  color: #f59e0b;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: dsh-turn-status-shimmer 1.8s linear infinite;
 }
 
 .turnStatusClock {
-  margin-left: 8px;
   font: var(--dsw-font-xs-13);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
@@ -112,7 +115,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .turnStatus {
+  .turnStatusLabel {
     background-position: 0 0;
     background-size: 100% 100%;
     animation: none;
