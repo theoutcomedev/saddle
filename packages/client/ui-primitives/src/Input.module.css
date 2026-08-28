@@ -36,3 +36,9 @@
 .input::placeholder {
   color: var(--dsw-alias-label-dimmed);
 }
+
+@media (max-width: 720px) {
+  .input {
+    font-size: 16px;
+  }
+}

@@ -549,6 +549,9 @@ export function InputBar({
   // the next keystroke gets the browser's native one.
   const keepFocus = (e: MouseEvent<HTMLButtonElement>): void => {
     e.preventDefault()
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+      return
+    }
     inputRef.current?.focus({ preventScroll: true })
   }
 

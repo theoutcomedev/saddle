@@ -69,9 +69,15 @@ export function PopupSelectView({ popup, t }: PopupSelectViewProps) {
     return () => { document.removeEventListener('pointerdown', onPointerDown, true) }
   }, [state.open, state.confirming, popup])
 
-  // Focus the search input after it mounts (separate effect so the ref is populated).
+  // Focus the search input after it mounts on desktop/fine-pointer devices.
+  // On mobile touch devices, suppress autofocus so the virtual keyboard does not pop up automatically.
   useEffect(() => {
-    if (state.open && state.confirming === null) searchRef.current?.focus()
+    if (state.open && state.confirming === null) {
+      if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+        return
+      }
+      searchRef.current?.focus()
+    }
   }, [state.open, state.confirming])
 
   if (!state.open) return null

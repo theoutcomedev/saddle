@@ -116,3 +116,9 @@
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
 }
+
+@media (max-width: 720px) {
+  .search {
+    font-size: 16px;
+  }
+}
