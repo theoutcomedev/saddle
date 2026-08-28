@@ -5,6 +5,7 @@ import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/clien
 import type { PluginInventorySettingsTabInjected } from './PluginInventorySettingsTab.tsx'
 import { IconPuzzleOutline16 } from './PluginManagerButton.tsx'
 import css from './PluginManagerModal.module.css'
+import { injectMetadata } from './metadata.ts'
 
 export interface PluginManagerModalProps {
   onClose: () => void
@@ -39,7 +40,7 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
     refresh()
   }, [list])
 
-  const entries = snapshot?.entries || []
+  const entries = (snapshot?.entries || []).map(injectMetadata)
 
   const categories = useMemo(() => {
     const cats = new Set<string>()
@@ -115,7 +116,12 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
               />
             </div>
             <div className={css.grid}>
-              {filtered.map(entry => (
+              {loading && filtered.length === 0 ? (
+                <div className={css.loadingState}>
+                  <div className={css.spinner} />
+                  Loading plugins...
+                </div>
+              ) : filtered.map(entry => (
                 <div key={entry.entryId} className={css.card}>
                   <div className={css.cardHeader}>
                     <div className={css.iconWrapper}>
@@ -133,6 +139,7 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
                   <p className={css.cardDesc}>
                     {entry.description || 'No description provided.'}
                   </p>
+
                   <div className={css.cardFooter}>
                     <div className={css.tags}>
                       {entry.tags?.slice(0, 3).map(t => (
@@ -151,6 +158,21 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
                       </div>
                     </button>
                   </div>
+                  <details className={css.debugDetails}>
+                    <summary className={css.debugSummary}>Cordis Status & Configuration</summary>
+                    <div className={css.metaRow}>
+                      <span className={css.metaItem}>
+                        <span className={css.metaLabel}>Phase:</span>
+                        <span className={css.metaValue}>{entry.phase}</span>
+                      </span>
+                      <span className={css.metaItem}>
+                        <span className={css.metaLabel}>Config:</span>
+                        <span className={css.metaValue}>
+                          {entry.options?.configurable ? 'Yes' : 'No'}
+                        </span>
+                      </span>
+                    </div>
+                  </details>
                 </div>
               ))}
             </div>
