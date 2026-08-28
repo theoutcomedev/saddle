@@ -66,7 +66,11 @@ Unmount the plugin with `cordis_unmount` when you are done; it is a probe, not a
 ## Creating Permanent Plugin Packages
 
 When a user asks to make a dynamic plugin permanent, you will need to port its logic into a real NPM package on the server so it can be composed.
-**CRITICAL:** When generating the `package.json` for any permanent plugin you create, you MUST ALWAYS include `"saddle": { "source": "ai-generated" }` at the root level of the JSON object. This exact metadata ensures the Saddle UI correctly identifies and visually badges the plugin as "AI Built".
+When generating the `package.json` for any permanent plugin you create, you MUST include the following metadata to ensure it renders beautifully in the global Plugin Manager:
+1. **`description`**: A short, clear summary of what the plugin does.
+2. **`author`**: Set this to `"Saddle AI"`.
+3. **`keywords`**: An array of 2-3 relevant tags (e.g., `["tools", "weather"]`).
+4. **`saddle.source`**: You MUST ALWAYS include `"saddle": { "source": "ai-generated" }` at the root level of the JSON. This exact metadata ensures the UI visually badges the plugin as "AI Built".
 
 ## Authoring a preset
 
