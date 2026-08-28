@@ -8,8 +8,8 @@ import css from './PluginManagerModal.module.css'
 
 export interface PluginManagerModalProps {
   onClose: () => void
-  list?: PluginInventorySettingsTabInjected['list']
-  toggle?: (entryId: string, enabled: boolean) => Promise<void>
+  list?: PluginInventorySettingsTabInjected['list'] | undefined
+  toggle?: ((entryId: string, enabled: boolean) => Promise<void>) | undefined
 }
 
 function moduleShortName(moduleName: string): string {
@@ -75,83 +75,85 @@ export function PluginManagerModal({ onClose, list, toggle }: PluginManagerModal
   }
 
   return (
-    <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="plugin-manager-title">
-      <div className={css.header}>
-        <div className={css.titleArea}>
-          <IconPuzzleOutline16 size={18} />
-          <h2 id="plugin-manager-title" className={css.title}>Plugins</h2>
-        </div>
-        <div className={css.headerControls}>
-          <Button variant="outline" size="sm" disabled={loading} onClick={refresh} title="Refresh">
-            <IconRefreshOutline16 size={14} className={loading ? css.spin : undefined} />
-          </Button>
-          <Button variant="outline" size="sm" onClick={onClose} title="Close">
-            <IconCloseOutline16 size={14} />
-          </Button>
-        </div>
-      </div>
-      <div className={css.content}>
-        <div className={css.sidebar}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              className={css.categoryButton}
-              data-active={activeCategory === cat}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        <div className={css.mainArea}>
-          <div className={css.searchBar}>
-            <input
-              type="search"
-              className={css.searchInput}
-              placeholder="Search plugins..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-            />
+    <div className={css.mask} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="plugin-manager-title">
+        <div className={css.header}>
+          <div className={css.titleArea}>
+            <IconPuzzleOutline16 size={18} />
+            <h2 id="plugin-manager-title" className={css.title}>Plugins</h2>
           </div>
-          <div className={css.grid}>
-            {filtered.map(entry => (
-              <div key={entry.entryId} className={css.card}>
-                <div className={css.cardHeader}>
-                  <div className={css.iconWrapper}>
-                    {entry.icon ? (
-                      <div dangerouslySetInnerHTML={{ __html: entry.icon }} />
-                    ) : (
-                      <IconPuzzleOutline16 size={20} />
-                    )}
-                  </div>
-                  <div className={css.cardTitleArea}>
-                    <h3 className={css.cardTitle}>{moduleShortName(entry.moduleName)}</h3>
-                    {entry.developer && <p className={css.cardAuthor}>by {entry.developer}</p>}
-                  </div>
-                </div>
-                <p className={css.cardDesc}>
-                  {entry.description || 'No description provided.'}
-                </p>
-                <div className={css.cardFooter}>
-                  <div className={css.tags}>
-                    {entry.tags?.slice(0, 3).map(t => (
-                      <span key={t} className={css.tag}>{t}</span>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className={css.toggleSwitch}
-                    aria-checked={entry.enabled}
-                    onClick={() => handleToggle(entry.entryId, !entry.enabled)}
-                  >
-                    {entry.enabled ? 'Enabled' : 'Disabled'}
-                    <div className={css.switchTrack}>
-                      <div className={css.switchThumb} />
-                    </div>
-                  </button>
-                </div>
-              </div>
+          <div className={css.headerControls}>
+            <Button variant="outline" size="sm" disabled={loading} onClick={refresh} title="Refresh">
+              <IconRefreshOutline16 size={14} className={loading ? css.spin : undefined} />
+            </Button>
+            <Button variant="outline" size="sm" onClick={onClose} title="Close">
+              <IconCloseOutline16 size={14} />
+            </Button>
+          </div>
+        </div>
+        <div className={css.content}>
+          <div className={css.sidebar}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                className={css.categoryButton}
+                data-active={activeCategory === cat}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
             ))}
+          </div>
+          <div className={css.mainArea}>
+            <div className={css.searchBar}>
+              <input
+                type="search"
+                className={css.searchInput}
+                placeholder="Search plugins..."
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+              />
+            </div>
+            <div className={css.grid}>
+              {filtered.map(entry => (
+                <div key={entry.entryId} className={css.card}>
+                  <div className={css.cardHeader}>
+                    <div className={css.iconWrapper}>
+                      {entry.icon ? (
+                        <div dangerouslySetInnerHTML={{ __html: entry.icon }} />
+                      ) : (
+                        <IconPuzzleOutline16 size={20} />
+                      )}
+                    </div>
+                    <div className={css.cardTitleArea}>
+                      <h3 className={css.cardTitle}>{moduleShortName(entry.moduleName)}</h3>
+                      {entry.developer && <p className={css.cardAuthor}>by {entry.developer}</p>}
+                    </div>
+                  </div>
+                  <p className={css.cardDesc}>
+                    {entry.description || 'No description provided.'}
+                  </p>
+                  <div className={css.cardFooter}>
+                    <div className={css.tags}>
+                      {entry.tags?.slice(0, 3).map(t => (
+                        <span key={t} className={css.tag}>{t}</span>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className={css.toggleSwitch}
+                      aria-checked={entry.enabled}
+                      onClick={() => handleToggle(entry.entryId, !entry.enabled)}
+                    >
+                      {entry.enabled ? 'Enabled' : 'Disabled'}
+                      <div className={css.switchTrack}>
+                        <div className={css.switchThumb} />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

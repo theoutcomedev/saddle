@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
 import { PluginManagerModal } from './PluginManagerModal.tsx'
 import css from './PluginManagerButton.module.css'
 
@@ -12,10 +13,11 @@ export function IconPuzzleOutline16({ size = 16, className }: { size?: number | 
   )
 }
 
+
 export interface PluginManagerButtonProps {
   wide?: boolean
-  list?: () => Promise<PluginInventorySnapshot>
-  toggle?: (entryId: string, enabled: boolean) => Promise<void>
+  list?: (() => Promise<PluginInventorySnapshot>) | undefined
+  toggle?: ((entryId: string, enabled: boolean) => Promise<void>) | undefined
 }
 
 export function PluginManagerButton({ wide = true, list, toggle }: PluginManagerButtonProps) {
