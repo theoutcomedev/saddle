@@ -263,3 +263,29 @@
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+
+@media (max-width: 768px) {
+  .mask {
+    padding: 0;
+  }
+  .modal {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+  .header {
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+  }
+  .content {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+  }
+}
