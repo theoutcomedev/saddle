@@ -1,7 +1,7 @@
 services:
   traefik:
     container_name: saddle-traefik
-    image: traefik:v3.1
+    image: traefik:latest
     command:
       - "--api.insecure=true"
       - "--api.dashboard=true"
