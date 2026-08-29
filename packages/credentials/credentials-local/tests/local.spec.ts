@@ -318,7 +318,7 @@ describe('document writes', () => {
     const ctx = await boot({ path, watch: false })
     const seen = updates(ctx)
     await ctx.credentials.set(KEY, 'sk-fresh')
-    expect(await readFile(path, 'utf8')).toBe('version: 1\nrefs:\n  DSH_CRED_TEST: sk-fresh\n')
+    expect(await readFile(path, 'utf8')).toContain('version: 1\nrefs:\n  DSH_CRED_TEST: enc:v1:')
     if (process.platform !== 'win32') expect((await stat(path)).mode & 0o777).toBe(0o600)
     expect(await ctx.credentials.resolve(KEY)).toEqual({ value: 'sk-fresh', source: 'file' })
     expect(seen).toEqual([KEY])
@@ -330,10 +330,9 @@ describe('document writes', () => {
     await writeCredentials(path, 'version: 1\nrefs:\n  # deployment notes\n  DSH_CRED_OTHER: keep\n\n  # the one under edit\n  DSH_CRED_TEST: old\n')
     const ctx = await boot({ path, watch: false })
     await ctx.credentials.set(KEY, 'new value!')
-    expect(await readFile(path, 'utf8')).toBe(
-      'version: 1\nrefs:\n  # deployment notes\n  DSH_CRED_OTHER: keep\n\n'
-      + '  # the one under edit\n  DSH_CRED_TEST: new value!\n',
-    )
+    const stored = await readFile(path, 'utf8')
+    expect(stored).toContain('# deployment notes\n  DSH_CRED_OTHER: keep\n\n  # the one under edit\n  DSH_CRED_TEST: enc:v1:')
+    expect(stored).not.toContain('new value!')
   })
 
   it('round-trips values no dotenv line could represent', async () => {
@@ -408,7 +407,7 @@ describe('document writes', () => {
     const good = ctx.credentials.set(OTHER, 'lands')
     await bad
     await good
-    expect(await readFile(path, 'utf8')).toBe('version: 1\nrefs:\n  DSH_CRED_OTHER: lands\n')
+    expect(await readFile(path, 'utf8')).toContain('version: 1\nrefs:\n  DSH_CRED_OTHER: enc:v1:')
   })
 
   it('serializes concurrent writes so both land in the one document', async () => {
@@ -419,7 +418,9 @@ describe('document writes', () => {
       ctx.credentials.set(KEY, 'one'),
       ctx.credentials.set(OTHER, 'two'),
     ])
-    expect(await readFile(path, 'utf8')).toBe('version: 1\nrefs:\n  DSH_CRED_TEST: one\n  DSH_CRED_OTHER: two\n')
+    const stored = await readFile(path, 'utf8')
+    expect(stored).toContain('version: 1\nrefs:\n  DSH_CRED_TEST: enc:v1:')
+    expect(stored).toContain('DSH_CRED_OTHER: enc:v1:')
   })
 
   it('refuses writes after disposal', async () => {

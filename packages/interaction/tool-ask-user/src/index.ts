@@ -51,6 +51,10 @@ export function apply(ctx: Context): void {
               type: 'boolean',
               description: 'Whether the user may select more than one option. Defaults to false.',
             },
+            secret: {
+              type: 'boolean',
+              description: 'Render the free-text answer as a masked secret (e.g. an API key), kept out of logs and screenshots.',
+            },
           },
         },
       },
@@ -85,6 +89,7 @@ export function apply(ctx: Context): void {
           ...question.header !== undefined ? { header: question.header } : {},
           ...question.options !== undefined ? { options: question.options } : {},
           ...question.multi_select !== undefined ? { multiSelect: question.multi_select } : {},
+          ...question.secret !== undefined ? { secret: question.secret } : {},
         })),
         ...exec.agent !== undefined ? { agent: exec.agent } : {},
         signal: exec.signal,

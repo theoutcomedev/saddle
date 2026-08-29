@@ -47,6 +47,12 @@ export interface AskUserQuestionItem {
   multiSelect?: boolean
   /** Optional presentation intent for capable UIs; absent asks for the generic option list. */
   intent?: AskUserQuestionIntent
+  /**
+   * Whether the free-text answer is a secret and must be rendered masked and
+   * kept out of logs, transcripts, and screenshots. The answer still returns in
+   * `custom`; this changes presentation only, never the protocol.
+   */
+  secret?: boolean
 }
 
 /** Answer to one question. */

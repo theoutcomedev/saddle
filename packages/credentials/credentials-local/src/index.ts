@@ -56,6 +56,9 @@ import type {
   ResolvedCredential,
 } from '@deepseek-ai/dsh-credentials'
 import type { LaunchEnvironmentEntry } from '@deepseek-ai/dsh-launch-environment'
+import { seal } from './crypto.ts'
+import { KEK_ENV, KEK_FILENAME, kekFromEnv, loadOrCreateKek } from './keystore.ts'
+import { openRecords, openRefs, sealApiKeyRecord } from './sealing.ts'
 
 /** Basename of the credentials document inside the harness home. */
 export const CREDENTIALS_FILENAME = '.credentials.yaml'
@@ -540,6 +543,10 @@ export class LocalCredentialProvider extends CredentialProvider {
   private operations: Promise<void> = Promise.resolve()
   /** Set at dispose: refuse new writes and let in-flight work no-op. */
   private closed = false
+  /** Absolute path of the key-encryption key file, beside the credentials document. */
+  private readonly keyFile: string
+  /** Key-encryption key, created or read on first use. */
+  private kekPromise: Promise<Buffer> | undefined
 
   /** Opaque read of {@link closed}: control flow cannot narrow it across awaits. */
   private isClosed(): boolean {
@@ -552,6 +559,20 @@ export class LocalCredentialProvider extends CredentialProvider {
     // Programmatic construction may bypass Schemastery normalization; resolve
     // the same defaults in one explicit step either way.
     this.spec = resolveSpec(config)
+    this.keyFile = join(dirname(this.spec.filename), KEK_FILENAME)
+  }
+
+  /** The key-encryption key, loaded once on first use and reused. */
+  private getKek(): Promise<Buffer> {
+    if (this.kekPromise === undefined) this.kekPromise = this.loadKek()
+    return this.kekPromise
+  }
+
+  /** Resolve the key-encryption key: an environment key wins over the key file. */
+  private async loadKek(): Promise<Buffer> {
+    const env = kekFromEnv(KEK_ENV)
+    if (env !== undefined) return env
+    return loadOrCreateKek(this.keyFile)
   }
 
   /** The inherited-environment value for a reference, or `undefined` when empty or unset. */
@@ -694,7 +715,9 @@ export class LocalCredentialProvider extends CredentialProvider {
         // next boot rejects, and a value refused here has not been stored.
         if (next.kind === 'grant') assertJsonValue(`record "${key}" payload`, next.payload, new Set())
         else assertStorableApiKey(key, next)
-        const nextText = renderRecord(this.text, key, next)
+        const kek = await this.getKek()
+        const stored = next.kind === 'api-key' ? sealApiKeyRecord(next, kek) : next
+        const nextText = renderRecord(this.text, key, stored)
         // 0600: a document holding secrets is never world-readable.
         await writeFileAtomic(this.spec.filename, nextText, { mode: 0o600, dirMode: 0o700 })
         this.text = nextText
@@ -773,7 +796,9 @@ export class LocalCredentialProvider extends CredentialProvider {
         await this.reconcileFromDisk()
         const existing = this.values.get(ref)
         if (value === undefined && existing === undefined) return
-        const nextText = renderRef(this.text, ref, value)
+        const kek = await this.getKek()
+        const stored = value === undefined ? undefined : seal(value, kek)
+        const nextText = renderRef(this.text, ref, stored)
         // 0600: a document holding secrets is never world-readable.
         await writeFileAtomic(this.spec.filename, nextText, { mode: 0o600, dirMode: 0o700 })
         this.text = nextText
@@ -819,8 +844,11 @@ export class LocalCredentialProvider extends CredentialProvider {
     }
     if (renderFlatLayoutMigration(text) !== undefined) text = await this.migrateFlatDocument()
     const document = parseCredentialsDocument(text, this.spec.filename)
-    this.values = document.refs
-    this.records = document.records
+    // Loaded only once the document is trusted: key creation must not mask a
+    // credentials-path failure such as a file in place of the parent directory.
+    const kek = await this.getKek()
+    this.values = openRefs(document.refs, kek)
+    this.records = openRecords(document.records, kek)
     this.text = text
   }
 
@@ -895,9 +923,12 @@ export class LocalCredentialProvider extends CredentialProvider {
       text = undefined
     }
     if (text === this.text || this.isClosed()) return
+    const kek = await this.getKek()
     const next = text === undefined
       ? { refs: new Map<string, string>(), records: new Map<string, CredentialRecord>() }
       : parseCredentialsDocument(text, this.spec.filename)
+    next.refs = openRefs(next.refs, kek)
+    next.records = openRecords(next.records, kek)
     const changedRefs = this.changedRefs(this.values, next.refs)
     const changedRecords = this.changedRecords(this.records, next.records)
     this.text = text

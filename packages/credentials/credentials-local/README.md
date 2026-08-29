@@ -34,8 +34,8 @@ A versioned YAML document with one section per key space, and nothing else:
 version: 1
 
 refs:
-  DEEPSEEK_API_KEY: sk-…
-  OPENAI_API_KEY: sk-…
+  DEEPSEEK_API_KEY: enc:v1:…     # sealed at rest
+  OPENAI_API_KEY: enc:v1:…
 
 records:
   llm-pi-ai/openai-codex:
@@ -48,7 +48,7 @@ records:
   llm-pi-ai/amazon-bedrock:
     kind: api-key               # environment values, no key: this route uses an AWS profile
     env:
-      AWS_PROFILE: prod
+      AWS_PROFILE: enc:v1:…      # sealed at rest
   llm-pi-ai/amazon-bedrock-dev:
     kind: api-key               # neither: the owner confirmed the ambient credential chain
 ```
@@ -67,6 +67,14 @@ Any string value round-trips, multi-line values included, so no entry is unwrita
 
 The provider creates the directory `0700` and creates or atomically replaces the document `0600`. It holds what it *reads* to that same bound: on POSIX a document carrying any group or other permission bit fails before its contents are parsed — at boot and on every reload — and the error names the `chmod 600` repair. Windows has no mode to inspect, so the check is skipped there rather than faked.
 
+## Encryption at rest
+
+Reference values and an `api-key` record's `key` and `env` values are sealed before they are written: each entry is encrypted under its own random AES-256-GCM data key, and the data key is wrapped by a key-encryption key (envelope encryption). The document holds only ciphertext (`enc:v1:…`), so a document that leaks without its key is inert.
+
+The key-encryption key lives in `<harness home>/.credentials.key`, created `0600` on first use under the writer lock, or is supplied as base64url in the `DSH_CREDENTIALS_KEY` environment variable (which wins and suppresses the file). Losing the key makes every sealed value unrecoverable — that is the property, not a failure mode.
+
+Migration is lazy: a legacy plaintext value reads unchanged, and each entry is sealed the next time it is written. A `grant` record's `payload` is not sealed — it is written verbatim in its owner's format, so an OAuth grant's refresh token remains plaintext until the grant seam itself gains sealing.
+
 ## Hot reload
 
 External edits publish `credentials/reference-updated` per changed reference after the snapshot is replaced **wholesale** — an entry deleted on disk never lingers in memory. Before Chokidar opens the target, the provider realpaths its deepest existing ancestor and restores any missing suffix; file access and diagnostics retain the configured path, while Windows cannot mix an 8.3 alias with long-form libuv events. The provider's own writes are recognized by content and publish exactly their one commit event. An unreadable or invalid document at runtime keeps the last good snapshot and warns; an absent file is an empty store; an unreadable or invalid file at boot fails loud.
@@ -75,7 +83,7 @@ External edits publish `credentials/reference-updated` per changed reference aft
 
 The document is `0600` under a `0700` directory, which stops other OS users — **not** the model. Tool processes (bash, the filesystem tools) run as the same user, and the shipped `workspace-write` file policy confines mutations rather than reads, so they can read this file exactly like any other file the user owns; no sandbox mode singles it out. What the harness does hold to is narrower: it never hands the model a resolved path to the document, and never loads it into the process environment — unlike `$DSH_HOME/.env`, which is the user's ordinary environment layer (see [app-boot's Harness-home layers](../../boot/app-boot/README.md#profiles)) — so reaching the value takes a deliberate read of a path the agent was not given.
 
-That is discretion, not a boundary. A deployment that must keep provider keys away from its own agent cannot get there with file permissions; an OS-keychain provider — a store the model's processes cannot read at all — is the deferred answer and belongs beside this provider as a sibling package.
+That is discretion, not a boundary. Sealing at rest adds confidentiality for the document's bytes — a document that leaks without its key file is inert — but the key file is readable by the same user, so a same-UID process can still unseal it. A deployment that must keep provider keys away from its own agent cannot get there with file permissions or at-rest encryption; an OS-keychain provider — a store the model's processes cannot read at all — is the deferred answer and belongs beside this provider as a sibling package.
 
 ## Model Experience
 
@@ -88,6 +96,7 @@ No direct invalidation; credentials never enter a request prefix.
 ## Known Limitations and Deferred Work
 
 - **Same-reference concurrent writes are last-write-wins** — the writer lock and the read-modify-write keep concurrent writers from dropping each other's entries, but two writers editing one reference still resolve to the later write; there is no revision check.
-- **A same-UID process can read the document** — see [Security boundary](#security-boundary): the file-effect sandbox modes do not deny reads, and an OS-keychain provider is deferred.
+- **A same-UID process can read the document and its key file** — see [Security boundary](#security-boundary): the file-effect sandbox modes do not deny reads, and an OS-keychain provider is deferred.
 - **Environment changes are invisible** — the snapshot is frozen at launch, so a variable exported after startup reaches neither resolution nor `describe`; changing an environment-sourced credential takes a restart.
 - **Atomic, not crash-durable** — inherited from `dsh-atomic-write`; the store re-reads on boot.
+- **Grant payloads are not sealed** — an `api-key` record's `key` and `env` are sealed at rest, but a `grant` `payload` stays plaintext in its owner's format; sealing it waits on the grant seam.

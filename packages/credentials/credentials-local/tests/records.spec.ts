@@ -124,10 +124,8 @@ describe('record storage', () => {
     await put(ctx, CODEX, { kind: 'grant', payload: { token: 't' } })
 
     const text = await readFile(path, 'utf8')
-    expect(text).toBe(
-      'version: 1\nrefs:\n  DSH_RECORDS_KEY: sk-live\nrecords:\n'
-      + '  llm-pi-ai/openai-codex:\n    kind: grant\n    payload:\n      token: t\n',
-    )
+    expect(text).toContain('DSH_RECORDS_KEY: enc:v1:')
+    expect(text).toContain('llm-pi-ai/openai-codex:\n    kind: grant\n    payload:\n      token: t')
     expect(await ctx.credentials.resolve(credentialRef('DSH_RECORDS_KEY'))).toEqual({ value: 'sk-live', source: 'file' })
   })
 

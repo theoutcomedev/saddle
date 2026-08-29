@@ -55,6 +55,8 @@ interface AnswerFieldProps {
   placeholder: string
   /** Whether a submission in flight has frozen the field. */
   disabled: boolean
+  /** Whether the answer is a secret and must render masked, kept out of screenshots and logs. */
+  secret?: boolean
   /** Whether this field takes focus on mount. */
   autoFocus?: boolean
   /** Called when the field takes focus. */
@@ -82,9 +84,21 @@ interface AnswerFieldProps {
  * @returns The mirrored auto-growing field.
  */
 function AnswerField(props: AnswerFieldProps) {
-  return (
-    <div className={clsx(css.field, props.variant === 'inline' ? css.customInline : css.customBlock)}>
-      <div aria-hidden className={css.fieldMirror}>{`${props.value}\n`}</div>
+  const field = props.secret === true
+    ? (
+      <input
+        autoFocus={props.autoFocus}
+        className={css.fieldInput}
+        type="password"
+        value={props.value}
+        disabled={props.disabled}
+        placeholder={props.placeholder}
+        onFocus={props.onFocus}
+        onChange={event => props.onChange(event as unknown as ChangeEvent<HTMLTextAreaElement>)}
+        onKeyDown={event => props.onKeyDown(event as unknown as KeyboardEvent<HTMLTextAreaElement>)}
+      />
+    )
+    : (
       <textarea
         autoFocus={props.autoFocus}
         className={css.fieldInput}
@@ -96,6 +110,11 @@ function AnswerField(props: AnswerFieldProps) {
         onChange={props.onChange}
         onKeyDown={props.onKeyDown}
       />
+    )
+  return (
+    <div className={clsx(css.field, props.variant === 'inline' ? css.customInline : css.customBlock)}>
+      {props.secret === true ? null : <div aria-hidden className={css.fieldMirror}>{`${props.value}\n`}</div>}
+      {field}
     </div>
   )
 }
@@ -353,6 +372,7 @@ function QuestionFlow({ pending, t }: { pending: PendingQuestion } & Pick<Questi
                         variant="inline"
                         value={draft.custom}
                         disabled={busy !== null}
+                        secret={question.secret === true}
                         placeholder={t('custom.placeholder')}
                         onChange={draftCustom}
                         onKeyDown={continueFromCustom}
@@ -365,6 +385,7 @@ function QuestionFlow({ pending, t }: { pending: PendingQuestion } & Pick<Questi
                       variant="block"
                       value={draft.custom}
                       disabled={busy !== null}
+                      secret={question.secret === true}
                       placeholder={t('custom.placeholder')}
                       onFocus={() => { focusedQuestions.current.add(index) }}
                       onChange={draftCustom}

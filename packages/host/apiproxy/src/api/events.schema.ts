@@ -24,6 +24,9 @@ export const askUserQuestionItemSchema = z.object({
   detail: z.string().optional(),
   options: z.array(z.object({ label: z.string(), description: z.string().optional() })).optional(),
   multiSelect: z.boolean().optional(),
+  // Masked free-text answer (an API key): a presentation flag, the answer still
+  // returns in `custom`.
+  secret: z.boolean().optional(),
   // Presentation intent: a tagged union on the wire, so an unknown tag is a
   // rejected frame rather than a silently generic render.
   intent: z.discriminatedUnion('kind', [
