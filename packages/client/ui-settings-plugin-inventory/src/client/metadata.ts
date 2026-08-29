@@ -83,7 +83,7 @@ export function injectMetadata(raw: PluginInventoryEntry): RichPluginEntry {
 
   return {
     ...entry,
-    developer: entry.developer ?? 'DeepSeek Harness',
+    developer: entry.developer ?? 'Saddle',
     categories: [category],
     tags: tags,
     icon: icon,
