@@ -56,6 +56,9 @@
       config:
         root: !!js dshHomePath('storages')
 
+    - id: ui-app-store
+      name: '@deepseek-ai/dsh-client-ui-app-store'
+
     - id: host-app-store
       name: '@deepseek-ai/dsh-host-app-store'
 

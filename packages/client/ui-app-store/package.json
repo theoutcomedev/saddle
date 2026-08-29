@@ -1,6 +1,8 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-app-store",
   "description": "My Apps: a sidebar app-store surface with a full-screen autosaving notepad",
+  "author": "Saddle",
+
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
