@@ -283,8 +283,6 @@
     # cards. A namespace this deployment does not expose renders nothing.
     - id: ui-settings-plugins
       name: '@deepseek-ai/dsh-client-ui-settings-plugins'
-    - id: ui-settings-connections
-      name: '@deepseek-ai/dsh-client-ui-settings-connections'
 
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan
