@@ -48,12 +48,12 @@ export function DeployedAppsButton({ wide = true, controller, useSnapshot }: Dep
     <button
       type="button"
       className={clsx(css.trigger, !wide && css.triggerCollapsed)}
-      aria-label="Deployed Apps"
-      title={!wide ? 'Deployed Apps' : undefined}
+      aria-label="Deployments"
+      title={!wide ? 'Deployments' : undefined}
       onClick={() => { setOpen(true) }}
     >
       <IconAppsOutline16 size={16} className={css.icon} />
-      {wide && <span className={css.label}>Deployed Apps</span>}
+      {wide && <span className={css.label}>Deployments</span>}
       {wide && runningCount > 0 && (
         <span className={css.countBadge}>{runningCount}</span>
       )}
@@ -63,7 +63,7 @@ export function DeployedAppsButton({ wide = true, controller, useSnapshot }: Dep
   return (
     <>
       {!wide ? (
-        <Tooltip label="Deployed Apps" delayMs={500}>
+        <Tooltip label="Deployments" delayMs={500}>
           {button}
         </Tooltip>
       ) : (

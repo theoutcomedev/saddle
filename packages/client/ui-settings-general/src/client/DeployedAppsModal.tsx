@@ -52,7 +52,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
         <div className={css.header}>
           <div className={css.titleArea}>
             <IconAppsOutline16 size={18} />
-            <h2 id="deployed-apps-title" className={css.title}>Deployed Apps</h2>
+            <h2 id="deployed-apps-title" className={css.title}>Deployments</h2>
             {apps.length > 0 && (
               <span className={css.badge}>{runningCount} active</span>
             )}
@@ -82,7 +82,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
           {apps.length === 0 ? (
             <div className={css.emptyState}>
               <IconAppsOutline16 size={36} className={css.emptyIcon} />
-              <h3 className={css.emptyTitle}>No Deployed Applications</h3>
+              <h3 className={css.emptyTitle}>No Deployments</h3>
               <p className={css.emptyDesc}>
                 You haven't deployed any apps yet. Ask Saddle in any session to build and host an application:
                 <br />
