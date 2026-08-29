@@ -261,3 +261,7 @@
 
 - id: tool-skill
   name: '@deepseek-ai/dsh-tool-skill'
+
+# Added from VPS extraction
+- id: tool-request-credential
+  name: '@deepseek-ai/dsh-connections'
