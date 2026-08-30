@@ -13,10 +13,14 @@ afterEach(cleanup)
 type Snapshot = Awaited<ReturnType<PluginInventorySettingsTabInjected['list']>>
 const t = ((key: PluginInventoryLocaleKey): string => en[key]) as PluginInventorySettingsTabProps['t']
 
-function props(list: PluginInventorySettingsTabInjected['list']): PluginInventorySettingsTabProps {
+function props(
+  list: PluginInventorySettingsTabInjected['list'],
+  toggle?: PluginInventorySettingsTabInjected['toggle'],
+): PluginInventorySettingsTabProps {
   return {
     t,
     list,
+    toggle: toggle ?? vi.fn(),
   } as PluginInventorySettingsTabProps
 }
 
@@ -76,6 +80,47 @@ describe('PluginInventorySettingsTab', () => {
     expect(screen.getAllByText(en.disabledTag)).toHaveLength(2)
     expect(screen.queryByText(en.cordis)).toBeNull()
     expect(screen.queryByText(en.unobserved)).toBeNull()
+  })
+
+  it('shows rich metadata and toggles a plugin from the expanded card', async () => {
+    const RICH = {
+      entries: [
+        {
+          entryId: '8a1b2c3d',
+          moduleName: '@deepseek-ai/cordis-plugin-hmr',
+          enabled: true,
+          fiberPhase: 'active',
+          description: 'Hot module reload for client bundles.',
+          developer: 'Saddle',
+          tags: ['hmr', 'dev'],
+          categories: ['Core Plugins'],
+          icon: '<svg></svg>',
+          source: 'bundled',
+        },
+        {
+          entryId: 'disabled-entry',
+          moduleName: '@deepseek-ai/dsh-host-directory-picker-native',
+          enabled: false,
+          fiberPhase: null,
+        },
+      ],
+    } as unknown as Snapshot
+    const toggle = vi.fn<PluginInventorySettingsTabInjected['toggle']>().mockResolvedValue(undefined)
+    const list = vi.fn<PluginInventorySettingsTabInjected['list']>().mockResolvedValue(RICH)
+    render(<PluginInventorySettingsTab {...props(list, toggle)} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'hmr, Mounted, Enabled' }))
+    expect(screen.getByText('Hot module reload for client bundles.')).toBeTruthy()
+    expect(screen.getByText(en.developer)).toBeTruthy()
+    expect(screen.getByText('Saddle')).toBeTruthy()
+    expect(screen.getByText(en.category)).toBeTruthy()
+    expect(screen.getByText('Core Plugins')).toBeTruthy()
+    expect(screen.getAllByText('hmr')).toHaveLength(2) // card title + tag chip
+    expect(screen.getByRole('button', { name: en.disable })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: en.disable }))
+    await waitFor(() => { expect(toggle).toHaveBeenCalledWith('8a1b2c3d', false) })
+    await waitFor(() => { expect(list).toHaveBeenCalledTimes(2) })
   })
 
   it('filters by module name or Loader entry id', async () => {

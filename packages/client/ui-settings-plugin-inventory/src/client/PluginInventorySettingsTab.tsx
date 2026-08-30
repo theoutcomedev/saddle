@@ -6,12 +6,15 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginInventoryLocaleKey } from './locales.ts'
+import { injectMetadata, type RichPluginEntry } from './metadata.ts'
 import css from './PluginInventorySettingsTab.module.css'
 
 /** Registration-side Remote face used by the section. */
 export interface PluginInventorySettingsTabInjected {
   /** Read a current Host inventory snapshot. */
   list: () => Promise<PluginInventorySnapshot>
+  /** Enable or disable one inventory entry; the Host hot-reloads the Loader. */
+  toggle: (entryId: string, enabled: boolean) => Promise<void>
 }
 
 type PluginInventoryEntry = PluginInventorySnapshot['entries'][number]
@@ -60,12 +63,13 @@ function matches(entry: PluginInventoryEntry, normalizedQuery: string): boolean 
     .some(value => value.toLocaleLowerCase().includes(normalizedQuery))
 }
 
-/** Render the read-only current Loader inventory. */
-export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsTabProps): ReactNode {
+/** Render the Host Loader inventory with rich metadata and enable/disable. */
+export function PluginInventorySettingsTab({ list, toggle, t }: PluginInventorySettingsTabProps): ReactNode {
   const catalogId = useId()
   const [request, setRequest] = useState(0)
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<PluginInventoryEntry['entryId'] | null>(null)
+  const [toggleBusy, setToggleBusy] = useState<PluginInventoryEntry['entryId'] | null>(null)
   const [state, setState] = useState<ViewState>({ status: 'loading' })
 
   useEffect(() => {
@@ -78,11 +82,13 @@ export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsT
   }, [list, request])
 
   const normalizedQuery = query.trim().toLocaleLowerCase()
+  const richEntries = useMemo(
+    () => state.status === 'ready' ? state.snapshot.entries.map(injectMetadata) : [],
+    [state],
+  )
   const filteredEntries = useMemo(
-    () => state.status === 'ready'
-      ? state.snapshot.entries.filter(entry => matches(entry, normalizedQuery))
-      : [],
-    [normalizedQuery, state],
+    () => richEntries.filter(entry => matches(entry, normalizedQuery)),
+    [normalizedQuery, richEntries],
   )
 
   useEffect(() => {
@@ -94,6 +100,14 @@ export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsT
   const retry = (): void => {
     setState({ status: 'loading' })
     setRequest(value => value + 1)
+  }
+
+  const handleToggle = (entry: RichPluginEntry): void => {
+    setToggleBusy(entry.entryId)
+    void toggle(entry.entryId, !entry.enabled)
+      .catch(() => { /* the refetch below shows the Host's actual state */ })
+      .then(() => { setRequest(value => value + 1) })
+      .finally(() => { setToggleBusy(null) })
   }
 
   return (
@@ -171,6 +185,16 @@ export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsT
                     {open ? (
                       <div className={css.cardDetails} id={detailId}>
                         <code className={css.entryValue} data-loader-entry>{entry.entryId}</code>
+                        {entry.description ? (
+                          <p className={css.cardDescription}>{entry.description}</p>
+                        ) : null}
+                        {entry.tags && entry.tags.length > 0 ? (
+                          <div className={css.tagRow}>
+                            {entry.tags.map(tag => (
+                              <span key={tag} className={css.tag}>{tag}</span>
+                            ))}
+                          </div>
+                        ) : null}
                         <dl className={css.details}>
                           <div>
                             <dt>{t('configuration')}</dt>
@@ -182,7 +206,28 @@ export function PluginInventorySettingsTab({ list, t }: PluginInventorySettingsT
                               <dd>{status}</dd>
                             </div>
                           ) : null}
+                          {entry.developer ? (
+                            <div>
+                              <dt>{t('developer')}</dt>
+                              <dd>{entry.developer}</dd>
+                            </div>
+                          ) : null}
+                          {entry.categories && entry.categories.length > 0 ? (
+                            <div>
+                              <dt>{t('category')}</dt>
+                              <dd>{entry.categories.join(', ')}</dd>
+                            </div>
+                          ) : null}
                         </dl>
+                        <button
+                          type="button"
+                          className={css.toggleBtn}
+                          data-enabled={entry.enabled ? 'true' : 'false'}
+                          disabled={toggleBusy === entry.entryId}
+                          onClick={() => { handleToggle(entry) }}
+                        >
+                          {entry.enabled ? t('disable') : t('enable')}
+                        </button>
                       </div>
                     ) : null}
                   </li>

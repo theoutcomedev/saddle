@@ -31,8 +31,13 @@ async function bench() {
   new RemoteService(ctx)
   const list = vi.fn<() => Promise<ListResult>>()
     .mockResolvedValue({ ok: true, value: EMPTY })
-  ctx.provide('remote.pluginInventory', { list })
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list }
+  const toggle = vi.fn<() => Promise<{
+    readonly ok: boolean
+    readonly error?: { readonly code: string; readonly message: string }
+  }>>()
+    .mockResolvedValue({ ok: true })
+  ctx.provide('remote.pluginInventory', { list, toggle })
+  return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list, toggle }
 }
 
 function declare(slots: SlotRegistry): () => void {
@@ -64,6 +69,10 @@ describe('ui-settings-plugin-inventory browser plugin', () => {
     expect(b.list).toHaveBeenCalledOnce()
     b.list.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'unavailable' } })
     await expect(injected.list()).rejects.toThrow('pluginInventory.list failed: REMOTE_ERROR: unavailable')
+    await expect(injected.toggle('8a1b2c3d', false)).resolves.toBeUndefined()
+    expect(b.toggle).toHaveBeenCalledWith('8a1b2c3d', false)
+    b.toggle.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'denied' } })
+    await expect(injected.toggle('8a1b2c3d', true)).rejects.toThrow('pluginInventory.toggle failed: REMOTE_ERROR: denied')
     await b.ctx.fiber.dispose()
   })
 

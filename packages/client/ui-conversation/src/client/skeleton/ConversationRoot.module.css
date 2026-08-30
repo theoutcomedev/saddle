@@ -378,4 +378,22 @@
     padding-left: 64px !important;
     padding-right: 8px !important;
   }
+
+  /* Mobile PWA: dock the hero composer to the bottom instead of vertically
+     centering it, so no giant empty band sits below the input where the
+     browser URL bar would be. Matches the active chat posture and clears the
+     iOS home indicator via the frame's --safe-bottom. */
+  .root[data-phase='hero'] .scrollBody {
+    justify-content: flex-start;
+  }
+
+  /* The seat is the scrollBody's flex child; push it, not the stack inside
+     it, so the whole hero stack docks at the bottom edge. */
+  .root[data-phase='hero'] .composerSeat {
+    margin-top: auto;
+  }
+
+  .composerHero {
+    padding-bottom: calc(16px + var(--safe-bottom, 0px));
+  }
 }

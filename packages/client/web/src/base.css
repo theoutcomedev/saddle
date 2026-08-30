@@ -8,6 +8,24 @@ body,
   margin: 0;
 }
 
+/* iOS Safari/PWA: the dynamic viewport shrinks and grows with the URL bar and
+   home indicator, so 100dvh keeps the shell exactly screen-filling where a
+   static 100% chain can leave a gap at the bottom. 100% stays the fallback
+   for engines without dvh support. */
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+
+html {
+  /* Paint overscroll and rubber-band edges with the app surface instead of the
+     UA default, so no mismatched band shows below the app on iOS. */
+  background: var(--dsw-alias-bg-base, #fff);
+}
+
 body {
   font-family: var(
     --dsw-font-family,

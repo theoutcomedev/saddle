@@ -46,6 +46,15 @@ function AppIcon({ size = 16, className }: { size?: number; className: string | 
   )
 }
 
+/** Inline close glyph (X) with a fixed stroke, immune to system-font fallbacks. */
+function CloseIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function NotepadApp({ appStore, onClose }: { appStore: AppStoreRemote; onClose: () => void }) {
   const [text, setText] = useState('')
   const [status, setStatus] = useState('')
@@ -97,7 +106,7 @@ function NotepadApp({ appStore, onClose }: { appStore: AppStoreRemote; onClose: 
         <div className={css.npActions}>
           <span className={css.npStatus}>{status}</span>
           <button type="button" className={`${css.npBtn} ${css.npBtnSave}`} onClick={save}>Save</button>
-          <button type="button" className={css.npBtn} onClick={handleClose}>✕ Close</button>
+          <button type="button" className={css.npBtn} onClick={handleClose}><CloseIcon size={12} /> Close</button>
         </div>
       </div>
       <textarea
@@ -143,7 +152,7 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
             <h2 id="my-apps-title" className={css.title}>App Store</h2>
             <span className={css.count}>{APP_CATALOG.length} {APP_CATALOG.length === 1 ? 'app' : 'apps'}</span>
           </div>
-          <button type="button" className={css.close} title="Close" onClick={onClose}>✕</button>
+          <button type="button" className={css.close} title="Close" aria-label="Close" onClick={onClose}><CloseIcon size={16} /></button>
         </div>
         <div className={css.toolbar}>
           <input
