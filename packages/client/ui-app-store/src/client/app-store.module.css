@@ -59,43 +59,48 @@
   align-items: center;
   justify-content: center;
   background: var(--dsw-alias-bg-mask-1, rgba(0, 0, 0, 0.5));
-  padding: 20px;
-  box-sizing: border-box;
+  backdrop-filter: var(--dsw-mask-blur, blur(8px));
 }
 
 .panel {
-  width: 100%;
-  max-width: 1200px;
-  height: calc(100vh - 40px);
-  max-height: 920px;
+  width: 800px;
+  height: min(800px, calc(100vh - 48px));
+  max-width: calc(100vw - 48px);
   display: flex;
   flex-direction: column;
   background: var(--dsw-alias-bg-layer-2);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
   color: var(--dsw-alias-label-primary);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--dsw-shadow-lv3);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .header {
+  flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 20px 24px;
+  gap: 8px;
+  height: 54px;
+  padding: 20px 14px 8px 10px;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 
 .titleArea {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--dsw-alias-label-primary);
 }
 
 .count {
@@ -107,25 +112,24 @@
 }
 
 .close {
-  /* Reset iOS default button chrome and center the glyph box (PWA). */
+  /* Reset iOS default button chrome; circle geometry matches Settings. */
   -webkit-appearance: none;
   appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
+  border-radius: 28px;
   background: transparent;
-  color: var(--dsw-alias-label-secondary);
+  color: var(--dsw-alias-label-primary);
   cursor: pointer;
-  border-radius: 8px;
 }
 
 .close:hover {
   background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
 }
 
 .toolbar {
@@ -206,14 +210,14 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border: 1px solid var(--dsw-alias-border-l1);
+  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 14px;
   background: var(--dsw-alias-bg-layer-3);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .card:hover {
-  border-color: var(--dsw-alias-border-l2);
+  border-color: var(--dsw-alias-border-l3);
   background: var(--dsw-alias-bg-module-platform);
 }
 
@@ -278,21 +282,6 @@
   padding-top: 4px;
 }
 
-.open {
-  padding: 8px 18px;
-  border: none;
-  border-radius: 9px;
-  background: var(--dsw-alias-button-primary-fill);
-  color: var(--dsw-alias-label-primary-foreground);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.open:hover {
-  background: var(--dsw-alias-button-primary-hover);
-}
-
 .npRoot {
   position: fixed;
   inset: 0;
@@ -327,31 +316,6 @@
 .npStatus {
   font-size: 12px;
   color: var(--dsw-alias-label-secondary);
-}
-
-.npBtn {
-  padding: 6px 12px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.npBtn:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.npBtnSave {
-  background: var(--dsw-alias-button-primary-fill);
-  border-color: transparent;
-  color: var(--dsw-alias-label-primary-foreground);
-}
-
-.npBtnSave:hover {
-  background: var(--dsw-alias-button-primary-hover);
 }
 
 .npTa {
@@ -390,9 +354,10 @@
   }
 
   .header {
+    height: auto;
     padding-top: max(20px, env(safe-area-inset-top));
-    padding-left: max(24px, env(safe-area-inset-left));
-    padding-right: max(24px, env(safe-area-inset-right));
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
   }
 
   .toolbar {

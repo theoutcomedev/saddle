@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { Button, IconCloseOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DeployedAppsStore } from './apps-store.ts'
-import { IconAppsOutline16 } from './DeployedAppsButton.tsx'
+import { IconDeployOutline16 } from './DeployedAppsButton.tsx'
 import css from './DeployedAppsModal.module.css'
 
 export interface DeployedAppsModalProps {
@@ -51,7 +51,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="deployed-apps-title">
         <div className={css.header}>
           <div className={css.titleArea}>
-            <IconAppsOutline16 size={18} />
+            <IconDeployOutline16 size={18} />
             <h2 id="deployed-apps-title" className={css.title}>Deployments</h2>
             {apps.length > 0 && (
               <span className={css.badge}>{runningCount} active</span>
@@ -67,21 +67,16 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
             >
               <IconRefreshOutline16 size={14} className={loading ? css.spin : undefined} />
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-              title="Close dialog"
-            >
+            <button type="button" className={css.close} onClick={onClose} aria-label="Close">
               <IconCloseOutline16 size={14} />
-            </Button>
+            </button>
           </div>
         </div>
 
         <div className={css.content}>
           {apps.length === 0 ? (
             <div className={css.emptyState}>
-              <IconAppsOutline16 size={36} className={css.emptyIcon} />
+              <IconDeployOutline16 size={36} className={css.emptyIcon} />
               <h3 className={css.emptyTitle}>No Deployments</h3>
               <p className={css.emptyDesc}>
                 You haven't deployed any apps yet. Ask Saddle in any session to build and host an application:

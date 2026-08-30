@@ -1,9 +1,10 @@
 /**
- * "My Apps" storefront components: the full-screen app store and the
+ * "Apps" storefront components: the full-screen apps catalog and the
  * full-screen autosaving notepad.
  */
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { Button, IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
 
@@ -42,15 +43,6 @@ function AppIcon({ size = 16, className }: { size?: number; className: string | 
       <rect x="9.2" y="2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
       <rect x="2" y="9.2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
       <rect x="9.2" y="9.2" width="4.8" height="4.8" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
-  )
-}
-
-/** Inline close glyph (X) with a fixed stroke, immune to system-font fallbacks. */
-function CloseIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
@@ -105,8 +97,8 @@ function NotepadApp({ appStore, onClose }: { appStore: AppStoreRemote; onClose: 
         <h2 className={css.npTitle}>Notepad</h2>
         <div className={css.npActions}>
           <span className={css.npStatus}>{status}</span>
-          <button type="button" className={`${css.npBtn} ${css.npBtnSave}`} onClick={save}>Save</button>
-          <button type="button" className={css.npBtn} onClick={handleClose}><CloseIcon size={12} /> Close</button>
+          <Button variant="primary" size="sm" onClick={save}>Save</Button>
+          <Button variant="outline" size="sm" icon={<IconCloseOutline16 size={12} />} onClick={handleClose}>Close</Button>
         </div>
       </div>
       <textarea
@@ -149,10 +141,12 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
       <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby="my-apps-title">
         <div className={css.header}>
           <div className={css.titleArea}>
-            <h2 id="my-apps-title" className={css.title}>App Store</h2>
+            <h2 id="my-apps-title" className={css.title}>Apps</h2>
             <span className={css.count}>{APP_CATALOG.length} {APP_CATALOG.length === 1 ? 'app' : 'apps'}</span>
           </div>
-          <button type="button" className={css.close} title="Close" aria-label="Close" onClick={onClose}><CloseIcon size={16} /></button>
+          <button type="button" className={css.close} aria-label="Close" onClick={onClose}>
+            <IconCloseOutline16 size={14} />
+          </button>
         </div>
         <div className={css.toolbar}>
           <input
@@ -196,7 +190,7 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                     ))}
                   </div>
                   <div className={css.cardFoot}>
-                    <button type="button" className={css.open} onClick={() => onOpen(app.id)}>Open</button>
+                    <Button variant="primary" size="sm" onClick={() => onOpen(app.id)}>Open</Button>
                   </div>
                 </div>
               ))}
