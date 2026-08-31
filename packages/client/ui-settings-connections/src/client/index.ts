@@ -33,7 +33,7 @@ const NS = 'settings.connections'
  * ui-settings' apply, whose activation order relative to this one is NOT
  * constrained; registration depends on it through slots.inject().
  */
-export const inject = ['slots', 'locale', 'connection', 'remote']
+export const inject = ['slots', 'locale', 'connection', 'remote', 'connections']
 
 /**
  * Register the Connections section once the settings.section declaration is
