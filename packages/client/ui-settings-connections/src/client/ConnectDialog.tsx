@@ -173,14 +173,26 @@ export function ConnectDialog({ open, flow, connections, t, onClose, onConnected
           </div>
         )}
 
+        {(flow.getKeyUrl !== undefined || flow.docsUrl !== undefined) && (
+          <div className={css.step}>
+            <div className={css.linkRow}>
+              {flow.getKeyUrl !== undefined && (
+                <a className={css.linkButton} href={flow.getKeyUrl} target='_blank' rel='noreferrer'>
+                  {t('getApiKey')}
+                </a>
+              )}
+              {flow.docsUrl !== undefined && (
+                <a className={css.linkButton} href={flow.docsUrl} target='_blank' rel='noreferrer'>
+                  {t('visitDocs')}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
         {attemptId !== undefined && state?.state === 'prompt' && (
           <div className={css.step}>
             <p className={css.noticeText}>{state.prompt.message}</p>
-            {flow.docsUrl !== undefined && (
-              <a className={css.link} href={flow.docsUrl} target='_blank' rel='noreferrer'>
-                {t('docs')}: {t('openPage')}
-              </a>
-            )}
             {state.prompt.kind === 'select' ? (
               <select
                 className={css.select}

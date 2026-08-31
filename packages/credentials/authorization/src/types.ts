@@ -99,8 +99,10 @@ export interface AuthorizationEntry {
   methods: readonly AuthorizationMethod[]
   /** Whether an attempt for this key is running right now. */
   inFlight: boolean
-  /** Provider page to obtain the credential, when the flow knows one. */
+  /** General provider docs page, when the flow knows one. */
   docsUrl?: string
+  /** The exact page to obtain the credential (distinct from general docs). */
+  getKeyUrl?: string
   /** The named fields an api-key flow asks for; absent for a single-secret flow. */
   fields?: readonly AuthorizationField[]
 }

@@ -173,9 +173,14 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
                     <span className={flow.configured ? css.badgeOn : css.badgeOff}>
                       {flow.configured ? t('connected') : t('notConnected')}
                     </span>
+                    {flow.getKeyUrl !== undefined && (
+                      <a className={css.docsLink} href={flow.getKeyUrl} target="_blank" rel="noreferrer">
+                        {t('getApiKey')}
+                      </a>
+                    )}
                     {flow.docsUrl !== undefined && (
                       <a className={css.docsLink} href={flow.docsUrl} target="_blank" rel="noreferrer">
-                        {t('docs')}
+                        {t('visitDocs')}
                       </a>
                     )}
                   </span>

@@ -128,8 +128,10 @@ export interface AuthorizationFlow {
    * cannot be begun, and the type says so at the one place flows are written.
    */
   readonly methods: readonly [AuthorizationMethod, ...AuthorizationMethod[]]
-  /** Provider page to obtain the credential, surfaced by a picker. */
+  /** General provider docs page, surfaced by a picker. */
   readonly docsUrl?: string
+  /** The exact page to obtain the credential, surfaced by a picker. */
+  readonly getKeyUrl?: string
   /** The named fields an api-key flow asks for; absent for a single-secret flow. */
   readonly fields?: readonly AuthorizationField[]
   /**
@@ -248,6 +250,7 @@ export class AuthorizationService extends Service {
       methods: flow.methods,
       inFlight: this.running.has(flow.key),
       ...flow.docsUrl === undefined ? {} : { docsUrl: flow.docsUrl },
+      ...flow.getKeyUrl === undefined ? {} : { getKeyUrl: flow.getKeyUrl },
       ...flow.fields === undefined ? {} : { fields: flow.fields },
     }
   }

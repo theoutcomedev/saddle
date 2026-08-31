@@ -33,8 +33,10 @@ export interface ToolService {
   id: string
   /** User-facing service name. */
   label: string
-  /** Provider page to get the credential. */
+  /** General provider docs page. */
   docsUrl: string
+  /** The exact page where the credential is obtained; defaults to docsUrl. */
+  getKeyUrl?: string
   /** How the service authenticates. */
   auth: {
     method: 'api-key' | 'oauth' | 'device'
@@ -65,6 +67,7 @@ export function registerToolService(ctx: Context, service: ToolService): () => v
     label: service.label,
     methods,
     docsUrl: service.docsUrl,
+    getKeyUrl: service.getKeyUrl ?? service.docsUrl,
     // Single-secret flows keep the seam's default field-less shape; multi-field
     // tools carry their named fields so a surface can label each prompt.
     ...fields.length === 1 ? {} : { fields },

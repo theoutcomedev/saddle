@@ -37,6 +37,7 @@ export const connectionFlowViewSchema = z.object({
   configured: z.boolean(),
   inFlight: z.boolean(),
   docsUrl: z.string().optional(),
+  getKeyUrl: z.string().optional(),
   fields: z.array(connectionFieldViewSchema).optional(),
 }) satisfies z.ZodType<Wire<ConnectionFlowView>>
 

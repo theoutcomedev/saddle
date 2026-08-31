@@ -3640,6 +3640,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             configured: info.configured,
             inFlight: entry.inFlight,
             ...entry.docsUrl === undefined ? {} : { docsUrl: entry.docsUrl },
+            ...entry.getKeyUrl === undefined ? {} : { getKeyUrl: entry.getKeyUrl },
             ...entry.fields === undefined ? {} : { fields: entry.fields.map(field => ({
               id: field.id,
               label: field.label,
