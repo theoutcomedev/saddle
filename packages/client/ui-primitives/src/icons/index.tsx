@@ -430,13 +430,13 @@ export const IconLinkOutline16 = ({ size = 16, className }: IconProps) => (
   </svg>
 )
 
-/** ic_saddle_power_plug_outline_16 — wall plug with cable (classic power-plug
- *  glyph, redrawn on the 16px grid: cable meander at the top, plug body with
- *  two prongs below). */
+/** ic_saddle_plug_outline_16 — mains plug with cable (cable meander at the
+ *  top, plug body with two prongs below), on a 24-unit grid rendered at 16px
+ *  so it fills the same footprint as its nav siblings. */
 export const IconPlugOutline16 = ({ size = 16, className }: IconProps) => (
-  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
-      d="M10.673 4.667 L10.667 2 h-1.333 v2.667 h-2.667 V2 H5.333 v2.667 h-0.007 C4.667 4.66 4 5.327 4 5.993 v3.66 L6.333 12 v2 h3.333 v-2 l2.333-2.34 v-3.667 c0-0.667-0.667-1.333-1.327-1.327 Z"
+      d="M16.01 7L16 3h-2v4h-4V3H8v4h-.01C7 6.99 6 7.99 6 8.99v5.49L9.5 18v3h5v-3l3.5-3.51v-5.5c0-1-1-2-1.99-1.99z"
       fill="currentColor"
     />
   </svg>
