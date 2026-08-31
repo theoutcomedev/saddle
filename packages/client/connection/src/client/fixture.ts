@@ -2445,6 +2445,52 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         }
         return ok(request, { sessionId: child.sessionId })
       },
+      rewind: (request) => {
+        const { sessionId, atSeq } = request.payload
+        const source = summaryOf(sessionId)
+        if (source === undefined) {
+          return err(request, {
+            code: 'session-not-found',
+            message: `no session ${sessionId}`,
+            details: { sessionId },
+          })
+        }
+        const log = logs.get(sessionId) ?? []
+        const lastSeq = log.at(-1)?.seq ?? -1
+        const anchoredBoundary = log.find(e => e.type === 'turn/end' && e.seq >= atSeq)
+        const boundary = anchoredBoundary
+          ?? (atSeq > lastSeq ? log.findLast(e => e.type === 'turn/end') : undefined)
+        if (boundary === undefined) {
+          return err(request, {
+            code: 'rewind-unavailable',
+            message: atSeq <= lastSeq
+              ? `session ${sessionId} has not completed the turn containing event ${String(atSeq)}`
+              : `session ${sessionId} has no completed turn`,
+            details: { sessionId },
+          })
+        }
+        let cut = boundary.seq + 1
+        while (cut < log.length && log[cut]?.type !== 'turn/start') cut++
+        const child: SessionSummary = {
+          sessionId: sid(`fx-${nextSession++}`), updatedAt: Date.now(), running: false, blank: false,
+          parentSessionId: sessionId,
+          ...source.cwd === undefined ? {} : { cwd: source.cwd },
+        }
+        logs.set(child.sessionId, log.slice(0, cut))
+        sessions.push(child)
+        emitHost({
+          type: 'host/session-added', sessionId: child.sessionId, blank: false,
+          parentSessionId: sessionId,
+          ...source.cwd === undefined ? {} : { cwd: source.cwd },
+        })
+        const workspace = workspaces.find(w => w.sessionIds.includes(sessionId))
+        if (workspace !== undefined) {
+          workspace.sessionIds = [child.sessionId, ...workspace.sessionIds]
+          workspace.updatedAt = new Date().toISOString()
+          emitHost({ type: 'host/workspace-changed', workspace: { ...workspace } })
+        }
+        return ok(request, { sessionId: child.sessionId })
+      },
       history: async (request) => {
         const log = logs.get(request.payload.sessionId) ?? []
         // Snapshot at request time, deliver after the transit delay (mirrors a real host under latency).
@@ -3190,6 +3236,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'session.selectModel': return this.api.sessions.selectModel(request)
       case 'session.rename': return this.api.sessions.rename(request)
       case 'session.fork': return this.api.sessions.fork(request)
+      case 'session.rewind': return this.api.sessions.rewind(request)
       case 'session.prompt': return this.api.sessions.prompt(request)
       case 'session.attachment': return this.api.sessions.attachment(request)
       case 'session.updateQueue': return this.api.sessions.updateQueue(request)

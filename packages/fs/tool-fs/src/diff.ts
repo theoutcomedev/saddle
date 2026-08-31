@@ -12,12 +12,24 @@ export const DIFF_CONTEXT = 3
 
 /**
  * The `write`/`edit` tools' private `tool/result` `meta` payload: the applied
- * contextual-diff hunks. Attached opaquely (as `unknown`) on the tool result and
- * persisted with the session log — it must be JSON-serializable (the session
- * validates this at `append`), so `presentResult` reproduces the diff card on
- * replay. The producing tool owns and narrows this opaque shape.
+ * contextual-diff hunks plus the full before/after text. Attached opaquely (as
+ * `unknown`) on the tool result and persisted with the session log — it must be
+ * JSON-serializable (the session validates this at `append`), so
+ * `presentResult` reproduces the diff card on replay. The producing tool owns
+ * and narrows this opaque shape. `path`/`before`/`after` are the durable
+ * rewind record: `session.rewind` restores `before` for every mutation after
+ * the cut, so a rewind with file revert can undo the agent's edits exactly.
  */
-export type FsDiffMeta = { diffs: FileDiff[] }
+export type FsDiffMeta = {
+  /** Relative-to-cwd model-facing file path of the mutated file. */
+  path: string
+  /** Full file text before the mutation (null when the file did not exist). */
+  before: string | null
+  /** Full file text after the mutation. */
+  after: string
+  /** Applied contextual-diff hunks (presentation only). */
+  diffs: FileDiff[]
+}
 
 /**
  * Compute one {@link FileDiff} per hunk between `before` and `after`, each carrying the

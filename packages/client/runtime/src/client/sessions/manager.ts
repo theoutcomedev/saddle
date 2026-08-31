@@ -603,6 +603,43 @@ export class SessionManager {
   }
 
   /**
+   * Contract session.rewind; on success merge the continuation into summaries
+   * immediately (same synchronous-addressability guarantee as fork). The
+   * continuation carries the source's history up to the cut, so it is never
+   * blank; lineage rides parentSessionId so the list nests it under its
+   * source. `revertFiles` restores, host-side, every file the agent mutated
+   * after the cut back to its before-state.
+   * @param opts - source session, the seq anchoring the cut, and whether to
+   *   revert the source workspace's files to their pre-cut state.
+   * @returns the rewind result (the continuation session id).
+   */
+  async rewind(
+    opts: { sessionId: SessionId; atSeq: number; revertFiles?: boolean },
+  ): Promise<RpcResult<{ sessionId: SessionId }>> {
+    try {
+      const source = this.summaries.find(s => s.sessionId === opts.sessionId)
+      const { result } = await this.api.sessions.rewind({
+        sessionId: opts.sessionId,
+        atSeq: opts.atSeq,
+        ...opts.revertFiles === undefined ? {} : { revertFiles: opts.revertFiles },
+      })
+      const childId = result.ok
+        ? result.value.sessionId
+        : workspaceAttachSessionId(result.error)
+      if (childId !== undefined) {
+        this.recordMutation({ kind: 'upsert', summary: {
+          sessionId: childId, updatedAt: Date.now(), running: false, blank: false,
+          parentSessionId: opts.sessionId,
+          ...(source?.cwd !== undefined ? { cwd: source.cwd } : {}),
+        } })
+      }
+      return result
+    } catch (error) {
+      return transportError(error)
+    }
+  }
+
+  /**
    * Insert-or-enrich a locally synthesized summary: a new id prepends; an
    * existing entry only gains fields it lacks (the session-added frame and the
    * create() echo race — whichever lands second must fill the placeholder's

@@ -29,4 +29,10 @@ export interface ChatStoreState {
    * persisted snapshots from before this field rehydrate without it.
    */
   inspect: { callId: CallId } | null
+  /**
+   * Pending rewind request: the message seq the user asked to rewind to,
+   * awaiting confirmation in the chat view. Read with `?? null` — persisted
+   * snapshots from before this field rehydrate without it.
+   */
+  rewind: { seq: number } | null
 }

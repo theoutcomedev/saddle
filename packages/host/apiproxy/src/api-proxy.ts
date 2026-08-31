@@ -4,9 +4,9 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, stat } from 'node:fs/promises'
+import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
@@ -1449,6 +1449,69 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     return { id: inspected.meta.id, header: inspected.meta, events: inspected.events }
   }
 
+  /**
+   * The completed-turn boundary a fork or rewind cut resolves to for one event
+   * log. The anchor belongs to the turn containing it and never clips backward
+   * to an earlier completed turn; omitted and past-end anchors fall back to the
+   * last completed turn. Returns the boundary event and the exclusive cut index
+   * (extended through trailing out-of-band appends up to the next turn/start).
+   */
+  function cutBoundary(
+    events: readonly SessionEvent[],
+    atSeq: number | undefined,
+  ): { boundary: SessionEvent; cut: number } | undefined {
+    const lastSeq = events.at(-1)?.seq ?? -1
+    const anchoredBoundary = atSeq === undefined
+      ? undefined
+      : events.find(e => e.type === 'turn/end' && e.seq >= atSeq)
+    const boundary = anchoredBoundary
+      ?? (atSeq === undefined || atSeq > lastSeq
+        ? events.findLast(e => e.type === 'turn/end')
+        : undefined)
+    if (boundary === undefined) return undefined
+    let cut = boundary.seq + 1
+    while (cut < events.length && events[cut]?.type !== 'turn/start') cut++
+    return { boundary, cut }
+  }
+
+  /**
+   * Restore every file the agent mutated after a rewind boundary back to its
+   * before-state. The full before/after texts ride the fs tools' durable
+   * `tool/result` `meta` (FsDiffMeta), so this is exact and replay-safe. Only
+   * paths inside the session cwd are touched; writes are best-effort (a file
+   * already changed by the user keeps its content on write failure).
+   */
+  async function revertFilesAfter(source: SessionReadState, boundarySeq: number): Promise<void> {
+    const cwd = source.header.cwd
+    if (cwd === undefined) return
+    const root = resolve(cwd)
+    const calls = new Map<string, { name: string; args: Record<string, unknown> }>()
+    for (const event of source.events) {
+      if (event.type === 'tool/call') {
+        try {
+          calls.set(event.data.callId, { name: event.data.name, args: JSON.parse(event.data.arguments) as Record<string, unknown> })
+        } catch {
+          // Malformed call arguments cannot anchor a revert; skip the call.
+        }
+      } else if (event.type === 'tool/result' && event.seq > boundarySeq) {
+        const call = calls.get(event.data.message.content[0].toolCallId)
+        if (call === undefined || (call.name !== 'write' && call.name !== 'edit')) continue
+        const filePath = call.args.file_path
+        if (typeof filePath !== 'string' || filePath.length === 0) continue
+        const target = resolve(root, filePath)
+        if (!target.startsWith(root + '/') && target !== root) continue
+        const meta = event.data.meta as { before?: unknown } | null | undefined
+        const before = typeof meta?.before === 'string' || meta?.before === null ? meta.before : undefined
+        if (before === undefined) continue
+        if (before === null) {
+          await unlink(target).catch(() => { /* absent file is already the reverted state */ })
+        } else {
+          await writeFile(target, before, 'utf8').catch(() => { /* keep the current file on failure */ })
+        }
+      }
+    }
+  }
+
   /** Resolve the Workspace inherited by a fork without making ordinary loose lineage grouped. */
   async function forkWorkspace(source: Pick<Session, 'id' | 'header'>): Promise<Workspace | undefined> {
     const workspaces = ctx.workspaceRegistry.list()
@@ -2276,18 +2339,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           })
         }
         const events = source.events
-        // An in-log anchor belongs to the turn containing it and must never
-        // clip backward to an earlier completed turn. Omitted and past-end
-        // anchors retain the last-completed-turn shortcut.
-        const lastSeq = events.at(-1)?.seq ?? -1
-        const anchoredBoundary = atSeq === undefined
-          ? undefined
-          : events.find(e => e.type === 'turn/end' && e.seq >= atSeq)
-        const boundary = anchoredBoundary
-          ?? (atSeq === undefined || atSeq > lastSeq
-            ? events.findLast(e => e.type === 'turn/end')
-            : undefined)
-        if (boundary === undefined) {
+        const cutState = cutBoundary(events, atSeq)
+        if (cutState === undefined) {
+          const lastSeq = events.at(-1)?.seq ?? -1
           return err(request, {
             code: 'fork-unavailable',
             message: atSeq !== undefined && atSeq <= lastSeq
@@ -2296,12 +2350,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             details: { sessionId },
           })
         }
-        // Extend the cut through trailing out-of-band appends (session/title,
+        // The cut extends through trailing out-of-band appends (session/title,
         // injections) up to the next turn/start: they are standalone events, so
         // the seed stays balanced, and the child inherits a title generated
         // right after the boundary turn.
-        let cut = boundary.seq + 1
-        while (cut < events.length && events[cut]?.type !== 'turn/start') cut++
+        const cut = cutState.cut
         let workspace: Workspace | undefined
         try {
           workspace = await forkWorkspace(source)
@@ -2351,6 +2404,102 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             return err(request, {
               code: 'workspace-attach-failed',
               message: `session "${childId}" was forked but could not attach to workspace "${workspace.id}": ${String(error)}`,
+              details: { sessionId: childId, workspaceId: workspace.id },
+            })
+          }
+        }
+        return ok(request, { sessionId: childId })
+      },
+
+      /**
+       * Rewinds a session to a completed-turn boundary: creates a continuation
+       * session seeded with the source prefix (same cwd, workspace, lineage, and
+       * agent composition) and, when `revertFiles` is set, restores every file
+       * the agent mutated after the cut back to its before-state first. The
+       * source session stays in the list untouched, so a rewind is regret-safe;
+       * the client switches to the returned continuation. File restore touches
+       * only paths inside the source cwd.
+       */
+      async rewind(request: RpcRequest<{ sessionId: SessionId; atSeq: number; revertFiles?: boolean }>) {
+        const { sessionId, atSeq, revertFiles } = request.payload
+        let source: SessionReadState
+        try {
+          source = await readSessionState(sessionId)
+        } catch (error: unknown) {
+          if (error instanceof SessionNotFound) {
+            return err(request, { code: 'session-not-found', message: error.message, details: { sessionId } })
+          }
+          return err(request, {
+            code: 'internal',
+            message: `rewind source unavailable for session "${sessionId}": ${String(error)}`,
+            details: {},
+          })
+        }
+        const cutState = cutBoundary(source.events, atSeq)
+        if (cutState === undefined) {
+          const lastSeq = source.events.at(-1)?.seq ?? -1
+          return err(request, {
+            code: 'rewind-unavailable',
+            message: atSeq <= lastSeq
+              ? `session "${sessionId}" has not completed the turn containing event ${String(atSeq)}`
+              : `session "${sessionId}" has no completed turn to rewind to`,
+            details: { sessionId },
+          })
+        }
+        if (revertFiles === true) {
+          try {
+            await revertFilesAfter(source, cutState.boundary.seq)
+          } catch (error: unknown) {
+            return err(request, {
+              code: 'internal',
+              message: `rewind file revert failed for session "${sessionId}": ${String(error)}`,
+              details: {},
+            })
+          }
+        }
+        const events = source.events
+        const cut = cutState.cut
+        let workspace: Workspace | undefined
+        try {
+          workspace = await forkWorkspace(source)
+        } catch (error: unknown) {
+          return err(request, {
+            code: 'internal',
+            message: `failed to resolve rewind workspace for session "${sessionId}": ${String(error)}`,
+            details: {},
+          })
+        }
+        const childId = `session-${randomUUID()}` as SessionId
+        const rewindComposition = await composeAgent(resolveSessionPreset(source))
+        try {
+          await ctx.agents.create({
+            sessionId: childId,
+            seed: events.slice(0, cut),
+            meta: {
+              ...source.header.cwd === undefined ? {} : { cwd: source.header.cwd },
+              parentSession: source.id,
+              seedLength: cut,
+              ...rewindComposition.agentPreset === undefined
+                ? {}
+                : { agentPreset: rewindComposition.agentPreset },
+            },
+            agentOptions: agentOptions(),
+            setup: rewindComposition.setup,
+          })
+        } catch (error: unknown) {
+          return err(request, {
+            code: 'internal',
+            message: `failed to rewind session "${sessionId}": ${String(error)}`,
+            details: {},
+          })
+        }
+        if (workspace !== undefined) {
+          try {
+            await workspace.attachSession(childId)
+          } catch (error: unknown) {
+            return err(request, {
+              code: 'workspace-attach-failed',
+              message: `session "${childId}" was rewound but could not attach to workspace "${workspace.id}": ${String(error)}`,
               details: { sessionId: childId, workspaceId: workspace.id },
             })
           }

@@ -421,6 +421,8 @@ export interface ChatNodeOwnerProps {
   openFile: (path: string) => void
   inspectCall: (callId: CallId) => void
   forkAt: (seq: number) => void
+  /** Rewind through the completed turn ending at the eligible message `seq`, then open the continuation. */
+  rewindAt: (seq: number) => void
   /** Render a historical image group through the attachment slot. */
   renderMessageImages: RenderMessageImages
   fileMentions: (owner: TurnTailOwnerProps) => MarkdownFileMentions | undefined
@@ -775,6 +777,14 @@ export interface ChatViewInjected {
   }
   /** Fork through the completed turn ending at the eligible message `seq`, then open the child. */
   forkAt: (seq: number) => void
+  /** Rewind through the completed turn ending at the eligible message `seq`, then open the continuation. */
+  rewindAt: (seq: number) => void
+  /**
+   * Execute a confirmed rewind: rewinds the session to the completed turn
+   * ending at `seq` (optionally reverting file changes) and opens the
+   * continuation. Clears the pending rewind request either way.
+   */
+  performRewind: (seq: number, revertFiles: boolean) => void
   /**
    * Prose file-mention vocabulary for one closing message, from the optional
    * {@link ChatFileMentions} service (resolved lazily per call, so composing

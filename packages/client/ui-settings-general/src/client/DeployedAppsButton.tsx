@@ -9,14 +9,16 @@ import type { DeployedAppsStore } from './apps-store.ts'
 import { DeployedAppsModal } from './DeployedAppsModal.tsx'
 import css from './DeployedAppsButton.module.css'
 
-/** Rocket (deploy) glyph, visually distinct from the Apps grid icon. */
+/** Server-rack (deploy/host) glyph, visually distinct from the Apps grid icon. */
 export function IconDeployOutline16({ size = 16, className }: { size?: number | undefined; className?: string | undefined }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 1.5 5.3 7.3 6 10.7h4l.7-3.4L8 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <circle cx="8" cy="5.7" r="1.05" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M6.2 10.7 4 13.3l2-.3M9.8 10.7 12 13.3l-2-.3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6.9 10.7l-.4 2.2 1.5-.9 1.5.9-.4-2.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="2.5" y="2.5" width="11" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="2.5" y="9.1" width="11" height="4.4" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="4.7" cy="4.7" r="0.9" fill="currentColor" />
+      <circle cx="4.7" cy="11.3" r="0.9" fill="currentColor" />
+      <circle cx="7.1" cy="4.7" r="0.9" fill="currentColor" />
+      <circle cx="7.1" cy="11.3" r="0.9" fill="currentColor" />
     </svg>
   )
 }

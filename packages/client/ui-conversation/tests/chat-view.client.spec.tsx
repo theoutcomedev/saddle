@@ -162,9 +162,11 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
     read: () => savedScroll,
   }
   const forkAt = vi.fn()
-  // Selection rides the REAL chat store (same construction path as
-  // production; the view reads it through the PropsStore useStore share).
+  // Rewind drives the REAL chat store so the confirm dialog opens; the
+  // execution verb is recorded for the flow assertions below.
   const chat = createChatStore().create()
+  const rewindAt = vi.fn((seq: number) => { chat.actions.requestRewind(seq) })
+  const performRewind = vi.fn()
   const t = makeTranslate(zh, commonZh)
   const toolOwners: Array<{
     callId: string
@@ -287,6 +289,8 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
     inspectCall,
     chatScroll,
     forkAt,
+    rewindAt,
+    performRewind,
     // Absent-service default; mention tests override with a real resolver.
     fileMentions: () => undefined,
     // Mirrors the real lookup chain (conversation namespace, then common).
@@ -295,7 +299,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
   const setSelection = (next: SelectionTarget | null): void => { chat.actions.select(next) }
   return {
     set, ChatView, props, openDetails, openFile, loadOlder, inspectCall,
-    chatScroll, forkAt, setSelection, toolOwners,
+    chatScroll, forkAt, rewindAt, performRewind, setSelection, toolOwners,
   }
 }
 
@@ -512,6 +516,31 @@ describe('ChatView', () => {
     expect(branchButtons[0]!.getAttribute('aria-disabled')).toBeNull()
     fireEvent.click(branchButtons[0]!)
     expect(h.forkAt).toHaveBeenCalledWith(1)
+  })
+
+  it('rewinds from the turn tail through the confirm dialog, optionally reverting files', () => {
+    const h = makeHarness({ nodes: [assistant(1, 'working')] })
+    const view = render(<h.ChatView {...h.props} />)
+
+    act(() => {
+      h.set({ running: false, turnEnds: new Map([[1, 3]]) })
+    })
+    const rewindButtons = view.getAllByRole('button', { name: '回退到此消息' })
+    expect(rewindButtons).toHaveLength(1)
+    fireEvent.click(rewindButtons[0]!)
+
+    // The confirm dialog explains the continuation and offers the optional
+    // file revert.
+    expect(screen.getByRole('dialog', { name: '回退对话' })).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('同时撤销此点之后修改的所有文件'))
+    fireEvent.click(screen.getByRole('button', { name: '回退' }))
+    expect(h.performRewind).toHaveBeenCalledWith(1, true)
+
+    // Cancel path clears the request without performing anything.
+    fireEvent.click(view.getAllByRole('button', { name: '回退到此消息' })[0]!)
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+    expect(screen.queryByRole('dialog', { name: '回退对话' })).toBeNull()
+    expect(h.performRewind).toHaveBeenCalledTimes(1)
   })
 
   it('keeps a later pending occurrence visible when it reuses a durable MessageId', () => {

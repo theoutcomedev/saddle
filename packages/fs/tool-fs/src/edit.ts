@@ -105,6 +105,9 @@ export function applyEditTool(ctx: Context, sandbox: FsSandboxController): void 
         text: formatEditOutput(value.path, args.replace_all ?? false),
       }],
       presentationMeta: (args, value) => ({
+        path: args.file_path,
+        before: value.before,
+        after: value.after,
         diffs: computeHunkDiffs(args.file_path, value.before, value.after)
           .map(({ path, oldText, newText }) => ({ path, oldText, newText })),
       }),

@@ -96,6 +96,21 @@ export interface ISessions {
    */
   fork(opts: { sessionId: SessionId; atSeq?: number; increaseTitle?: boolean }): Promise<SessionId>
   /**
+   * Rewind a session to a completed-turn boundary: the host creates a
+   * continuation session seeded with the prefix (the source stays in the
+   * list, so a rewind is regret-safe) and, when `revertFiles` is set, first
+   * restores every file the agent mutated after the cut back to its
+   * before-state. On resolution the continuation is in the list store and
+   * `open()` can target it.
+   * @param opts - source session id, the event seq anchoring the cut (the
+   *   boundary is the first turn/end at or after it; an in-log anchor in an
+   *   open turn is unavailable rather than clipped backward), and whether to
+   *   revert the source workspace's files to their pre-cut state.
+   * @returns the continuation session id.
+   * @throws when the rewind fails.
+   */
+  rewind(opts: { sessionId: SessionId; atSeq: number; revertFiles?: boolean }): Promise<SessionId>
+  /**
    * Register a per-session standard-props provider (hooks become `use<Name>`
    * selector hooks on the render side; props spread verbatim).
    * @param descriptor - static member roster plus per-session resolver.

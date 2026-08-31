@@ -31,6 +31,7 @@ export interface RpcMethodMap {
   'session.selectModel': SessionsApi['selectModel']
   'session.rename': SessionsApi['rename']
   'session.fork': SessionsApi['fork']
+  'session.rewind': SessionsApi['rewind']
   'session.prompt': SessionsApi['prompt']
   'session.attachment': SessionsApi['attachment']
   'session.updateQueue': SessionsApi['updateQueue']

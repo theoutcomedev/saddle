@@ -135,6 +135,22 @@ export class SessionForkError extends Error {
   }
 }
 
+/** Structured session-rewind failure. */
+export class SessionRewindError extends Error {
+  override readonly name = 'SessionRewindError'
+
+  /**
+   * @param rpcError - Host business or folded transport error.
+   * @param sourceSessionId - the session the rewind was cut from.
+   */
+  constructor(
+    readonly rpcError: RpcError,
+    readonly sourceSessionId: SessionId,
+  ) {
+    super(`session rewind failed: ${rpcError.code}: ${rpcError.message}`)
+  }
+}
+
 /** Session assembly handle for SessionProvider/inject factories (identity-stable per session). */
 export interface SessionBinding {
   readonly sessionId: SessionId
@@ -529,6 +545,36 @@ export class SessionRuntime implements ISessions {
       if (!renamed.ok) throw new Error(`fork child rename failed: ${renamed.error.code}: ${renamed.error.message}`)
     }
     return childId
+  }
+
+  /**
+   * Rewind a session to a completed-turn prefix of the source (same
+   * synchronous-addressability guarantee as {@link SessionRuntime.fork}: on
+   * resolution the continuation is in the list store and open() can target
+   * it). The source stays in the list, so a rewind is regret-safe.
+   * @param opts - source session id, the event seq anchoring the cut (the
+   *   boundary is the first turn/end at or after it; an in-log anchor in an
+   *   open turn is unavailable rather than clipped backward), and whether to
+   *   revert the source workspace's files to their pre-cut state.
+   * @returns the continuation session id.
+   * @throws {SessionRewindError} with the source id.
+   */
+  async rewind(opts: {
+    sessionId: SessionId
+    atSeq: number
+    revertFiles?: boolean
+  }): Promise<SessionId> {
+    const result = await this.manager.rewind({
+      sessionId: opts.sessionId,
+      // Flooring lands inside the anchor's own turn (every turn opens with a
+      // turn/start), so the host's first-turn/end-at-or-after cut still ends
+      // on that turn — never clipped back to the previous one.
+      atSeq: Math.floor(opts.atSeq),
+      ...(opts.revertFiles === undefined ? {} : { revertFiles: opts.revertFiles }),
+    })
+    if (!result.ok) throw new SessionRewindError(result.error, opts.sessionId)
+    this.projectList()
+    return result.value.sessionId
   }
 
   /**

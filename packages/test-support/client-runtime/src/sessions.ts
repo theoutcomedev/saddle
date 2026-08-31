@@ -185,7 +185,7 @@ export class TestSessions implements ISessions {
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
     method: 'open' | 'openSubagent' | 'setSubagentCatalogOpen' | 'refreshSubagents'
-      | 'clear' | 'search' | 'fork'
+      | 'clear' | 'search' | 'fork' | 'rewind'
     args: unknown[]
   }[] = []
 
@@ -486,6 +486,17 @@ export class TestSessions implements ISessions {
    */
   fork(opts: { sessionId: SessionId; atSeq?: number; increaseTitle?: boolean }): Promise<SessionId> {
     this.calls.push({ method: 'fork', args: [opts] })
+    return Promise.resolve(opts.sessionId)
+  }
+
+  /**
+   * Recorded rewind stub: no continuation materializes (the full flow is
+   * exercised against the production service; this face only proves the call).
+   * @param opts - source session id, cut anchor, and file-revert flag.
+   * @returns the source id (no child record is created).
+   */
+  rewind(opts: { sessionId: SessionId; atSeq: number; revertFiles?: boolean }): Promise<SessionId> {
+    this.calls.push({ method: 'rewind', args: [opts] })
     return Promise.resolve(opts.sessionId)
   }
 

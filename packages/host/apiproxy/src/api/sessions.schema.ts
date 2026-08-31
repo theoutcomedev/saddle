@@ -138,6 +138,18 @@ export const sessionForkValueSchema = z.object({
   sessionId: sessionIdSchema,
 }) satisfies z.ZodType<Wire<ResponseValue<'session.fork'>>>
 
+/** session.rewind request payload (atSeq anchors the completed-turn cut; revertFiles restores file before-states after it). */
+export const sessionRewindRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  atSeq: z.number().int().nonnegative(),
+  revertFiles: z.boolean().optional(),
+}) satisfies z.ZodType<Wire<RequestPayload<'session.rewind'>>>
+
+/** session.rewind response value (the continuation session id). */
+export const sessionRewindValueSchema = z.object({
+  sessionId: sessionIdSchema,
+}) satisfies z.ZodType<Wire<ResponseValue<'session.rewind'>>>
+
 /** session.history request payload (beforeSeq/maxMessages page backwards from the window tail). */
 export const sessionHistoryRequestSchema = z.object({
   sessionId: sessionIdSchema,

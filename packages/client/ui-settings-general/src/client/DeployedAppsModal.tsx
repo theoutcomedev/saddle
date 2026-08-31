@@ -51,7 +51,6 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="deployed-apps-title">
         <div className={css.header}>
           <div className={css.titleArea}>
-            <IconDeployOutline16 size={18} />
             <h2 id="deployed-apps-title" className={css.title}>Deployments</h2>
             {apps.length > 0 && (
               <span className={css.badge}>{runningCount} active</span>
@@ -59,7 +58,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
           </div>
           <div className={css.headerControls}>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               disabled={loading}
               onClick={() => { void store.refresh() }}

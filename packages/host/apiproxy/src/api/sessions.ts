@@ -342,6 +342,18 @@ export interface SessionsApi {
   Promise<RpcResponse<{ sessionId: SessionId }>>
 
   /**
+   * Rewinds a session to a completed-turn boundary: creates a continuation
+   * session seeded with the source prefix and, when `revertFiles` is set,
+   * first restores every file the agent mutated after the cut back to its
+   * before-state. Boundary resolution matches `fork` (first `turn/end` at or
+   * after `atSeq`; an in-log anchor whose turn is still open fails with
+   * `rewind-unavailable`). The source session stays in the list, so a rewind
+   * is regret-safe; the client switches to the returned continuation.
+   */
+  rewind(request: RpcRequest<{ sessionId: SessionId; atSeq: number; revertFiles?: boolean }>):
+  Promise<RpcResponse<{ sessionId: SessionId }>>
+
+  /**
    * Sends text and temporary image bytes to an ordinary session Agent after durable host admission.
    * Browser callers attach their current IANA zone;
    * the Host validates, canonicalizes, and records it on that exact user message. Omission remains

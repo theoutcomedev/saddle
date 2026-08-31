@@ -1,0 +1,32 @@
+/* Rewind confirmation dialog: description + optional file-revert toggle. */
+.modal {
+  max-width: 420px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.checkboxRow input {
+  margin: 3px 0 0;
+  accent-color: var(--dsw-alias-button-primary-fill);
+}
