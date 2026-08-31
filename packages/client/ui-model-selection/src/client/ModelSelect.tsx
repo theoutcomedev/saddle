@@ -58,6 +58,14 @@ export function ModelSelect(
   // action was a load.
   const lastActionRef = useRef<'load' | 'select'>('load')
   const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
+  /**
+   * Max dropdown width measured from the trigger at open time: the menu is
+   * anchored right:0 to the trigger, so the width must not exceed the space
+   * left of that anchor or long model names blast the card past the screen's
+   * left edge on mobile. Kept as local viewing state (the menu is the only
+   * reader); the CSS max-width stays as a fallback.
+   */
+  const [menuMaxWidth, setMenuMaxWidth] = useState<number | undefined>(undefined)
   const toastSeq = useRef(0)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -127,6 +135,12 @@ export function ModelSelect(
   if (!available) return null
 
   const show = (): void => {
+    const trigger = triggerRef.current?.getBoundingClientRect()
+    // Right-anchored menu: cap at the space left of the trigger (with an 8px
+    // screen inset) so the card never overflows the viewport's left edge.
+    if (trigger !== undefined) {
+      setMenuMaxWidth(Math.max(200, Math.floor(trigger.right - 8)))
+    }
     setPane('root')
     setOpen(true)
     reload()
@@ -248,6 +262,7 @@ export function ModelSelect(
           role="menu"
           aria-label={t('menu.aria')}
           aria-busy={state.status === 'loading' || busy}
+          {...menuMaxWidth === undefined ? {} : { style: { maxWidth: `min(420px, ${menuMaxWidth}px)` } }}
         >
           {pane === 'root' && (
             <>

@@ -78,7 +78,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
               <IconDeployOutline16 size={36} className={css.emptyIcon} />
               <h3 className={css.emptyTitle}>No Deployments</h3>
               <p className={css.emptyDesc}>
-                You haven't deployed any apps yet. Ask Saddle in any session to build and host an application:
+                You haven't deployed any applications or services yet. Ask Saddle in any session to build and host an application:
                 <br />
                 <em>"Create a React countdown timer and deploy it live."</em>
               </p>

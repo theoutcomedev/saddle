@@ -83,7 +83,10 @@ export function injectMetadata(raw: PluginInventoryEntry): RichPluginEntry {
 
   return {
     ...entry,
-    developer: entry.developer ?? 'Saddle',
+    // Only packages we authored carry an author in their manifest (the
+    // backend reads it verbatim); upstream harness packages show no
+    // developer rather than being misattributed to Saddle.
+    ...entry.developer === undefined ? {} : { developer: entry.developer },
     categories: [category],
     tags: tags,
     icon: icon,
