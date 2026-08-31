@@ -430,6 +430,25 @@ export const IconLinkOutline16 = ({ size = 16, className }: IconProps) => (
   </svg>
 )
 
+/** ic_saddle_plug_outline_16 — plug with cable (saddle original glyph). */
+export const IconPlugOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M1.3 2.7 L6.7 6.5 L6 7.5 L0.6 3.7 Z"
+      fill="currentColor"
+    />
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M6.4 6.1 C6.4 5.2 7.1 4.5 8 4.5 L8.8 4.5 C9.7 4.5 10.4 5.2 10.4 6.1 L10.4 8.3 C10.4 9.2 9.7 9.9 8.8 9.9 L8 9.9 C7.1 9.9 6.4 9.2 6.4 8.3 Z
+      M10.4 5.4 L14.4 5.4 L14.4 6.4 L10.4 6.4 Z
+      M10.4 8 L14.4 8 L14.4 9 L10.4 9 Z
+      M8.4 5.6 C7.57 5.6 6.9 6.27 6.9 7.2 C6.9 8.13 7.57 8.8 8.4 8.8 C9.23 8.8 9.9 8.13 9.9 7.2 C9.9 6.27 9.23 5.6 8.4 5.6 Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
 /** ic_ds_right_up_outline_14 */
 export const IconRightUpOutline14 = ({ size = 8, className }: IconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">

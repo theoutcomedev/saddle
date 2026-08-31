@@ -58,14 +58,19 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
 
   const load = async (): Promise<void> => {
     if (connections === undefined) return
-    const result = await connections.list()
-    if (!result.ok) {
+    try {
+      const result = await connections.list()
+      if (!result.ok) {
+        setPhase('error')
+        setError(result.error.message)
+        return
+      }
+      setData(result.value)
+      setPhase('ready')
+    } catch (error: unknown) {
       setPhase('error')
-      setError(result.error.message)
-      return
+      setError(error instanceof Error ? error.message : String(error))
     }
-    setData(result.value)
-    setPhase('ready')
   }
 
   useEffect(() => {
@@ -87,7 +92,14 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
     void load()
   }
 
-  if (connections === undefined || t === undefined) return null
+  if (connections === undefined || t === undefined) {
+    return (
+      <div className={css.section}>
+        <h2 className={css.title}>{t === undefined ? 'Connections' : t('title')}</h2>
+        <p className={css.error}>{t === undefined ? 'Connections are unavailable in this build.' : t('loadFailed')}</p>
+      </div>
+    )
+  }
 
   return (
     <div className={css.section}>
