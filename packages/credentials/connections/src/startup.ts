@@ -43,9 +43,6 @@ export const CATALOG: readonly ToolService[] = [
   ] } },
   { id: 'hubspot', label: 'HubSpot', docsUrl: 'https://developers.hubspot.com', getKeyUrl: 'https://app.hubspot.com/private-apps', auth: { method: 'api-key' } },
   { id: 'linear', label: 'Linear', docsUrl: 'https://developers.linear.app', getKeyUrl: 'https://linear.app/settings/api', auth: { method: 'api-key' } },
-  { id: 'calendly', label: 'Calendly', docsUrl: 'https://developer.calendly.com', getKeyUrl: 'https://calendly.com/integrations/api', auth: { method: 'api-key', fields: [
-    { id: 'personalToken', label: 'Personal access token' },
-  ] } },
   { id: 'webflow', label: 'Webflow', docsUrl: 'https://developers.webflow.com', getKeyUrl: 'https://developers.webflow.com/oauth', auth: { method: 'api-key' } },
 
   // ── payments / dev / infra ──────────────────────────────────────────────
@@ -93,9 +90,6 @@ export const CATALOG: readonly ToolService[] = [
   ] } },
   { id: 'qdrant', label: 'Qdrant', docsUrl: 'https://qdrant.tech/documentation', getKeyUrl: 'https://cloud.qdrant.io', auth: { method: 'api-key', fields: [
     { id: 'clusterUrl', label: 'Cluster URL' }, { id: 'apiKey', label: 'API key' },
-  ] } },
-  { id: 'pinecone', label: 'Pinecone', docsUrl: 'https://docs.pinecone.io', getKeyUrl: 'https://app.pinecone.io', auth: { method: 'api-key', fields: [
-    { id: 'apiKey', label: 'API key' },
   ] } },
   { id: 'replicate', label: 'Replicate', docsUrl: 'https://replicate.com/docs', getKeyUrl: 'https://replicate.com/account/api-tokens', auth: { method: 'api-key', fields: [
     { id: 'apiToken', label: 'API token' },

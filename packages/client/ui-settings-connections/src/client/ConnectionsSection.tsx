@@ -15,7 +15,7 @@ import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { AddCustomDialog } from './AddCustomDialog.tsx'
 import { ConnectDialog } from './ConnectDialog.tsx'
-import { brandIconFor } from './brand-icons.tsx'
+import { brandIconFor, DARK_ONLY_BRANDS, LIGHT_ONLY_BRANDS } from './brand-icons.tsx'
 import type { ConnectionsKey } from './locales.ts'
 import css from './ConnectionsSection.module.css'
 
@@ -73,9 +73,14 @@ function renderLogo(key: string, label: string) {
   const id = serviceIdOf(key)
   const Brand = brandIconFor(id)
   if (Brand !== undefined) {
+    const extraClass = DARK_ONLY_BRANDS.has(id)
+      ? ` ${css.brandSvgInvertLight}`
+      : LIGHT_ONLY_BRANDS.has(id)
+        ? ` ${css.brandSvgInvertDark}`
+        : ''
     return (
       <span className={css.logo} aria-hidden="true">
-        <Brand className={css.brandSvg} />
+        <Brand className={css.brandSvg + extraClass} />
       </span>
     )
   }
@@ -173,16 +178,6 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
                     <span className={flow.configured ? css.badgeOn : css.badgeOff}>
                       {flow.configured ? t('connected') : t('notConnected')}
                     </span>
-                    {flow.getKeyUrl !== undefined && (
-                      <a className={css.docsLink} href={flow.getKeyUrl} target="_blank" rel="noreferrer">
-                        {t('getApiKey')}
-                      </a>
-                    )}
-                    {flow.docsUrl !== undefined && (
-                      <a className={css.docsLink} href={flow.docsUrl} target="_blank" rel="noreferrer">
-                        {t('visitDocs')}
-                      </a>
-                    )}
                   </span>
                 </div>
               </div>

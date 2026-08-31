@@ -197,3 +197,21 @@
   line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
 }
+
+/* Light-mode inversion: white logos become visible on light/palomino themes */
+.brandSvgInvertLight {
+  filter: invert(1);
+}
+
+:global([data-theme="dark"]) .brandSvgInvertLight {
+  filter: none;
+}
+
+/* Dark-mode inversion: dark logos become visible on the dark theme */
+.brandSvgInvertDark {
+  filter: none;
+}
+
+:global([data-theme="dark"]) .brandSvgInvertDark {
+  filter: invert(1);
+}

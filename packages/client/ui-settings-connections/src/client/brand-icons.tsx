@@ -11,7 +11,7 @@ import type { ComponentType, CSSProperties } from 'react'
 import Airtable from '@thesvg/react/airtable'
 import SendGrid from '@thesvg/react/azure-sendgrid-accounts'
 import Aws from '@thesvg/react/aws'
-import Calendly from '@thesvg/react/calendly'
+
 import Clerk from '@thesvg/react/clerk'
 import Cloudflare from '@thesvg/react/cloudflare'
 import Discord from '@thesvg/react/discord'
@@ -45,7 +45,6 @@ export const BRAND_ICONS: Record<string, BrandIcon> = {
   'airtable': Airtable as unknown as BrandIcon,
   'sendgrid': SendGrid as unknown as BrandIcon,
   'aws': Aws as unknown as BrandIcon,
-  'calendly': Calendly as unknown as BrandIcon,
   'clerk': Clerk as unknown as BrandIcon,
   'cloudflare': Cloudflare as unknown as BrandIcon,
   'discord': Discord as unknown as BrandIcon,
@@ -76,3 +75,24 @@ export const BRAND_ICONS: Record<string, BrandIcon> = {
 export function brandIconFor(id: string): BrandIcon | undefined {
   return BRAND_ICONS[id]
 }
+
+/**
+ * Brand IDs whose SVG marks are white/light-coloured and invisible on
+ * light/palomino themes — they must be CSS-inverted when the app is in a
+ * light theme so the mark is visible.
+ */
+export const DARK_ONLY_BRANDS: ReadonlySet<string> = new Set([
+  'resend',
+  'vercel',
+  'clerk',
+  'replicate',
+])
+
+/**
+ * Brand IDs whose SVG marks are black/dark-coloured and invisible on
+ * the dark theme — they must be CSS-inverted in dark mode.
+ */
+export const LIGHT_ONLY_BRANDS: ReadonlySet<string> = new Set([
+  'firecrawl',
+  'qdrant',
+])
