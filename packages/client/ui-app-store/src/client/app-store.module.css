@@ -84,7 +84,8 @@
   justify-content: space-between;
   gap: 8px;
   height: 54px;
-  padding: 20px 14px 8px 10px;
+  /* Left edge aligns with the content cards (both use 24px). */
+  padding: 20px 14px 8px 24px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
@@ -356,7 +357,7 @@
   .header {
     height: auto;
     padding-top: max(20px, env(safe-area-inset-top));
-    padding-left: max(14px, env(safe-area-inset-left));
+    padding-left: max(24px, env(safe-area-inset-left));
     padding-right: max(14px, env(safe-area-inset-right));
   }
 

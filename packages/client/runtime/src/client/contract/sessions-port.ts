@@ -44,4 +44,9 @@ export interface SessionsPort {
   open(id: SessionId): void
   /** Clear the current selection into the no-session view state. */
   clear(): void
+  /**
+   * Permanently delete a session and its data (host-side session.delete).
+   * @param sessionId - session to delete.
+   */
+  deleteSession(sessionId: SessionId): Promise<void>
 }

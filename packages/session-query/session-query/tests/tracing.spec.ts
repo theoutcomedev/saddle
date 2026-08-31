@@ -77,6 +77,9 @@ class TracePersistence extends SessionPersistence {
     if (entry === undefined) return Promise.reject(new Error('missing test session'))
     return Promise.resolve(structuredClone(entry))
   }
+  async remove(_id: SessionId): Promise<void> {}
+
+
 
   async readFrom(id: SessionIdType, fromSeq: number): Promise<{ meta: SessionHeader; events: SessionEvent[] }> {
     const whole = await this.inspect(id)

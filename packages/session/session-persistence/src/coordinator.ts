@@ -199,6 +199,13 @@ export interface PersistenceBackend<TornMarker = unknown> {
   list(signal?: AbortSignal): Promise<SessionHeader[]>
 
   /**
+   * Permanently delete one session's durable storage (log rows/artifact and
+   * metadata). A delete of a never-materialized id resolves without error.
+   * @param id - persisted session id to delete.
+   */
+  removeStored(id: SessionId): Promise<void>
+
+  /**
    * Optional side-effect-free artifact locator, used to point refusal
    * diagnostics ({@link SessionFormatUnsupportedError}) at the raw log.
    * Backends without one artifact per session omit it or return `undefined`.
@@ -816,6 +823,19 @@ export class PersistenceCoordinator<TornMarker = unknown> {
         throw error
       }
     }
+  }
+
+  /**
+   * Permanently delete one session: drop the in-memory state and prepared
+   * reservation, then remove the backend's durable storage. The caller
+   * detaches any live owner first, so no live flush re-materializes the
+   * identity afterwards.
+   * @param id - persisted session id to delete.
+   */
+  async remove(id: SessionId): Promise<void> {
+    this.states.delete(id)
+    this.preparations.invalidate(id)
+    await this.backend.removeStored(id)
   }
 
   /**

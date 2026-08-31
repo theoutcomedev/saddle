@@ -166,6 +166,14 @@ class MemoryPersistence extends SessionPersistence implements PersistenceBackend
     return [...this.store.values()].map(e => structuredClone(e.meta))
   }
 
+  async removeStored(id: SessionId): Promise<void> {
+    this.store.delete(id)
+  }
+
+  remove(id: SessionId): Promise<void> {
+    return this.removeStored(id)
+  }
+
   async listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot[]> {
     signal?.throwIfAborted()
     return [...this.store.values()].map(entry => ({
@@ -232,6 +240,10 @@ class ControlledBackend implements PersistenceBackend<never> {
 
   async list(): Promise<SessionHeader[]> {
     return [...this.store.values()].map(entry => structuredClone(entry.meta))
+  }
+
+  async removeStored(id: SessionId): Promise<void> {
+    this.store.delete(id)
   }
 
   async close(): Promise<void> {

@@ -228,6 +228,15 @@ export abstract class SessionPersistence extends Service {
   abstract list(signal?: AbortSignal): Promise<SessionHeader[]>
 
   /**
+   * Permanently delete one session's durable storage: its log rows/artifact
+   * and metadata. Used by `session.delete`; callers detach any live owner
+   * first so no live flush re-materializes the identity. A delete of a
+   * never-materialized id resolves without error.
+   * @param id - the persisted session to delete.
+   */
+  abstract remove(id: SessionId): Promise<void>
+
+  /**
    * List materialized sessions with cheap per-log change tokens.
    *
    * Repeated observations of an unchanged log return the same revision. A

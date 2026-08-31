@@ -255,6 +255,29 @@ export class WorkspaceRegistry extends Service {
   }
 
   /**
+   * Permanently remove one session from every workspace accounting slot and
+   * from the archive set (used by `session.delete`). The session's files and
+   * persistence are the caller's to delete; this registry only forgets it.
+   * @param sessionId - The session to forget.
+   * @returns resolution after durability.
+   */
+  removeSession(sessionId: SessionId): Promise<void> {
+    return this.enqueueOperation(async () => {
+      await Promise.all(
+        [...this.entities.values()].map(entity => entity.detachSession(sessionId).catch(() => { /* best-effort per workspace */ })),
+      )
+      const state = this.requireState()
+      if (state.archivedSessionIds.includes(sessionId)) {
+        await this.setState({
+          ...state,
+          archivedSessionIds: state.archivedSessionIds.filter(id => id !== sessionId),
+        })
+      }
+      this.sessionPaths.delete(sessionId)
+    })
+  }
+
+  /**
    * Whether a session is live, header-indexed, or present in a fresh
    * persistence listing. Only a definite miss returns false — a failing
    * `sessionPersistence.list()` propagates so storage faults never

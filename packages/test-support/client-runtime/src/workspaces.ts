@@ -201,6 +201,21 @@ export class TestWorkspaces implements IWorkspaces {
    * observable effect: the id joins the list state's archive set.
    * @param sessionId - session to archive.
    */
+  async deleteSession(sessionId: SessionId): Promise<void> {
+    this.calls.push({ method: 'deleteSession', args: [sessionId] })
+    const stub = this.stubs.get('deleteSession')
+    if (stub !== undefined) {
+      await (stub(sessionId) as Promise<void>)
+      return
+    }
+    await this.update((draft) => {
+      for (const workspace of draft.items) {
+        workspace.sessionIds = workspace.sessionIds.filter(id => id !== sessionId)
+      }
+      draft.archivedSessionIds = draft.archivedSessionIds.filter(id => id !== sessionId)
+    })
+  }
+
   async archiveSession(sessionId: SessionId): Promise<void> {
     this.calls.push({ method: 'archiveSession', args: [sessionId] })
     const stub = this.stubs.get('archiveSession')

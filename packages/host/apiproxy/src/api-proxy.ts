@@ -10,7 +10,7 @@ import { dirname, resolve } from 'node:path'
 import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
-import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
+import type { Agent, AgentHandle, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
@@ -1066,6 +1066,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   const presetSwitches = new Map<SessionId, Promise<unknown>>()
   /** Client-chosen identity creation/resume, deduplicated across concurrent retries. */
   const sessionCreations = new Map<SessionId, Promise<Agent>>()
+  /** Live AgentHandles this proxy created/resumed, retained so `session.delete` can dispose them. */
+  const liveHandles = new Map<SessionId, AgentHandle>()
   /** Serializes path ownership and explicit title checks with Workspace mutations. */
   let workspaceCreationChain = Promise.resolve()
   const pendingQuestions = new Map<RpcId, PendingQuestion>()
@@ -1658,11 +1660,13 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           // session's history was produced under that composition, and
           // rebuilding it differently would replay tool calls the model can no
           // longer make.
-          return (await ctx.agents.resume({
+          const resumed = await ctx.agents.resume({
             resumeSessionId: sessionId,
             agentOptions: agentOptions(),
             setup: (await composeAgent(storedPreset)).setup,
-          })).agent
+          })
+          liveHandles.set(sessionId, resumed)
+          return resumed.agent
         }
 
         try {
@@ -1671,7 +1675,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           throw new Error(`failed to ensure project directory "${cwd}": ${String(error)}`, { cause: error })
         }
         const composition = await composeAgent(presetId)
-        return (await ctx.agents.create({
+        const created = await ctx.agents.create({
           sessionId,
           agentOptions: agentOptions(),
           meta: {
@@ -1679,7 +1683,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             ...composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset },
           },
           setup: composition.setup,
-        })).agent
+        })
+        liveHandles.set(sessionId, created)
+        return created.agent
       })().catch((error: unknown) => {
         // Another Host entry path may have published the same identity while
         // this operation crossed an asynchronous persistence/filesystem step.
@@ -2373,7 +2379,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // plane, composing nothing would leave the child with no tools at all.
         const forkComposition = await composeAgent(resolveSessionPreset(source))
         try {
-          await ctx.agents.create({
+          const forkHandle = await ctx.agents.create({
             sessionId: childId,
             seed: events.slice(0, cut),
             meta: {
@@ -2387,6 +2393,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             agentOptions: agentOptions(),
             setup: forkComposition.setup,
           })
+          liveHandles.set(childId, forkHandle)
         } catch (error: unknown) {
           return err(request, {
             code: 'internal',
@@ -2472,7 +2479,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const childId = `session-${randomUUID()}` as SessionId
         const rewindComposition = await composeAgent(resolveSessionPreset(source))
         try {
-          await ctx.agents.create({
+          const rewindHandle = await ctx.agents.create({
             sessionId: childId,
             seed: events.slice(0, cut),
             meta: {
@@ -2486,6 +2493,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             agentOptions: agentOptions(),
             setup: rewindComposition.setup,
           })
+          liveHandles.set(childId, rewindHandle)
         } catch (error: unknown) {
           return err(request, {
             code: 'internal',
@@ -2505,6 +2513,72 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           }
         }
         return ok(request, { sessionId: childId })
+      },
+
+      /**
+       * Permanently deletes a session and its data: stops and disposes its
+       * live agent (if any — a running session is refused), forgets it from
+       * every workspace and the archive set, and removes its persisted log
+       * from the session-persistence backend. Clients drop the session on the
+       * `session/disposed` echo (`host/session-removed`).
+       */
+      async delete(request: RpcRequest<{ sessionId: SessionId }>) {
+        const { sessionId } = request.payload
+        try {
+          await readSessionState(sessionId)
+        } catch (error: unknown) {
+          if (error instanceof SessionNotFound) {
+            return err(request, { code: 'session-not-found', message: error.message, details: { sessionId } })
+          }
+          return err(request, {
+            code: 'internal',
+            message: `delete source unavailable for session "${sessionId}": ${String(error)}`,
+            details: {},
+          })
+        }
+        const live = ctx.agents.get(sessionId)
+        if (live !== undefined && live.status === 'running') {
+          return err(request, {
+            code: 'session-busy',
+            message: `session "${sessionId}" is still running; stop it before deleting`,
+            details: { sessionId },
+          })
+        }
+        const handle = liveHandles.get(sessionId)
+        if (handle !== undefined) {
+          try {
+            await handle.dispose()
+          } catch (error: unknown) {
+            return err(request, {
+              code: 'internal',
+              message: `failed to stop session "${sessionId}" before delete: ${String(error)}`,
+              details: {},
+            })
+          }
+          liveHandles.delete(sessionId)
+        }
+        try {
+          await ctx.workspaceRegistry.removeSession(sessionId)
+        } catch (error: unknown) {
+          return err(request, {
+            code: 'internal',
+            message: `failed to remove session "${sessionId}" from workspaces: ${String(error)}`,
+            details: {},
+          })
+        }
+        const persistence = ctx.get('sessionPersistence')
+        if (persistence !== undefined) {
+          try {
+            await persistence.remove(sessionId)
+          } catch (error: unknown) {
+            return err(request, {
+              code: 'internal',
+              message: `failed to delete persisted data for session "${sessionId}": ${String(error)}`,
+              details: {},
+            })
+          }
+        }
+        return ok(request, { deleted: true })
       },
 
       async prompt(request) {

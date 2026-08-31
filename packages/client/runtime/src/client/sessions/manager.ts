@@ -640,6 +640,22 @@ export class SessionManager {
   }
 
   /**
+   * Contract session.delete: permanently removes the session and its data
+   * host-side. The host echoes `host/session-removed` (the `session/disposed`
+   * relay), which removes the summary here; this call only awaits the RPC.
+   * @param sessionId - the session to delete.
+   * @returns the RPC result.
+   */
+  async deleteSession(sessionId: SessionId): Promise<RpcResult<{ deleted: true }>> {
+    try {
+      const { result } = await this.api.sessions.delete({ sessionId })
+      return result
+    } catch (error) {
+      return transportError(error)
+    }
+  }
+
+  /**
    * Insert-or-enrich a locally synthesized summary: a new id prepends; an
    * existing entry only gains fields it lacks (the session-added frame and the
    * create() echo race — whichever lands second must fill the placeholder's

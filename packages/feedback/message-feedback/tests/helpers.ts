@@ -141,6 +141,9 @@ class TestPersistence extends SessionPersistence {
       ? Promise.reject(new Error(`test persistence: session '${id}' not found`))
       : Promise.resolve(stored)
   }
+  async remove(_id: SessionId): Promise<void> {}
+
+
 
   async readFrom(
     id: SessionId,

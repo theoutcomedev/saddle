@@ -293,6 +293,16 @@ export class WorkspaceRuntime implements IWorkspaces {
   }
 
   /**
+   * Permanently delete a session and its data. The session disappears from
+   * the list via the host/session-removed echo (the sessions face handles
+   * it); this forwards to the sessions service.
+   * @param sessionId - session to delete.
+   */
+  async deleteSession(sessionId: SessionId): Promise<void> {
+    await this.sessions.deleteSession(sessionId)
+  }
+
+  /**
    * Move a session within its Workspace's manual order (DOM-insertBefore-like).
    * @param workspaceId - owning workspace.
    * @param sessionId - accounted session to move.

@@ -177,6 +177,10 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     return this.coordinator.create(meta)
   }
 
+  remove(id: SessionId): Promise<void> {
+    return this.coordinator.remove(id)
+  }
+
   append(id: SessionId, events: readonly SessionEvent[]): Promise<void> {
     return this.coordinator.append(id, events)
   }
@@ -446,6 +450,19 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
   /** List valid unique stored sessions' metadata (header line only — no full-log parse). */
   async list(signal?: AbortSignal): Promise<SessionHeader[]> {
     return (await this.listArtifacts(signal)).map(artifact => artifact.header)
+  }
+
+  /**
+   * Delete one session's artifact and its session directory. The id alone
+   * does not locate a cwd-keyed tree, so the stored header is resolved from
+   * the artifact listing first; an absent identity is a no-op.
+   * @param id - persisted session id to delete.
+   */
+  async removeStored(id: SessionId): Promise<void> {
+    const headers = await this.list()
+    const header = headers.find(candidate => candidate.id === id)
+    if (header === undefined) return
+    await rm(sessionDir(this.root, header.cwd, id), { recursive: true, force: true })
   }
 
   /** List metadata plus a stat-derived identity for each append-only log. */

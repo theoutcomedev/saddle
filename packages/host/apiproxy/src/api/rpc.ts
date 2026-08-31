@@ -83,6 +83,7 @@ export interface RpcErrorDetailsMap {
   'title-invalid': { sessionId: SessionId }
   'fork-unavailable': { sessionId: SessionId }
   'rewind-unavailable': { sessionId: SessionId }
+  'session-busy': { sessionId: SessionId }
   'subagent-parent-unavailable': { parentSessionId: SessionId }
   'subagent-not-found': { parentSessionId: SessionId; childSessionId: SessionId }
   'subagent-catalog-diagnostic': {

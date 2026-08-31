@@ -97,6 +97,9 @@ class TestPersistence extends SessionPersistence {
     TestPersistence.inspectEffect = undefined
     return Promise.resolve(result)
   }
+  async remove(_id: SessionId): Promise<void> {}
+
+
 
   async readFrom(id: SessionIdType, fromSeq: number, signal?: AbortSignal): Promise<{ meta: SessionHeader; events: SessionEvent[] }> {
     const whole = await this.inspect(id, signal)

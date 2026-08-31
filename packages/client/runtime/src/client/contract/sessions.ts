@@ -111,6 +111,14 @@ export interface ISessions {
    */
   rewind(opts: { sessionId: SessionId; atSeq: number; revertFiles?: boolean }): Promise<SessionId>
   /**
+   * Permanently delete a session and its data (log, workspace accounting).
+   * The host refuses a running session with a `session-busy` error; the
+   * session disappears from the list via the `host/session-removed` echo.
+   * @param sessionId - the session to delete.
+   * @throws when the delete fails.
+   */
+  deleteSession(sessionId: SessionId): Promise<void>
+  /**
    * Register a per-session standard-props provider (hooks become `use<Name>`
    * selector hooks on the render side; props spread verbatim).
    * @param descriptor - static member roster plus per-session resolver.

@@ -354,6 +354,15 @@ export interface SessionsApi {
   Promise<RpcResponse<{ sessionId: SessionId }>>
 
   /**
+   * Permanently deletes a session and its data: disposes the live agent (a
+   * running session is refused with `session-busy`), forgets it from every
+   * workspace and the archive set, and removes its persisted log. Clients
+   * drop the session on the `session/disposed` echo.
+   */
+  delete(request: RpcRequest<{ sessionId: SessionId }>):
+  Promise<RpcResponse<{ deleted: true }>>
+
+  /**
    * Sends text and temporary image bytes to an ordinary session Agent after durable host admission.
    * Browser callers attach their current IANA zone;
    * the Host validates, canonicalizes, and records it on that exact user message. Omission remains

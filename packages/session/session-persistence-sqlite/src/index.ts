@@ -102,6 +102,10 @@ export class SqliteSessionPersistence extends SessionPersistence {
     return this.coordinator.append(id, events)
   }
 
+  remove(id: SessionId): Promise<void> {
+    return this.coordinator.remove(id)
+  }
+
   override prepare(id: SessionId, signal?: AbortSignal): Promise<SessionPreparation> {
     return this.coordinator.prepare(id, signal)
   }
