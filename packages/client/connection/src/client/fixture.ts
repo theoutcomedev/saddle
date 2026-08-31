@@ -2503,6 +2503,13 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         emitHost({ type: 'host/session-removed', sessionId })
         return ok(request, { deleted: true as const })
       },
+      rewindCollisions: (request) => {
+        const { sessionId } = request.payload
+        if (logs.get(sessionId) === undefined) {
+          return err(request, { code: 'session-not-found', message: `no session ${sessionId}`, details: { sessionId } })
+        }
+        return ok(request, { collisions: [] })
+      },
       history: async (request) => {
         const log = logs.get(request.payload.sessionId) ?? []
         // Snapshot at request time, deliver after the transit delay (mirrors a real host under latency).
@@ -3250,6 +3257,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'session.fork': return this.api.sessions.fork(request)
       case 'session.rewind': return this.api.sessions.rewind(request)
       case 'session.delete': return this.api.sessions.delete(request)
+      case 'session.rewindCollisions': return this.api.sessions.rewindCollisions(request)
       case 'session.prompt': return this.api.sessions.prompt(request)
       case 'session.attachment': return this.api.sessions.attachment(request)
       case 'session.updateQueue': return this.api.sessions.updateQueue(request)

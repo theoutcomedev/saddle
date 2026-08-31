@@ -23,6 +23,7 @@ import {
   sessionCreateValueSchema,
   sessionForkValueSchema,
   sessionRewindValueSchema,
+  sessionRewindCollisionsValueSchema,
   sessionDeleteValueSchema,
   sessionHistoryValueSchema,
   sessionListValueSchema,
@@ -104,6 +105,7 @@ export interface IApiClient {
     rename(payload: RequestPayload<'session.rename'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.rename'>>>
     fork(payload: RequestPayload<'session.fork'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.fork'>>>
     rewind(payload: RequestPayload<'session.rewind'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.rewind'>>>
+    rewindCollisions(payload: RequestPayload<'session.rewindCollisions'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.rewindCollisions'>>>
     delete(payload: RequestPayload<'session.delete'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.delete'>>>
     prompt(payload: RequestPayload<'session.prompt'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.prompt'>>>
     attachment(payload: RequestPayload<'session.attachment'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.attachment'>>>
@@ -197,6 +199,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'session.rename': sessionRenameValueSchema,
   'session.fork': sessionForkValueSchema,
   'session.rewind': sessionRewindValueSchema,
+  'session.rewindCollisions': sessionRewindCollisionsValueSchema,
   'session.delete': sessionDeleteValueSchema,
   'session.prompt': sessionPromptValueSchema,
   'session.attachment': sessionAttachmentValueSchema,
@@ -444,6 +447,7 @@ export abstract class AbstractApiClient implements IApiClient {
     rename: (payload, signal) => this.callUnary('session.rename', payload, signal),
     fork: (payload, signal) => this.callUnary('session.fork', payload, signal),
     rewind: (payload, signal) => this.callUnary('session.rewind', payload, signal),
+    rewindCollisions: (payload, signal) => this.callUnary('session.rewindCollisions', payload, signal),
     delete: (payload, signal) => this.callUnary('session.delete', payload, signal),
     prompt: (payload, signal) => this.callUnary('session.prompt', payload, signal),
     attachment: (payload, signal) => this.callUnary('session.attachment', payload, signal),

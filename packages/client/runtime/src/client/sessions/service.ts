@@ -607,6 +607,19 @@ export class SessionRuntime implements ISessions {
   }
 
   /**
+   * Read-only rewind preflight: which other sessions mutated files that a
+   * file-reverting rewind at `atSeq` would restore.
+   * @param opts - the source session and cut anchor.
+   * @returns per-other-session overlapping file paths.
+   * @throws when the preflight fails.
+   */
+  async rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<{ sessionId: SessionId; files: string[] }[]> {
+    const result = await this.manager.rewindCollisions(opts)
+    if (!result.ok) throw new Error(`rewind collision check failed: ${result.error.code}: ${result.error.message}`)
+    return result.value.collisions
+  }
+
+  /**
    * Resolve an Agent-scoped context view (use-and-discard).
    * @param id - session id (the agent identity — 1:1 same axis).
    * @returns scoped ctx, or undefined for a session neither listed nor already scoped.

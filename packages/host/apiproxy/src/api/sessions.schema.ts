@@ -150,6 +150,20 @@ export const sessionRewindValueSchema = z.object({
   sessionId: sessionIdSchema,
 }) satisfies z.ZodType<Wire<ResponseValue<'session.rewind'>>>
 
+/** session.rewindCollisions request payload (the source session and cut anchor). */
+export const sessionRewindCollisionsRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  atSeq: z.number().int().nonnegative(),
+}) satisfies z.ZodType<Wire<RequestPayload<'session.rewindCollisions'>>>
+
+/** session.rewindCollisions response value: per-other-session overlapping file paths. */
+export const sessionRewindCollisionsValueSchema = z.object({
+  collisions: z.array(z.object({
+    sessionId: sessionIdSchema,
+    files: z.array(z.string()),
+  })),
+}) satisfies z.ZodType<Wire<ResponseValue<'session.rewindCollisions'>>>
+
 /** session.delete request payload (the session to delete). */
 export const sessionDeleteRequestSchema = z.object({
   sessionId: sessionIdSchema,

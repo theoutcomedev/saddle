@@ -432,6 +432,7 @@ export function apply(ctx: Context): void {
               // Rewind failure keeps the source view untouched.
             })
         },
+        rewindCollisions: seq => sessions.rewindCollisions({ sessionId, atSeq: seq }),
       }
     },
   }, ChatView)

@@ -1,6 +1,6 @@
 /* Rewind confirmation dialog: description + optional file-revert toggle. */
 .modal {
-  max-width: 420px;
+  max-width: 440px;
 }
 
 .content {
@@ -29,4 +29,59 @@
 .checkboxRow input {
   margin: 3px 0 0;
   accent-color: var(--dsw-alias-button-primary-fill);
+}
+
+.checking {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.collision {
+  border: 1px solid var(--dsw-alias-state-warning-primary, rgba(245, 158, 11, 0.4));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dsw-alias-state-warning-primary, #f59e0b) 8%, transparent);
+  padding: 10px 12px;
+}
+
+.collisionTitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.collisionList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.collisionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.collisionSession {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collisionFiles {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
 }

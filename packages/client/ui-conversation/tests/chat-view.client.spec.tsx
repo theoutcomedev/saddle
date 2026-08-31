@@ -167,6 +167,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
   const chat = createChatStore().create()
   const rewindAt = vi.fn((seq: number) => { chat.actions.requestRewind(seq) })
   const performRewind = vi.fn()
+  const rewindCollisions = vi.fn<(seq: number) => Promise<{ sessionId: SessionId; files: string[] }[]>>(async () => [])
   const t = makeTranslate(zh, commonZh)
   const toolOwners: Array<{
     callId: string
@@ -291,6 +292,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
     forkAt,
     rewindAt,
     performRewind,
+    rewindCollisions,
     // Absent-service default; mention tests override with a real resolver.
     fileMentions: () => undefined,
     // Mirrors the real lookup chain (conversation namespace, then common).
@@ -299,7 +301,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
   const setSelection = (next: SelectionTarget | null): void => { chat.actions.select(next) }
   return {
     set, ChatView, props, openDetails, openFile, loadOlder, inspectCall,
-    chatScroll, forkAt, rewindAt, performRewind, setSelection, toolOwners,
+    chatScroll, forkAt, rewindAt, performRewind, rewindCollisions, setSelection, toolOwners,
   }
 }
 
@@ -541,6 +543,27 @@ describe('ChatView', () => {
     fireEvent.click(screen.getByRole('button', { name: '取消' }))
     expect(screen.queryByRole('dialog', { name: '回退对话' })).toBeNull()
     expect(h.performRewind).toHaveBeenCalledTimes(1)
+  })
+
+  it('warns about other conversations that changed the same files when reverting', async () => {
+    const h = makeHarness({ nodes: [assistant(1, 'working')] })
+    // The preflight reports that another session mutated one of the files
+    // this rewind would restore.
+    h.rewindCollisions.mockResolvedValue([
+      { sessionId: 's-other' as SessionId, files: ['src/a.txt'] },
+    ])
+    const view = render(<h.ChatView {...h.props} />)
+
+    act(() => {
+      h.set({ running: false, turnEnds: new Map([[1, 3]]) })
+    })
+    fireEvent.click(view.getAllByRole('button', { name: '回退到此消息' })[0]!)
+    fireEvent.click(screen.getByLabelText('同时撤销此点之后修改的所有文件'))
+    expect(await screen.findByText('这些文件也在其他会话中被修改过，回退将覆盖那些修改：')).toBeTruthy()
+    // The unknown session title falls back to its id.
+    expect(screen.getByText('s-other')).toBeTruthy()
+    expect(screen.getByText('src/a.txt')).toBeTruthy()
+    expect(h.rewindCollisions).toHaveBeenCalledWith(1)
   })
 
   it('keeps a later pending occurrence visible when it reuses a durable MessageId', () => {

@@ -99,6 +99,9 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async delete(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { deleted: true as const } } }
       },
+      async rewindCollisions(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { collisions: [] } } }
+      },
       async prompt(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { accepted: true as const } } }
       },

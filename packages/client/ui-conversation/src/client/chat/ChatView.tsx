@@ -158,7 +158,7 @@ function TurnStatus({ startTime, t }: {
  */
 export function ChatView({
   useSession, useSessions, useStore, actions, renderSlot, sessionId, openFile, loadOlder, loadImage, inspectCall, chatScroll,
-  forkAt, rewindAt, performRewind, fileMentions, t,
+  forkAt, rewindAt, performRewind, rewindCollisions, fileMentions, t,
 }: ChatViewSlotProps) {
   const order = useSession(s => s.chat.order)
   const nodeStore = useSession(s => s.chat.nodes)
@@ -166,6 +166,7 @@ export function ChatView({
   const inbox = useSession(s => s.queue)
   // Workspace root off the session list row: path summaries display relative to it.
   const cwd = useSessions(s => s.byId[sessionId]?.cwd)
+  const sessionTitles = useSessions(s => s.byId)
   const running = useSession(s => s.running)
   const openState = useSession(s => s.openState)
   const openError = useSession(s => s.openError)
@@ -492,10 +493,13 @@ export function ChatView({
       )}
       <RewindConfirm
         open={rewindRequest !== null}
+        seq={rewindRequest?.seq}
         onCancel={() => { actions.cancelRewind() }}
         onConfirm={(revertFiles) => {
           if (rewindRequest !== null) performRewind(rewindRequest.seq, revertFiles)
         }}
+        checkCollisions={rewindCollisions}
+        titleOf={id => sessionTitles[id]?.title ?? id}
         t={t}
       />
     </div>

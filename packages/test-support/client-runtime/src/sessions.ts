@@ -185,7 +185,7 @@ export class TestSessions implements ISessions {
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
     method: 'open' | 'openSubagent' | 'setSubagentCatalogOpen' | 'refreshSubagents'
-      | 'clear' | 'search' | 'fork' | 'rewind' | 'deleteSession'
+      | 'clear' | 'search' | 'fork' | 'rewind' | 'deleteSession' | 'rewindCollisions'
     args: unknown[]
   }[] = []
 
@@ -509,6 +509,17 @@ export class TestSessions implements ISessions {
   async deleteSession(sessionId: SessionId): Promise<void> {
     this.calls.push({ method: 'deleteSession', args: [sessionId] })
     this.records.delete(sessionId)
+  }
+
+  /**
+   * Recorded collision-check stub: no scanning happens (the full flow is
+   * exercised against the production service; this face only proves the call).
+   * @param opts - the source session and cut anchor.
+   * @returns an empty collision list.
+   */
+  async rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<{ sessionId: SessionId; files: string[] }[]> {
+    this.calls.push({ method: 'rewindCollisions', args: [opts] })
+    return []
   }
 
   /**

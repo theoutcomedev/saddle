@@ -363,6 +363,14 @@ export interface SessionsApi {
   Promise<RpcResponse<{ deleted: true }>>
 
   /**
+   * Reports which OTHER sessions have mutated any file a rewind with file
+   * revert at `atSeq` would restore, grouped by session (read-only preflight
+   * for the rewind confirmation dialog).
+   */
+  rewindCollisions(request: RpcRequest<{ sessionId: SessionId; atSeq: number }>):
+  Promise<RpcResponse<{ collisions: { sessionId: SessionId; files: string[] }[] }>>
+
+  /**
    * Sends text and temporary image bytes to an ordinary session Agent after durable host admission.
    * Browser callers attach their current IANA zone;
    * the Host validates, canonicalizes, and records it on that exact user message. Omission remains

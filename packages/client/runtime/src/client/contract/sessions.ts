@@ -119,6 +119,13 @@ export interface ISessions {
    */
   deleteSession(sessionId: SessionId): Promise<void>
   /**
+   * Read-only preflight: which other sessions mutated files that a
+   * file-reverting rewind at `atSeq` would restore.
+   * @param opts - the source session and cut anchor.
+   * @returns per-other-session overlapping file paths.
+   */
+  rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<{ sessionId: SessionId; files: string[] }[]>
+  /**
    * Register a per-session standard-props provider (hooks become `use<Name>`
    * selector hooks on the render side; props spread verbatim).
    * @param descriptor - static member roster plus per-session resolver.

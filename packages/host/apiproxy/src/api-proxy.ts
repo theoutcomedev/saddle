@@ -1477,6 +1477,32 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   }
 
   /**
+   * Collect the file paths the fs mutation tools (`write`/`edit`) touched in
+   * one event log, optionally restricted to events after `afterSeq`. Malformed
+   * call arguments and unknown tools are skipped; paths stay relative to the
+   * session cwd (resolution happens at revert time).
+   */
+  function fileMutationPaths(events: readonly SessionEvent[], afterSeq?: number): Set<string> {
+    const calls = new Map<string, { name: string; args: Record<string, unknown> }>()
+    const paths = new Set<string>()
+    for (const event of events) {
+      if (event.type === 'tool/call') {
+        try {
+          calls.set(event.data.callId, { name: event.data.name, args: JSON.parse(event.data.arguments) as Record<string, unknown> })
+        } catch {
+          // Malformed call arguments cannot anchor a mutation; skip the call.
+        }
+      } else if (event.type === 'tool/result' && (afterSeq === undefined || event.seq > afterSeq)) {
+        const call = calls.get(event.data.message.content[0].toolCallId)
+        if (call === undefined || (call.name !== 'write' && call.name !== 'edit')) continue
+        const filePath = call.args.file_path
+        if (typeof filePath === 'string' && filePath.length > 0) paths.add(filePath)
+      }
+    }
+    return paths
+  }
+
+  /**
    * Restore every file the agent mutated after a rewind boundary back to its
    * before-state. The full before/after texts ride the fs tools' durable
    * `tool/result` `meta` (FsDiffMeta), so this is exact and replay-safe. Only
@@ -2427,6 +2453,73 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
        * the client switches to the returned continuation. File restore touches
        * only paths inside the source cwd.
        */
+      /**
+       * Reports which OTHER sessions have mutated any file that a rewind with
+       * `revertFiles` at `atSeq` would restore, grouped by session with the
+       * overlapping file paths. Lets the client warn before overwriting those
+       * changes; the check is read-only and the boundary resolution matches
+       * `rewind` (`rewind-unavailable` on an unfinished anchor turn).
+       */
+      async rewindCollisions(request: RpcRequest<{ sessionId: SessionId; atSeq: number }>) {
+        const { sessionId, atSeq } = request.payload
+        let source: SessionReadState
+        try {
+          source = await readSessionState(sessionId)
+        } catch (error: unknown) {
+          if (error instanceof SessionNotFound) {
+            return err(request, { code: 'session-not-found', message: error.message, details: { sessionId } })
+          }
+          return err(request, {
+            code: 'internal',
+            message: `rewind collision source unavailable for session "${sessionId}": ${String(error)}`,
+            details: {},
+          })
+        }
+        const cutState = cutBoundary(source.events, atSeq)
+        if (cutState === undefined) {
+          const lastSeq = source.events.at(-1)?.seq ?? -1
+          return err(request, {
+            code: 'rewind-unavailable',
+            message: atSeq <= lastSeq
+              ? `session "${sessionId}" has not completed the turn containing event ${String(atSeq)}`
+              : `session "${sessionId}" has no completed turn to rewind to`,
+            details: { sessionId },
+          })
+        }
+        const reverted = fileMutationPaths(source.events, cutState.boundary.seq)
+        const collisions: { sessionId: SessionId; files: string[] }[] = []
+        if (reverted.size > 0) {
+          const seen = new Set<SessionId>([sessionId])
+          for (const agent of ctx.agents.list()) {
+            if (seen.has(agent.id)) continue
+            seen.add(agent.id)
+            const overlap = [...reverted].filter(path => fileMutationPaths(agent.session.events).has(path))
+            if (overlap.length > 0) collisions.push({ sessionId: agent.id, files: overlap })
+          }
+          const persistence = ctx.get('sessionPersistence')
+          if (persistence !== undefined) {
+            let headers: SessionHeader[]
+            try {
+              headers = await persistence.list()
+            } catch {
+              headers = []
+            }
+            for (const header of headers) {
+              if (seen.has(header.id)) continue
+              seen.add(header.id)
+              try {
+                const inspected = await persistence.inspect(header.id)
+                const overlap = [...reverted].filter(path => fileMutationPaths(inspected.events).has(path))
+                if (overlap.length > 0) collisions.push({ sessionId: header.id, files: overlap })
+              } catch {
+                // An unreadable cold session cannot be scanned; skip it.
+              }
+            }
+          }
+        }
+        return ok(request, { collisions })
+      },
+
       async rewind(request: RpcRequest<{ sessionId: SessionId; atSeq: number; revertFiles?: boolean }>) {
         const { sessionId, atSeq, revertFiles } = request.payload
         let source: SessionReadState

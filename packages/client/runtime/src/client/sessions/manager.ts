@@ -656,6 +656,24 @@ export class SessionManager {
   }
 
   /**
+   * Contract session.rewindCollisions: read-only preflight listing which other
+   * sessions mutated files that a file-reverting rewind at `atSeq` would
+   * restore.
+   * @param opts - the source session and cut anchor.
+   * @returns the RPC result.
+   */
+  async rewindCollisions(
+    opts: { sessionId: SessionId; atSeq: number },
+  ): Promise<RpcResult<{ collisions: { sessionId: SessionId; files: string[] }[] }>> {
+    try {
+      const { result } = await this.api.sessions.rewindCollisions(opts)
+      return result
+    } catch (error) {
+      return transportError(error)
+    }
+  }
+
+  /**
    * Insert-or-enrich a locally synthesized summary: a new id prepends; an
    * existing entry only gains fields it lacks (the session-added frame and the
    * create() echo race — whichever lands second must fill the placeholder's

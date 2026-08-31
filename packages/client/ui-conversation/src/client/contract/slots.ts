@@ -786,6 +786,11 @@ export interface ChatViewInjected {
    */
   performRewind: (seq: number, revertFiles: boolean) => void
   /**
+   * Read-only preflight for the rewind dialog: which other sessions mutated
+   * files that a file-reverting rewind at `seq` would restore.
+   */
+  rewindCollisions: (seq: number) => Promise<{ sessionId: SessionId; files: string[] }[]>
+  /**
    * Prose file-mention vocabulary for one closing message, from the optional
    * {@link ChatFileMentions} service (resolved lazily per call, so composing
    * the provider in or out takes effect live). Undefined when the service is

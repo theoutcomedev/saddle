@@ -55,6 +55,7 @@ function scriptedApi(overrides: {
       rename: r => ok(r, { title: 'renamed', seq: 0 }),
       fork: r => ok(r, { sessionId: sid('s-fork') }),
       rewind: r => ok(r, { sessionId: sid('s-rewind') }),
+      rewindCollisions: r => ok(r, { collisions: [] }),
       delete: r => ok(r, { deleted: true as const }),
       prompt: r => ok(r, { accepted: true as const }),
       attachment: r => ok(r, {
