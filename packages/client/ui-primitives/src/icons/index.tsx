@@ -430,20 +430,13 @@ export const IconLinkOutline16 = ({ size = 16, className }: IconProps) => (
   </svg>
 )
 
-/** ic_saddle_plug_outline_16 — plug with cable (saddle original glyph). */
+/** ic_saddle_power_plug_outline_16 — wall plug with cable (classic power-plug
+ *  glyph, redrawn on the 16px grid: cable meander at the top, plug body with
+ *  two prongs below). */
 export const IconPlugOutline16 = ({ size = 16, className }: IconProps) => (
   <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
-      d="M1.3 2.7 L6.7 6.5 L6 7.5 L0.6 3.7 Z"
-      fill="currentColor"
-    />
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M6.4 6.1 C6.4 5.2 7.1 4.5 8 4.5 L8.8 4.5 C9.7 4.5 10.4 5.2 10.4 6.1 L10.4 8.3 C10.4 9.2 9.7 9.9 8.8 9.9 L8 9.9 C7.1 9.9 6.4 9.2 6.4 8.3 Z
-      M10.4 5.4 L14.4 5.4 L14.4 6.4 L10.4 6.4 Z
-      M10.4 8 L14.4 8 L14.4 9 L10.4 9 Z
-      M8.4 5.6 C7.57 5.6 6.9 6.27 6.9 7.2 C6.9 8.13 7.57 8.8 8.4 8.8 C9.23 8.8 9.9 8.13 9.9 7.2 C9.9 6.27 9.23 5.6 8.4 5.6 Z"
+      d="M10.673 4.667 L10.667 2 h-1.333 v2.667 h-2.667 V2 H5.333 v2.667 h-0.007 C4.667 4.66 4 5.327 4 5.993 v3.66 L6.333 12 v2 h3.333 v-2 l2.333-2.34 v-3.667 c0-0.667-0.667-1.333-1.327-1.327 Z"
       fill="currentColor"
     />
   </svg>
