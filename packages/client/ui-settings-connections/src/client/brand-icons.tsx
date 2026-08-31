@@ -22,7 +22,6 @@ import Linear from '@thesvg/react/linear'
 import Mongodb from '@thesvg/react/mongodb'
 import Neon from '@thesvg/react/neon'
 import Notion from '@thesvg/react/notion'
-import Pinecone from '@thesvg/react/pinecone'
 import Posthog from '@thesvg/react/posthog'
 import Postmark from '@thesvg/react/postmark'
 import Qdrant from '@thesvg/react/qdrant'
@@ -57,7 +56,6 @@ export const BRAND_ICONS: Record<string, BrandIcon> = {
   'mongodb': Mongodb as unknown as BrandIcon,
   'neon': Neon as unknown as BrandIcon,
   'notion': Notion as unknown as BrandIcon,
-  'pinecone': Pinecone as unknown as BrandIcon,
   'posthog': Posthog as unknown as BrandIcon,
   'postmark': Postmark as unknown as BrandIcon,
   'qdrant': Qdrant as unknown as BrandIcon,
