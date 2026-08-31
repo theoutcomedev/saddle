@@ -11,6 +11,11 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.addCustomRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .title {
   margin: 0;
   font-size: 16px;
@@ -76,6 +81,10 @@
 
 .logo {
   flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -84,13 +93,7 @@
 .brandSvg {
   width: 22px;
   height: 22px;
-}
-
-.brandWordmark {
-  height: 18px;
-  width: auto;
   flex-shrink: 0;
-  object-fit: contain;
 }
 
 .monogram {

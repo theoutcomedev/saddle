@@ -66,6 +66,7 @@ import {
 import {
   connectionsAnswerValueSchema, connectionsCancelValueSchema, connectionsConnectValueSchema,
   connectionsDisconnectValueSchema, connectionsListValueSchema, connectionsPollValueSchema,
+  connectionsRegisterCustomValueSchema,
 } from '../api/connections.schema.ts'
 import { llmDiscoverModelsValueSchema, llmModelsValueSchema, llmProvidersValueSchema } from '../api/llm.schema.ts'
 import {
@@ -180,6 +181,7 @@ export interface IApiClient {
     answer(payload: RequestPayload<'connections.answer'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.answer'>>>
     cancel(payload: RequestPayload<'connections.cancel'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.cancel'>>>
     disconnect(payload: RequestPayload<'connections.disconnect'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.disconnect'>>>
+    registerCustom(payload: RequestPayload<'connections.registerCustom'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.registerCustom'>>>
   }
   llm: {
     providers(payload: RequestPayload<'llm.providers'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.providers'>>>
@@ -260,6 +262,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'connections.answer': connectionsAnswerValueSchema,
   'connections.cancel': connectionsCancelValueSchema,
   'connections.disconnect': connectionsDisconnectValueSchema,
+  'connections.registerCustom': connectionsRegisterCustomValueSchema,
   'llm.providers': llmProvidersValueSchema,
   'llm.models': llmModelsValueSchema,
   'llm.discoverModels': llmDiscoverModelsValueSchema,
@@ -550,6 +553,7 @@ export abstract class AbstractApiClient implements IApiClient {
     answer: (payload, signal) => this.callUnary('connections.answer', payload, signal),
     cancel: (payload, signal) => this.callUnary('connections.cancel', payload, signal),
     disconnect: (payload, signal) => this.callUnary('connections.disconnect', payload, signal),
+    registerCustom: (payload, signal) => this.callUnary('connections.registerCustom', payload, signal),
   }
 
   readonly llm: IApiClient['llm'] = {

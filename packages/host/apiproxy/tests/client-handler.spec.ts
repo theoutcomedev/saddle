@@ -133,6 +133,7 @@ function scriptedApi(overrides: {
       answer: err,
       cancel: err,
       disconnect: err,
+      registerCustom: err,
       ...overrides.connections,
     },
     llm: {

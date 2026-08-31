@@ -82,6 +82,7 @@ export interface RpcMethodMap {
   'connections.answer': ConnectionsApi['answer']
   'connections.cancel': ConnectionsApi['cancel']
   'connections.disconnect': ConnectionsApi['disconnect']
+  'connections.registerCustom': ConnectionsApi['registerCustom']
   'llm.providers': LlmApi['providers']
   'llm.models': LlmApi['models']
   'llm.discoverModels': LlmApi['discoverModels']

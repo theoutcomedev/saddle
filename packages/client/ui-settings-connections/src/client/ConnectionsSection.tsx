@@ -13,9 +13,9 @@ import type {
 } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
+import { AddCustomDialog } from './AddCustomDialog.tsx'
 import { ConnectDialog } from './ConnectDialog.tsx'
 import { brandIconFor } from './brand-icons.tsx'
-import { staticLogoFor } from './static-logos.ts'
 import type { ConnectionsKey } from './locales.ts'
 import css from './ConnectionsSection.module.css'
 
@@ -68,7 +68,7 @@ function serviceIdOf(key: string): string {
   return slash === -1 ? key : key.slice(slash + 1)
 }
 
-/** Render the official brand mark, the bundled static logo, or a monogram. */
+/** Render the official brand mark, or a colored monogram for brands without one. */
 function renderLogo(key: string, label: string) {
   const id = serviceIdOf(key)
   const Brand = brandIconFor(id)
@@ -78,10 +78,6 @@ function renderLogo(key: string, label: string) {
         <Brand className={css.brandSvg} />
       </span>
     )
-  }
-  const staticLogo = staticLogoFor(id)
-  if (staticLogo !== undefined) {
-    return <img className={css.brandWordmark} src={staticLogo} alt="" aria-hidden="true" />
   }
   return (
     <span className={css.monogram} aria-hidden="true" style={{ background: monogramColor(label) }}>
@@ -98,6 +94,7 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
   const [connectFlow, setConnectFlow] = useState<ConnectionFlowView | undefined>(undefined)
   const [confirming, setConfirming] = useState<ConnectionFlowView | undefined>(undefined)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [addCustomOpen, setAddCustomOpen] = useState(false)
 
   const load = async (): Promise<void> => {
     if (connections === undefined) return
@@ -148,6 +145,11 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
     <div className={css.section}>
       <h2 className={css.title}>{t('title')}</h2>
       <p className={css.intro}>{t('intro')}</p>
+      <div className={css.addCustomRow}>
+        <Button variant="outline" size="sm" onClick={() => { setAddCustomOpen(true) }}>
+          {t('addCustom')}
+        </Button>
+      </div>
 
       {phase === 'loading' && <p className={css.waiting}>{t('connecting')}</p>}
       {phase === 'error' && <p className={css.error}>{t('loadFailed')}: {error}</p>}
@@ -238,6 +240,13 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
         t={t}
         onClose={() => { setConnectFlow(undefined) }}
         onConnected={() => { setConnectFlow(undefined); void load() }}
+      />
+      <AddCustomDialog
+        open={addCustomOpen}
+        connections={connections}
+        t={t}
+        onClose={() => { setAddCustomOpen(false) }}
+        onAdded={() => { setAddCustomOpen(false); void load() }}
       />
     </div>
   )

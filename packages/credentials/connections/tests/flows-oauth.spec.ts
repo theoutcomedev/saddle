@@ -281,7 +281,7 @@ describe('oauth app flow', () => {
 describe('shipped catalog', () => {
   it('registers one api-key flow per catalog service and withdraws on dispose', async () => {
     const { ctx } = await setup()
-    const dispose = registerCatalog(ctx)
+    const dispose = await registerCatalog(ctx)
     try {
       const flows = ctx.authorization.list()
       expect(flows.map(flow => flow.key)).toEqual(CATALOG.map(connection => connectionKey(connection)))
@@ -293,7 +293,7 @@ describe('shipped catalog', () => {
       const twilio = ctx.authorization.describe(connectionKey(CATALOG.find(s => s.id === 'twilio') as never))
       expect(twilio?.fields?.length).toBe(2)
     } finally {
-      dispose()
+      void dispose()
     }
     expect(ctx.authorization.list()).toHaveLength(0)
   })

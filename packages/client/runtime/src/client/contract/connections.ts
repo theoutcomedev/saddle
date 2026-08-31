@@ -53,4 +53,11 @@ export interface IConnections {
    * @returns completion, or a business/transport error.
    */
   disconnect(key: string): Promise<RpcResult<{}>>
+  /**
+   * Add a user-defined api-key service: it is persisted and its connect flow
+   * becomes available immediately.
+   * @param input - the label, optional docs page, and field label(s).
+   * @returns the new service's credential key, or a business/transport error.
+   */
+  registerCustom(input: { label: string; docsUrl?: string; fields?: { label: string }[] }): Promise<RpcResult<{ key: string }>>
 }

@@ -3774,6 +3774,27 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         await credentials.deleteRecord(key as CredentialKey)
         return ok(request, {})
       },
+
+      async registerCustom(request) {
+        const custom = ctx.get('customConnections')
+        if (custom === undefined) {
+          return err(request, {
+            code: 'internal',
+            message: 'custom connections service is absent: this deployment does not mount the connections catalog',
+            details: {},
+          })
+        }
+        try {
+          const key = await custom.register(request.payload)
+          return ok(request, { key })
+        } catch (error: unknown) {
+          return err(request, {
+            code: 'bad-request',
+            message: error instanceof Error ? error.message : String(error),
+            details: { issues: [] },
+          })
+        }
+      },
     },
 
     llm: {

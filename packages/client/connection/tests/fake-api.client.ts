@@ -229,6 +229,7 @@ export class FakeApiClient implements IApiClient {
     answer: payload => this.record('connections.answer', payload, Promise.resolve(ok({}))),
     cancel: payload => this.record('connections.cancel', payload, Promise.resolve(ok({}))),
     disconnect: payload => this.record('connections.disconnect', payload, Promise.resolve(ok({}))),
+    registerCustom: payload => this.record('connections.registerCustom', payload, Promise.resolve(ok({ key: 'connections/custom-x' }))),
   }
 
   readonly llm: IApiClient['llm'] = {

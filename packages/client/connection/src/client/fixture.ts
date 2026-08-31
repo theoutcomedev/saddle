@@ -3109,6 +3109,7 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       answer: request => err(request, { code: 'connection-attempt-invalid', message: 'fixture', details: { attemptId: '' } }),
       cancel: request => err(request, { code: 'connection-attempt-invalid', message: 'fixture', details: { attemptId: '' } }),
       disconnect: request => err(request, { code: 'connection-not-found', message: 'fixture', details: { key: '' } }),
+      registerCustom: request => ok(request, { key: 'connections/custom-x' }),
     },
     llm: {
       providers: request => ok(request, {
@@ -3313,6 +3314,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'connections.answer': return this.api.connections.answer(request)
       case 'connections.cancel': return this.api.connections.cancel(request)
       case 'connections.disconnect': return this.api.connections.disconnect(request)
+      case 'connections.registerCustom': return this.api.connections.registerCustom(request)
       case 'llm.providers': return this.api.llm.providers(request)
       case 'llm.models': return this.api.llm.models(request)
       case 'llm.discoverModels': return this.api.llm.discoverModels(request, signal)

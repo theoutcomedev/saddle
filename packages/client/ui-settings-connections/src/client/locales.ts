@@ -43,6 +43,17 @@ export const en = {
   mcpConnecting: 'Connecting…',
   mcpFailed: 'Failed',
   mcpClosed: 'Stopped',
+  addCustom: 'Add custom service',
+  addCustomTitle: 'Add a custom service',
+  addCustomIntro: 'Connect any service that uses a paste-in API key. Give it a name, optional docs page, and the credential field(s) you want asked for.',
+  name: 'Service name',
+  namePlaceholder: 'e.g. My Company API',
+  docsUrlPlaceholder: 'https://docs.example.com/keys (optional)',
+  fieldsLabel: 'Credential field(s)',
+  fieldPlaceholder: 'e.g. API key',
+  addField: 'Add field',
+  creating: 'Adding…',
+  nameRequired: 'Enter a service name.',
 }
 
 /** Chinese strings (the shipped product copy). */
@@ -88,6 +99,17 @@ export const zh: Record<ConnectionsKey, string> = {
   mcpConnecting: '连接中…',
   mcpFailed: '失败',
   mcpClosed: '已停止',
+  addCustom: '添加自定义服务',
+  addCustomTitle: '添加自定义服务',
+  addCustomIntro: '连接任何使用粘贴式 API 密钥的服务。输入名称、可选文档页面以及需要询问的凭证字段。',
+  name: '服务名称',
+  namePlaceholder: '例如：我的公司 API',
+  docsUrlPlaceholder: 'https://docs.example.com/keys（可选）',
+  fieldsLabel: '凭证字段',
+  fieldPlaceholder: '例如：API 密钥',
+  addField: '添加字段',
+  creating: '添加中…',
+  nameRequired: '请输入服务名称。',
 }
 
 /** Locale keys these surfaces render. */

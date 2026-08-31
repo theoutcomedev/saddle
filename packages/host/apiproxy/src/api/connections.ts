@@ -127,4 +127,11 @@ export interface ConnectionsApi {
    * is idempotent.
    */
   disconnect(request: RpcRequest<{ key: string }>): Promise<RpcResponse<{}>>
+  /**
+   * Add a user-defined api-key service and register its flow. The definition
+   * persists (survives restarts); a duplicate label gets a suffixed id.
+   */
+  registerCustom(
+    request: RpcRequest<{ label: string; docsUrl?: string; fields?: { label: string }[] }>,
+  ): Promise<RpcResponse<{ key: string }>>
 }

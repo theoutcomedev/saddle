@@ -299,6 +299,9 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async disconnect(request) {
         return { rpcId: request.rpcId, result: { ok: false, error: { code: 'connection-not-found', message: 'stub', details: { key: request.payload.key } } } }
       },
+      async registerCustom(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { key: 'connections/custom-x' } } }
+      },
     },
     llm: {
       async providers(request) {

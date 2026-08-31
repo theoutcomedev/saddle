@@ -121,5 +121,17 @@ export const connectionsDisconnectRequestSchema = z.object({
   key: connectionKeySchema,
 }) satisfies z.ZodType<Wire<RequestPayload<'connections.disconnect'>>>
 
+/** connections.registerCustom request payload. */
+export const connectionsRegisterCustomRequestSchema = z.object({
+  label: z.string().min(1),
+  docsUrl: z.string().url().optional(),
+  fields: z.array(z.object({ label: z.string().min(1) })).max(8).optional(),
+}) satisfies z.ZodType<Wire<RequestPayload<'connections.registerCustom'>>>
+
+/** connections.registerCustom response value. */
+export const connectionsRegisterCustomValueSchema = z.object({
+  key: connectionKeySchema,
+}) satisfies z.ZodType<Wire<ResponseValue<'connections.registerCustom'>>>
+
 /** connections.disconnect response value. */
 export const connectionsDisconnectValueSchema = z.object({}) satisfies z.ZodType<Wire<ResponseValue<'connections.disconnect'>>>

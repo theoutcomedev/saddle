@@ -69,6 +69,7 @@ import {
 import {
   connectionsAnswerRequestSchema, connectionsCancelRequestSchema, connectionsConnectRequestSchema,
   connectionsDisconnectRequestSchema, connectionsListRequestSchema, connectionsPollRequestSchema,
+  connectionsRegisterCustomRequestSchema,
 } from '../api/connections.schema.ts'
 import { llmDiscoverModelsRequestSchema, llmModelsRequestSchema, llmProvidersRequestSchema } from '../api/llm.schema.ts'
 import {
@@ -160,6 +161,7 @@ const UNARY_ROUTES: UnaryRoutes = {
   'connections.answer': { schema: connectionsAnswerRequestSchema, invoke: (api, r) => api.connections.answer(r) },
   'connections.cancel': { schema: connectionsCancelRequestSchema, invoke: (api, r) => api.connections.cancel(r) },
   'connections.disconnect': { schema: connectionsDisconnectRequestSchema, invoke: (api, r) => api.connections.disconnect(r) },
+  'connections.registerCustom': { schema: connectionsRegisterCustomRequestSchema, invoke: (api, r) => api.connections.registerCustom(r) },
   'llm.providers': { schema: llmProvidersRequestSchema, invoke: (api, r) => api.llm.providers(r) },
   'llm.models': { schema: llmModelsRequestSchema, invoke: (api, r) => api.llm.models(r) },
   'llm.discoverModels': { schema: llmDiscoverModelsRequestSchema, invoke: (api, r, signal) => api.llm.discoverModels(r, signal) },

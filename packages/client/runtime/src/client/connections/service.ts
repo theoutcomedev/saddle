@@ -43,4 +43,8 @@ export class ConnectionsRuntime implements IConnections {
   async disconnect(key: string): Promise<RpcResult<{}>> {
     return (await this.api.connections.disconnect({ key })).result
   }
+
+  async registerCustom(input: { label: string; docsUrl?: string; fields?: { label: string }[] }): Promise<RpcResult<{ key: string }>> {
+    return (await this.api.connections.registerCustom(input)).result
+  }
 }
