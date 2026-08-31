@@ -243,6 +243,16 @@
   config:
     allowParallelInProgress: true
 
+# ── service connections ───────────────────────────────────────────────────
+
+# request_credential: the model can offer to connect an external service in
+# chat. It registers the generic api-key authorization flow for the service on
+# demand, then the seam's masked prompt reaches the human as a secret question
+# and the key lands in the encrypted credential store. The authorization and
+# credentials services it injects are host-plane rows (base composition).
+- id: tool-request-credential
+  name: '@deepseek-ai/dsh-connections'
+
 # The `web` service and its search provider stay in the host composition; only
 # the model-facing tool is per-session.
 - id: tool-web

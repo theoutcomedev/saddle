@@ -1,0 +1,145 @@
+/* Connections settings section, in the settings-panel design language: 14/22
+ * body, 12/18 caption, capsule controls (h36 r18; h28 r14 for dense rows), and
+ * border-l2 hairlines — the vocabulary ModelsSection and the Button/Input
+ * primitives already use. Every color resolves through a --dsw-alias-* token. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.intro {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.empty {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.waiting {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.error {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-state-danger-primary);
+}
+
+.rows {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rowCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background: var(--dsw-alias-surface-card);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.methodChip {
+  font-size: 12px;
+  line-height: 18px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.badgeOn {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.badgeOff {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.confirmText {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.mcpCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mcpTitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.mcpIntro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}

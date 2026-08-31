@@ -1,0 +1,110 @@
+/* Connect dialog body: the walk steps, the code display, and status copy. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 320px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.methods {
+  display: flex;
+  gap: 8px;
+}
+
+.method {
+  font-size: 14px;
+  line-height: 22px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-surface-card);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.method[aria-checked='true'] {
+  border-color: var(--dsw-alias-accent-primary);
+  color: var(--dsw-alias-accent-primary);
+}
+
+.noticeText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.link {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-accent-primary);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.code {
+  font-family: var(--dsw-font-mono, ui-monospace, monospace);
+  font-size: 18px;
+  line-height: 26px;
+  letter-spacing: 0.12em;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-surface-sunken);
+  color: var(--dsw-alias-label-primary);
+  width: fit-content;
+}
+
+.waiting {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.success {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.error {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-state-danger-primary);
+}
+
+.select {
+  font-size: 14px;
+  line-height: 22px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-surface-card);
+  color: var(--dsw-alias-label-primary);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

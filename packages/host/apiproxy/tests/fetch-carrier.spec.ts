@@ -280,6 +280,26 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
         return { rpcId: request.rpcId, result: { ok: true, value: {} } }
       },
     },
+    connections: {
+      async list(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { flows: [], mcp: [] } } }
+      },
+      async connect(request) {
+        return { rpcId: request.rpcId, result: { ok: false, error: { code: 'connection-not-found', message: 'stub', details: { key: request.payload.key } } } }
+      },
+      async poll(request) {
+        return { rpcId: request.rpcId, result: { ok: false, error: { code: 'connection-attempt-invalid', message: 'stub', details: { attemptId: request.payload.attemptId } } } }
+      },
+      async answer(request) {
+        return { rpcId: request.rpcId, result: { ok: false, error: { code: 'connection-attempt-invalid', message: 'stub', details: { attemptId: request.payload.attemptId } } } }
+      },
+      async cancel(request) {
+        return { rpcId: request.rpcId, result: { ok: false, error: { code: 'connection-attempt-invalid', message: 'stub', details: { attemptId: request.payload.attemptId } } } }
+      },
+      async disconnect(request) {
+        return { rpcId: request.rpcId, result: { ok: false, error: { code: 'connection-not-found', message: 'stub', details: { key: request.payload.key } } } }
+      },
+    },
     llm: {
       async providers(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { providers: [] } } }

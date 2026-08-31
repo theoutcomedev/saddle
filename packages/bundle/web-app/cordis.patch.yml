@@ -212,6 +212,42 @@
     - id: ui-settings-plugin-inventory
       name: '@deepseek-ai/dsh-client-ui-settings-plugin-inventory'
 
+    # Connections: the settings page over the connections wire domain, plus
+    # the shipped api-key service catalog and the MCP bridge (rows below are
+    # examples — enable one per MCP server, or mount your own catalog row).
+    - id: ui-settings-connections
+      name: '@deepseek-ai/dsh-client-ui-settings-connections'
+
+    - id: connections-catalog
+      name: '@deepseek-ai/dsh-connections/startup'
+
+    # MCP servers: one row per server, enabled with a real command or url.
+    # These examples stay disabled; live status surfaces on the Connections
+    # page. The tools they register are namespaced mcp__<serverName>__<tool>.
+    - id: mcp-filesystem-example
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        transport: stdio
+        serverName: filesystem
+        command: npx
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp']
+        env: {}
+        cwd: ''
+        toolCallTimeoutMs: 60000
+        failOnStartupError: false
+
+    - id: mcp-http-example
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: true
+      config:
+        transport: streamable-http
+        serverName: example-http
+        url: 'https://mcp.example.com/sse'
+        headers: {}
+        toolCallTimeoutMs: 60000
+        failOnStartupError: false
+
     - id: ui-conversation
       name: '@deepseek-ai/dsh-client-ui-conversation'
 

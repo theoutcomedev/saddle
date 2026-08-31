@@ -11,6 +11,7 @@ import { SlotRegistry } from './slots.ts'
 import { SessionRuntime } from './sessions/service.ts'
 import type { SessionListState } from './sessions/service.ts'
 import { WorkspaceRuntime } from './workspaces/service.ts'
+import { ConnectionsRuntime } from './connections/service.ts'
 import type { ConversationSnapshot } from './sessions/conversation.ts'
 import type { UseProjection } from './sessions/projection-store.ts'
 import { ConversationEventRegistry } from './conversation/event-registry.ts'
@@ -46,6 +47,8 @@ export type { SessionProvideChannelHost } from './sessions/provide.ts'
 export { createScope } from './agents/scope.ts'
 export type { AgentScopeHandle } from './agents/scope.ts'
 export { DirectoryBrowseError, WorkspaceCreateError, WorkspaceRuntime } from './workspaces/service.ts'
+export { ConnectionsRuntime } from './connections/service.ts'
+export type { IConnections } from './contract/connections.ts'
 export { abbreviateHomePath, resolveWorkspacePath } from './workspaces/path.ts'
 // Contract only: the scope implementation and its Host transport belong to
 // dsh-client-ui-settings (see that package's settings-scope.ts).
@@ -176,6 +179,8 @@ declare module '@deepseek-ai/cordis' {
     sessions: import('./contract/sessions.ts').ISessions
     /** The outward face only; the concrete service stays inside the runtime. */
     workspaces: import('./contract/workspaces.ts').IWorkspaces
+    /** The outward face only; the concrete service stays inside the runtime. */
+    connections: import('./contract/connections.ts').IConnections
   }
 }
 
@@ -201,6 +206,7 @@ export function apply(ctx: Context): void {
     () => workspaces.startInitialSelection(),
     'runtime: initial Workspace selection',
   )
+  new ConnectionsRuntime(ctx, connection.api)
   const loop = connection.start({
     onMuxEnvelope: (envelope) => {
       sessions.handleMuxEnvelope(envelope)

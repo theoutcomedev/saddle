@@ -14,6 +14,7 @@ import type { EventsApi } from './events.ts'
 import type { GoalsApi } from './goals.ts'
 import type { SettingsApi } from './settings.ts'
 import type { CredentialsApi } from './credentials.ts'
+import type { ConnectionsApi } from './connections.ts'
 import type { LlmApi } from './llm.ts'
 import type { AppsApi } from './apps.ts'
 import type { DownloadsApi } from './downloads.ts'
@@ -31,6 +32,7 @@ export interface ApiProxy {
   goals: GoalsApi
   settings: SettingsApi
   credentials: CredentialsApi
+  connections: ConnectionsApi
   llm: LlmApi
   apps: AppsApi
   /** Host-only download surfaces (GET, no wire envelope); absent from IApiClient. */
@@ -62,6 +64,10 @@ export type { EventsApi, MuxFrame, HostFrame, QueuedInboxItem, ToolCallView, Too
 export type { GoalsApi, GoalId, GoalRef } from './goals.ts'
 export type { SettingsApi, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView } from './settings.ts'
 export type { CredentialsApi, CredentialView } from './credentials.ts'
+export type {
+  ConnectionAttemptState, ConnectionFlowView, ConnectionMethodView, ConnectionNoticeView,
+  ConnectionPromptView, ConnectionsApi, ConnectionsListValue, McpServerView,
+} from './connections.ts'
 export type { ConfigurableProviderView, DiscoveredModelView, LlmApi } from './llm.ts'
 export type { AppsApi, DeployedAppView } from './apps.ts'
 export type { DownloadsApi } from './downloads.ts'

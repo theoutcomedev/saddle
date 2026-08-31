@@ -61,6 +61,11 @@ export function registerApiKeyConnection(ctx: Context, connection: ApiKeyConnect
   })
 }
 
+// OAuth-family flows beyond the api-key: device authorization and the
+// authorization-code grant with PKCE, both committing a grant record.
+export { ConnectionFlowError, registerDeviceFlowConnection, registerOAuthConnection } from './flows.ts'
+export type { DeviceFlowEndpoints, OAuthAppEndpoints } from './flows.ts'
+
 // The tool plugin is the package's mountable entry: it registers the
 // `request_credential` tool, which calls `registerApiKeyConnection` on demand.
 export { apply, inject, name, questionFor, interactionFor } from './tool.ts'

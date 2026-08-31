@@ -63,6 +63,10 @@ import {
 import {
   credentialsDescribeValueSchema, credentialsSetValueSchema, credentialsUnsetValueSchema,
 } from '../api/credentials.schema.ts'
+import {
+  connectionsAnswerValueSchema, connectionsCancelValueSchema, connectionsConnectValueSchema,
+  connectionsDisconnectValueSchema, connectionsListValueSchema, connectionsPollValueSchema,
+} from '../api/connections.schema.ts'
 import { llmDiscoverModelsValueSchema, llmModelsValueSchema, llmProvidersValueSchema } from '../api/llm.schema.ts'
 import {
   subagentHistoryValueSchema,
@@ -169,6 +173,14 @@ export interface IApiClient {
     set(payload: RequestPayload<'credentials.set'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'credentials.set'>>>
     unset(payload: RequestPayload<'credentials.unset'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'credentials.unset'>>>
   }
+  connections: {
+    list(payload: RequestPayload<'connections.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.list'>>>
+    connect(payload: RequestPayload<'connections.connect'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.connect'>>>
+    poll(payload: RequestPayload<'connections.poll'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.poll'>>>
+    answer(payload: RequestPayload<'connections.answer'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.answer'>>>
+    cancel(payload: RequestPayload<'connections.cancel'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.cancel'>>>
+    disconnect(payload: RequestPayload<'connections.disconnect'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'connections.disconnect'>>>
+  }
   llm: {
     providers(payload: RequestPayload<'llm.providers'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.providers'>>>
     models(payload: RequestPayload<'llm.models'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.models'>>>
@@ -242,6 +254,12 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'credentials.describe': credentialsDescribeValueSchema,
   'credentials.set': credentialsSetValueSchema,
   'credentials.unset': credentialsUnsetValueSchema,
+  'connections.list': connectionsListValueSchema,
+  'connections.connect': connectionsConnectValueSchema,
+  'connections.poll': connectionsPollValueSchema,
+  'connections.answer': connectionsAnswerValueSchema,
+  'connections.cancel': connectionsCancelValueSchema,
+  'connections.disconnect': connectionsDisconnectValueSchema,
   'llm.providers': llmProvidersValueSchema,
   'llm.models': llmModelsValueSchema,
   'llm.discoverModels': llmDiscoverModelsValueSchema,
@@ -523,6 +541,15 @@ export abstract class AbstractApiClient implements IApiClient {
     describe: (payload, signal) => this.callUnary('credentials.describe', payload, signal),
     set: (payload, signal) => this.callUnary('credentials.set', payload, signal),
     unset: (payload, signal) => this.callUnary('credentials.unset', payload, signal),
+  }
+
+  readonly connections: IApiClient['connections'] = {
+    list: (payload, signal) => this.callUnary('connections.list', payload, signal),
+    connect: (payload, signal) => this.callUnary('connections.connect', payload, signal),
+    poll: (payload, signal) => this.callUnary('connections.poll', payload, signal),
+    answer: (payload, signal) => this.callUnary('connections.answer', payload, signal),
+    cancel: (payload, signal) => this.callUnary('connections.cancel', payload, signal),
+    disconnect: (payload, signal) => this.callUnary('connections.disconnect', payload, signal),
   }
 
   readonly llm: IApiClient['llm'] = {

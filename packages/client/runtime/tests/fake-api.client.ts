@@ -275,6 +275,15 @@ export class FakeApiClient implements IApiClient {
     unset: payload => this.record('credentials.unset', payload, Promise.resolve(ok({}))),
   }
 
+  readonly connections: IApiClient['connections'] = {
+    list: payload => this.record('connections.list', payload, Promise.resolve(ok({ flows: [], mcp: [] }))),
+    connect: payload => this.record('connections.connect', payload, Promise.resolve(ok({ attemptId: 'a' }))),
+    poll: payload => this.record('connections.poll', payload, Promise.resolve(ok({ state: 'connecting' }))),
+    answer: payload => this.record('connections.answer', payload, Promise.resolve(ok({}))),
+    cancel: payload => this.record('connections.cancel', payload, Promise.resolve(ok({}))),
+    disconnect: payload => this.record('connections.disconnect', payload, Promise.resolve(ok({}))),
+  }
+
   readonly llm: IApiClient['llm'] = {
     providers: payload => this.record('llm.providers', payload, Promise.resolve(ok({ providers: [] }))),
     models: payload => this.record('llm.models', payload, Promise.resolve(ok({ groups: [], failures: [] }))),

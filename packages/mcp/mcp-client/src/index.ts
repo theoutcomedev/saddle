@@ -18,11 +18,35 @@ import z from '@deepseek-ai/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { RECONNECT_DEFAULTS, resolveReconnectPolicy, startConnection } from './connection.ts'
 import type { ReconnectConfig } from './connection.ts'
-// Side-effect type import: declaration-merges `ctx.tools` onto Context.
+// Side-effect type import: declaration-merges ctx.tools onto Context.
 import type {} from '@deepseek-ai/dsh-tools'
 
 export type { McpResult } from './tools.ts'
 export type { ReconnectConfig, ResolvedReconnectPolicy } from './connection.ts'
+
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * One mounted MCP server changed its connection state. Fired by every
+     * mcp-client instance at its lifecycle points (connecting at mount,
+     * ready or failed after the initial attempt, closed at disposal); the
+     * reconnect loop inside a live supervisor is not surfaced here.
+     * @mode emit
+     * @param status - the server name and its new state.
+     */
+    'mcp/server-status'(status: McpServerStatus): void
+  }
+}
+
+/** The connection state of one mounted MCP server, as surfaces may show it. */
+export interface McpServerStatus {
+  /** The stable serverName namespace the instance owns. */
+  serverName: string
+  /** Coarse lifecycle state; closed means the instance is gone. */
+  state: 'connecting' | 'ready' | 'failed' | 'closed'
+  /** The failure text, present only when state is failed. */
+  error?: string
+}
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'mcp-client'
@@ -33,16 +57,32 @@ export const inject = ['tools']
 /** Default timeout for individual MCP tool calls (ms). */
 const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000
 
-/** Valid `serverName`, kept below the public tool-name budget. */
+/** Valid serverName, kept below the public tool-name budget. */
 const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
 
 /**
- * Live `serverName` reservations per app, keyed off `ctx.root` (multiple apps
+ * Live serverName reservations per app, keyed off ctx.root (multiple apps
  * in one process — tests — must not see each other's names). A duplicate
  * namespace is a configuration error surfaced at plugin load, never silent
  * shadowing.
  */
 const activeServerNames = new WeakMap<Context, Set<string>>()
+
+/**
+ * Live per-app server status, same root keying as activeServerNames, fed by
+ * each instance's lifecycle emits so a host surface can list servers without
+ * depending on this package.
+ */
+const activeServerStatus = new WeakMap<Context, Map<string, McpServerStatus>>()
+
+/**
+ * The current status of every mounted MCP server in one app.
+ * @param root - the app root context (as passed to the plugin context).
+ * @returns one entry per live instance, in mount order.
+ */
+export function listMcpServers(root: Context): readonly McpServerStatus[] {
+  return [...(activeServerStatus.get(root)?.values() ?? [])]
+}
 
 // ---- Config ----
 
@@ -165,8 +205,26 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // quiesces in-flight work, and unregisters the current generation.
   const connection = startConnection(ctx, config, reconnect)
 
+  // Publish one status update for this instance: the per-app registry (so a
+  // host surface can list servers without depending on this package) and the
+  // typed event (so a host surface can keep its own live view).
+  const report = (state: McpServerStatus['state'], error?: string): void => {
+    let statuses = activeServerStatus.get(ctx.root)
+    if (statuses === undefined) {
+      statuses = new Map()
+      activeServerStatus.set(ctx.root, statuses)
+    }
+    if (state === 'closed') statuses.delete(config.serverName)
+    else statuses.set(config.serverName, { serverName: config.serverName, state, ...error === undefined ? {} : { error } })
+    ctx.emit('mcp/server-status', statuses.get(config.serverName) ?? { serverName: config.serverName, state })
+  }
+  report('connecting')
+
   ctx.effect(() => {
-    return () => connection.dispose()
+    return () => {
+      report('closed')
+      return connection.dispose()
+    }
   }, 'mcp-client.connection')
 
   // Block plugin activation on the initial connection + tool discovery so
@@ -175,7 +233,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // fiber (Cordis rolls it back); otherwise the error is logged and the
   // supervisor enters its reconnect loop.
   const outcome = await connection.ready
-  if (outcome.error !== undefined && config.failOnStartupError) {
-    throw new Error(`mcp-client(${config.serverName}): initial connection or tool synchronization failed`, { cause: outcome.error })
+  if (outcome.error !== undefined) {
+    report('failed', outcome.error instanceof Error ? outcome.error.message : String(outcome.error))
+    if (config.failOnStartupError) {
+      throw new Error(`mcp-client(${config.serverName}): initial connection or tool synchronization failed`, { cause: outcome.error })
+    }
+  } else {
+    report('ready')
   }
 }

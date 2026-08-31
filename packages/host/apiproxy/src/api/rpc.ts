@@ -94,6 +94,10 @@ export interface RpcErrorDetailsMap {
   'subagent-not-resumable': { childSessionId: SessionId }
   'subagent-unauthorized': { childSessionId: SessionId }
   'subagent-delivery-unavailable': { childSessionId: SessionId }
+  /** A connect/disconnect named no registered authorization flow. */
+  'connection-not-found': { key: string }
+  /** A poll/answer named an unknown or already-finished connect attempt. */
+  'connection-attempt-invalid': { attemptId: string }
   'internal': {}
 }
 

@@ -12,6 +12,7 @@ import type { SkillsApi } from './skills.ts'
 import type { GoalsApi } from './goals.ts'
 import type { SettingsApi } from './settings.ts'
 import type { CredentialsApi } from './credentials.ts'
+import type { ConnectionsApi } from './connections.ts'
 import type { LlmApi } from './llm.ts'
 import type { SubagentsApi } from './subagents.ts'
 import type { AppsApi } from './apps.ts'
@@ -75,6 +76,12 @@ export interface RpcMethodMap {
   'credentials.describe': CredentialsApi['describe']
   'credentials.set': CredentialsApi['set']
   'credentials.unset': CredentialsApi['unset']
+  'connections.list': ConnectionsApi['list']
+  'connections.connect': ConnectionsApi['connect']
+  'connections.poll': ConnectionsApi['poll']
+  'connections.answer': ConnectionsApi['answer']
+  'connections.cancel': ConnectionsApi['cancel']
+  'connections.disconnect': ConnectionsApi['disconnect']
   'llm.providers': LlmApi['providers']
   'llm.models': LlmApi['models']
   'llm.discoverModels': LlmApi['discoverModels']

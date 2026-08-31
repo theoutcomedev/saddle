@@ -27,6 +27,7 @@ function scriptedApi(overrides: {
   goals?: Partial<ApiProxy['goals']>
   settings?: Partial<ApiProxy['settings']>
   credentials?: Partial<ApiProxy['credentials']>
+  connections?: Partial<ApiProxy['connections']>
   llm?: Partial<ApiProxy['llm']>
   respond?: ApiProxy['respond']
 } = {}): ApiProxy {
@@ -124,6 +125,15 @@ function scriptedApi(overrides: {
       set: err,
       unset: err,
       ...overrides.credentials,
+    },
+    connections: {
+      list: r => ok(r, { flows: [], mcp: [] }),
+      connect: err,
+      poll: err,
+      answer: err,
+      cancel: err,
+      disconnect: err,
+      ...overrides.connections,
     },
     llm: {
       providers: r => ok(r, { providers: [] }),

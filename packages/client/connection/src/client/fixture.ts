@@ -3102,6 +3102,14 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         return ok(request, {})
       },
     },
+    connections: {
+      list: request => ok(request, { flows: [], mcp: [] }),
+      connect: request => err(request, { code: 'connection-not-found', message: 'fixture', details: { key: '' } }),
+      poll: request => err(request, { code: 'connection-attempt-invalid', message: 'fixture', details: { attemptId: '' } }),
+      answer: request => err(request, { code: 'connection-attempt-invalid', message: 'fixture', details: { attemptId: '' } }),
+      cancel: request => err(request, { code: 'connection-attempt-invalid', message: 'fixture', details: { attemptId: '' } }),
+      disconnect: request => err(request, { code: 'connection-not-found', message: 'fixture', details: { key: '' } }),
+    },
     llm: {
       providers: request => ok(request, {
         providers: [
@@ -3299,6 +3307,12 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'credentials.describe': return this.api.credentials.describe(request)
       case 'credentials.set': return this.api.credentials.set(request)
       case 'credentials.unset': return this.api.credentials.unset(request)
+      case 'connections.list': return this.api.connections.list(request)
+      case 'connections.connect': return this.api.connections.connect(request)
+      case 'connections.poll': return this.api.connections.poll(request)
+      case 'connections.answer': return this.api.connections.answer(request)
+      case 'connections.cancel': return this.api.connections.cancel(request)
+      case 'connections.disconnect': return this.api.connections.disconnect(request)
       case 'llm.providers': return this.api.llm.providers(request)
       case 'llm.models': return this.api.llm.models(request)
       case 'llm.discoverModels': return this.api.llm.discoverModels(request, signal)

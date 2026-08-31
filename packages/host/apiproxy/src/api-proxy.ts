@@ -37,8 +37,9 @@ import {
 import type { PresetBearingSession } from '@deepseek-ai/dsh-agent-presets'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {
-  ApiProxy, ConfigurableProviderView, CredentialView, GoalRef, HistoryEntry, HostFrame,
-  ModelCatalogFailure, ModelProviderGroup,
+  ApiProxy, ConfigurableProviderView, ConnectionAttemptState, ConnectionFlowView,
+  ConnectionPromptView, CredentialView, GoalRef, HistoryEntry, HostFrame,
+  McpServerView, ModelCatalogFailure, ModelProviderGroup,
   ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem,
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
   WorkspaceId, WorkspaceView, DeployedAppView,
@@ -81,7 +82,8 @@ import type {} from '@deepseek-ai/dsh-skill'
 // provider still serves every other domain.
 import { SettingsConflictError, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { SettingsDescriptor, SettingsNamespace, SettingsPathOp } from '@deepseek-ai/dsh-settings'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import { credentialRef, type CredentialKey } from '@deepseek-ai/dsh-credentials'
+import type { AuthorizationInteraction, AuthorizationNotice, AuthorizationPrompt } from '@deepseek-ai/dsh-authorization'
 // Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
 import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
 import type { CallId } from '@deepseek-ai/dsh-llm/brand'
@@ -1044,6 +1046,19 @@ function changedWorkspaceView(workspaceId: string, value: unknown): WorkspaceVie
  * @param defaults - host routing and project-directory defaults.
  * @returns the ApiProxy implementation.
  */
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * Live MCP server status from mounted mcp-client instances. String
+     * contract shared with the owning package (which declares the same event
+     * under the same name); apiproxy keeps this dependency-free.
+     * @mode emit
+     * @param status - the server name and its new state.
+     */
+    'mcp/server-status'(status: McpServerView): void
+  }
+}
+
 export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiProxy {
   const sessionExportCompressionLevel = defaults.sessionExportCompressionLevel
     ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL
@@ -1068,6 +1083,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   const sessionCreations = new Map<SessionId, Promise<Agent>>()
   /** Live AgentHandles this proxy created/resumed, retained so `session.delete` can dispose them. */
   const liveHandles = new Map<SessionId, AgentHandle>()
+
+  /** Live MCP server status, fed by mcp-client's mcp/server-status events; empty when none are mounted. */
+  const mcpServers = new Map<string, McpServerView>()
+  ctx.on('mcp/server-status', (status) => {
+    if (status.state === 'closed') mcpServers.delete(status.serverName)
+    else mcpServers.set(status.serverName, status)
+  })
+
+  /** One connect attempt the connections domain is walking: its controller and pending prompt. */
+  interface ConnectionAttempt {
+    readonly key: string
+    readonly controller: AbortController
+    state: ConnectionAttemptState
+    prompt: { id: string; resolve: (value: string) => void } | undefined
+  }
+  const connectionAttempts = new Map<string, ConnectionAttempt>()
+  let connectionPromptSeq = 0
   /** Serializes path ownership and explicit title checks with Workspace mutations. */
   let workspaceCreationChain = Promise.resolve()
   const pendingQuestions = new Map<RpcId, PendingQuestion>()
@@ -1954,6 +1986,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     if (defaults.canOpenPath !== undefined) return defaults.canOpenPath()
     // An injected opener is by definition usable; otherwise ask the platform.
     return defaults.openPath !== undefined || canOpenNativePath()
+  }
+
+  /** Missing-service report shared by the connections domain. */
+  function connectionsAbsent(): RpcError {
+    return { code: 'internal', message: 'authorization service is absent: this deployment does not mount @deepseek-ai/dsh-authorization in its composition', details: {} }
   }
 
   /** Missing-service report shared by the credentials domain. */
@@ -3578,6 +3615,153 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             details: { ref },
           })
         }
+        return ok(request, {})
+      },
+    },
+
+    connections: {
+      async list(request) {
+        const authorization = ctx.get('authorization')
+        const credentials = ctx.get('credentials')
+        if (authorization === undefined || credentials === undefined) {
+          return err(request, connectionsAbsent())
+        }
+        const flows: ConnectionFlowView[] = []
+        for (const entry of authorization.list()) {
+          const info = await credentials.describeRecord(entry.key)
+          flows.push({
+            key: entry.key,
+            label: entry.label,
+            methods: entry.methods.map(method => ({ id: method.id, label: method.label })),
+            configured: info.configured,
+            inFlight: entry.inFlight,
+          })
+        }
+        return ok(request, { flows, mcp: [...mcpServers.values()] })
+      },
+
+      async connect(request) {
+        const authorization = ctx.get('authorization')
+        if (authorization === undefined) return err(request, connectionsAbsent())
+        const { key, method } = request.payload
+        const flow = authorization.describe(key as CredentialKey)
+        if (flow === undefined) {
+          return err(request, {
+            code: 'connection-not-found',
+            message: 'no connection flow is registered for "' + key + '"',
+            details: { key },
+          })
+        }
+        const attemptId = randomUUID()
+        const controller = new AbortController()
+        const attempt: ConnectionAttempt = { key, controller, state: { state: 'connecting' }, prompt: undefined }
+        connectionAttempts.set(attemptId, attempt)
+        const interaction: AuthorizationInteraction = {
+          notify: (notice: AuthorizationNotice) => {
+            attempt.state = {
+              state: 'notice',
+              notice: {
+                message: notice.message,
+                ...notice.url === undefined ? {} : { url: notice.url },
+                ...notice.code === undefined ? {} : { code: notice.code },
+              },
+            }
+          },
+          prompt: (prompt: AuthorizationPrompt) => new Promise<string>((resolve, reject) => {
+            const id = 'p' + connectionPromptSeq++
+            attempt.prompt = { id, resolve }
+            const view: ConnectionPromptView = {
+              id,
+              kind: prompt.kind,
+              message: prompt.message,
+              ...prompt.kind === 'select'
+                ? { options: prompt.options.map(option => ({
+                  id: option.id,
+                  label: option.label,
+                  ...option.description === undefined ? {} : { description: option.description },
+                })) }
+                : {},
+            }
+            attempt.state = { state: 'prompt', prompt: view }
+            prompt.signal?.addEventListener('abort', () => {
+              if (attempt.prompt?.id === id) {
+                attempt.prompt = undefined
+                attempt.state = { state: 'connecting' }
+                reject(new Error('prompt withdrawn'))
+              }
+            }, { once: true })
+          }),
+        }
+        void authorization.begin({
+          key: key as CredentialKey,
+          ...method === undefined ? {} : { method },
+          interaction,
+          signal: controller.signal,
+        })
+          .then((outcome) => {
+            attempt.prompt = undefined
+            attempt.state = { state: 'settled', status: outcome.status }
+          })
+          .catch((error: unknown) => {
+            attempt.prompt = undefined
+            attempt.state = { state: 'failed', message: error instanceof Error ? error.message : String(error) }
+          })
+        return ok(request, { attemptId })
+      },
+
+      async poll(request) {
+        const attempt = connectionAttempts.get(request.payload.attemptId)
+        if (attempt === undefined) {
+          return err(request, {
+            code: 'connection-attempt-invalid',
+            message: 'no connection attempt is registered for this id',
+            details: { attemptId: request.payload.attemptId },
+          })
+        }
+        return ok(request, attempt.state)
+      },
+
+      async answer(request) {
+        const attempt = connectionAttempts.get(request.payload.attemptId)
+        if (attempt === undefined || attempt.prompt === undefined) {
+          return err(request, {
+            code: 'connection-attempt-invalid',
+            message: 'this attempt has no prompt waiting for an answer',
+            details: { attemptId: request.payload.attemptId },
+          })
+        }
+        const prompt = attempt.prompt
+        attempt.prompt = undefined
+        attempt.state = { state: 'connecting' }
+        prompt.resolve(request.payload.value)
+        return ok(request, {})
+      },
+
+      async cancel(request) {
+        const attempt = connectionAttempts.get(request.payload.attemptId)
+        if (attempt === undefined) {
+          return err(request, {
+            code: 'connection-attempt-invalid',
+            message: 'no connection attempt is registered for this id',
+            details: { attemptId: request.payload.attemptId },
+          })
+        }
+        attempt.controller.abort()
+        return ok(request, {})
+      },
+
+      async disconnect(request) {
+        const credentials = ctx.get('credentials')
+        if (credentials === undefined) return err(request, credentialsAbsent())
+        const { key } = request.payload
+        if (ctx.get('authorization')?.describe(key as CredentialKey) === undefined) {
+          return err(request, {
+            code: 'connection-not-found',
+            message: 'no connection flow is registered for "' + key + '"',
+            details: { key },
+          })
+        }
+        await credentials.deleteRecord(key as CredentialKey)
         return ok(request, {})
       },
     },

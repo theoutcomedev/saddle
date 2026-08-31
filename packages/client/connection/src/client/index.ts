@@ -29,6 +29,8 @@ export type {
   GoalsApi, GoalRef,
   SettingsApi, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView,
   CredentialsApi, CredentialView, ConfigurableProviderView, DiscoveredModelView, LlmApi,
+  ConnectionsApi, ConnectionAttemptState, ConnectionFlowView, ConnectionMethodView,
+  ConnectionNoticeView, ConnectionPromptView, ConnectionsListValue, McpServerView,
 } from './api.ts'
 export {
   RpcId,
