@@ -15,6 +15,7 @@ import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { ConnectDialog } from './ConnectDialog.tsx'
 import { brandIconFor } from './brand-icons.tsx'
+import { staticLogoFor } from './static-logos.ts'
 import type { ConnectionsKey } from './locales.ts'
 import css from './ConnectionsSection.module.css'
 
@@ -67,7 +68,7 @@ function serviceIdOf(key: string): string {
   return slash === -1 ? key : key.slice(slash + 1)
 }
 
-/** Render the official brand mark, or a colored monogram for brands without one. */
+/** Render the official brand mark, the bundled static logo, or a monogram. */
 function renderLogo(key: string, label: string) {
   const id = serviceIdOf(key)
   const Brand = brandIconFor(id)
@@ -77,6 +78,10 @@ function renderLogo(key: string, label: string) {
         <Brand className={css.brandSvg} />
       </span>
     )
+  }
+  const staticLogo = staticLogoFor(id)
+  if (staticLogo !== undefined) {
+    return <img className={css.brandWordmark} src={staticLogo} alt="" aria-hidden="true" />
   }
   return (
     <span className={css.monogram} aria-hidden="true" style={{ background: monogramColor(label) }}>
