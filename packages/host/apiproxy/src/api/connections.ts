@@ -17,6 +17,16 @@ export interface ConnectionMethodView {
   label: string
 }
 
+/** One named field an api-key flow asks for. */
+export interface ConnectionFieldView {
+  /** Stable field id, stored keyed in the committed record. */
+  id: string
+  /** User-facing field label (e.g. Account SID, Auth Token). */
+  label: string
+  /** Masked-into-a-secret presentation. */
+  secret?: boolean
+}
+
 /** One registered service flow as a surface shows it. */
 export interface ConnectionFlowView {
   /** The credential record this flow writes, as scope/id. */
@@ -29,6 +39,10 @@ export interface ConnectionFlowView {
   configured: boolean
   /** Whether an attempt for this key is running right now. */
   inFlight: boolean
+  /** Provider page to get the credential, when the flow knows one. */
+  docsUrl?: string
+  /** The named fields an api-key flow asks for; absent for a single-secret flow. */
+  fields?: readonly ConnectionFieldView[]
 }
 
 /** One prompt the running flow needs answered. */

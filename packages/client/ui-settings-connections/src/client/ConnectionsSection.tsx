@@ -47,6 +47,19 @@ function mcpStatusLabel(server: McpServerView, t: (key: ConnectionsKey) => strin
   return t('mcpClosed')
 }
 
+/** A stable monogram color from a service label (no bundled logo assets needed). */
+function monogramColor(label: string): string {
+  let hash = 0
+  for (let i = 0; i < label.length; i += 1) hash = (hash * 31 + label.charCodeAt(i)) | 0
+  const palette = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#ec4899']
+  return palette[Math.abs(hash) % palette.length] ?? '#6b7280'
+}
+
+/** The first letter of a service label for its monogram. */
+function initialOf(label: string): string {
+  return label.trim().charAt(0).toUpperCase() || '?'
+}
+
 /** Render the Connections page. */
 export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) {
   const [phase, setPhase] = useState<SectionPhase>('loading')
@@ -117,6 +130,9 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
         <ul className={css.rows}>
           {data.flows.map(flow => (
             <li key={flow.key} className={css.rowCard}>
+              <span className={css.logo} aria-hidden="true" style={{ background: monogramColor(flow.label) }}>
+                {initialOf(flow.label)}
+              </span>
               <div className={css.rowMain}>
                 <span className={css.rowLabel}>{flow.label}</span>
                 <span className={css.rowMeta}>
@@ -126,6 +142,11 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
                   <span className={flow.configured ? css.badgeOn : css.badgeOff}>
                     {flow.configured ? t('connected') : t('notConnected')}
                   </span>
+                  {flow.docsUrl !== undefined && (
+                    <a className={css.docsLink} href={flow.docsUrl} target="_blank" rel="noreferrer">
+                      {t('docs')}
+                    </a>
+                  )}
                 </span>
               </div>
               <div className={css.rowActions}>

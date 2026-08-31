@@ -18,6 +18,9 @@
       "path": "../../credentials/authorization"
     },
     {
+      "path": "../../credentials/connections"
+    },
+    {
       "path": "../../credentials/credentials"
     },
     {

@@ -66,6 +66,11 @@ export function registerApiKeyConnection(ctx: Context, connection: ApiKeyConnect
 export { ConnectionFlowError, registerDeviceFlowConnection, registerOAuthConnection } from './flows.ts'
 export type { DeviceFlowEndpoints, OAuthAppEndpoints } from './flows.ts'
 
+// Tool connections: a service the user connects, with named credential fields
+// and a docs page to obtain them.
+export { registerToolService } from './tool-service.ts'
+export type { ToolAuthField, ToolService } from './tool-service.ts'
+
 // The tool plugin is the package's mountable entry: it registers the
 // `request_credential` tool, which calls `registerApiKeyConnection` on demand.
 export { apply, inject, name, questionFor, interactionFor } from './tool.ts'

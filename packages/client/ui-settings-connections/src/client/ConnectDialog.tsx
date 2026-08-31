@@ -176,6 +176,11 @@ export function ConnectDialog({ open, flow, connections, t, onClose, onConnected
         {attemptId !== undefined && state?.state === 'prompt' && (
           <div className={css.step}>
             <p className={css.noticeText}>{state.prompt.message}</p>
+            {flow.docsUrl !== undefined && (
+              <a className={css.link} href={flow.docsUrl} target='_blank' rel='noreferrer'>
+                {t('docs')}: {t('openPage')}
+              </a>
+            )}
             {state.prompt.kind === 'select' ? (
               <select
                 className={css.select}

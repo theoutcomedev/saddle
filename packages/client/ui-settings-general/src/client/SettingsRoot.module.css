@@ -245,8 +245,6 @@
     width: 40px;
     height: 40px;
     z-index: 100;
-    background: var(--dsw-alias-bg-layer-2);
-    box-shadow: -4px 0 8px var(--dsw-alias-bg-layer-2);
   }
   .content {
     flex: 1;

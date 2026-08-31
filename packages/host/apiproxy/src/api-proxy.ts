@@ -82,7 +82,8 @@ import type {} from '@deepseek-ai/dsh-skill'
 // provider still serves every other domain.
 import { SettingsConflictError, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { SettingsDescriptor, SettingsNamespace, SettingsPathOp } from '@deepseek-ai/dsh-settings'
-import { credentialRef, type CredentialKey } from '@deepseek-ai/dsh-credentials'
+import { credentialKeyScope, credentialRef, type CredentialKey } from '@deepseek-ai/dsh-credentials'
+import { CONNECTION_SCOPE } from '@deepseek-ai/dsh-connections'
 import type { AuthorizationInteraction, AuthorizationNotice, AuthorizationPrompt } from '@deepseek-ai/dsh-authorization'
 // Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
 import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
@@ -3627,7 +3628,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return err(request, connectionsAbsent())
         }
         const flows: ConnectionFlowView[] = []
+        // Only the connection-catalog scope; provider sign-in flows (llm-pi-ai)
+        // stay on the Models page, not the tools page.
         for (const entry of authorization.list()) {
+          if (credentialKeyScope(entry.key) !== CONNECTION_SCOPE) continue
           const info = await credentials.describeRecord(entry.key)
           flows.push({
             key: entry.key,
@@ -3635,6 +3639,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             methods: entry.methods.map(method => ({ id: method.id, label: method.label })),
             configured: info.configured,
             inFlight: entry.inFlight,
+            ...entry.docsUrl === undefined ? {} : { docsUrl: entry.docsUrl },
+            ...entry.fields === undefined ? {} : { fields: entry.fields.map(field => ({
+              id: field.id,
+              label: field.label,
+              ...field.secret === undefined ? {} : { secret: field.secret },
+            })) },
           })
         }
         return ok(request, { flows, mcp: [...mcpServers.values()] })

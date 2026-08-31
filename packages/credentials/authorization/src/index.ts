@@ -29,6 +29,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { CredentialKey } from '@deepseek-ai/dsh-credentials'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
+import type { AuthorizationField } from './types.ts'
 
 import type {
   AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome, AuthorizationPrompt,
@@ -36,8 +37,8 @@ import type {
 } from './types.ts'
 
 export type {
-  AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome, AuthorizationPrompt,
-  AuthorizationPromptOption, AuthorizationSettlement, AuthorizationStatus,
+  AuthorizationEntry, AuthorizationField, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome,
+  AuthorizationPrompt, AuthorizationPromptOption, AuthorizationSettlement, AuthorizationStatus,
 } from './types.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -127,6 +128,10 @@ export interface AuthorizationFlow {
    * cannot be begun, and the type says so at the one place flows are written.
    */
   readonly methods: readonly [AuthorizationMethod, ...AuthorizationMethod[]]
+  /** Provider page to obtain the credential, surfaced by a picker. */
+  readonly docsUrl?: string
+  /** The named fields an api-key flow asks for; absent for a single-secret flow. */
+  readonly fields?: readonly AuthorizationField[]
   /**
    * Run one attempt to obtain and commit the credential.
    * @param session - the chosen method, the cancellation signal, and the interaction callbacks.
@@ -242,6 +247,8 @@ export class AuthorizationService extends Service {
       label: flow.label,
       methods: flow.methods,
       inFlight: this.running.has(flow.key),
+      ...flow.docsUrl === undefined ? {} : { docsUrl: flow.docsUrl },
+      ...flow.fields === undefined ? {} : { fields: flow.fields },
     }
   }
 

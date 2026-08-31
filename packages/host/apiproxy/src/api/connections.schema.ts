@@ -9,8 +9,8 @@ import { z } from 'zod'
 import type { RequestPayload, ResponseValue } from './rpc-map.ts'
 import type { Wire } from './rpc.schema.ts'
 import type {
-  ConnectionAttemptState, ConnectionFlowView, ConnectionMethodView, ConnectionNoticeView,
-  ConnectionPromptView, ConnectionsListValue, McpServerView,
+  ConnectionAttemptState, ConnectionFieldView, ConnectionFlowView, ConnectionMethodView,
+  ConnectionNoticeView, ConnectionPromptView, ConnectionsListValue, McpServerView,
 } from './connections.ts'
 
 /** A scope/id credential-key string (the seam's two lowercase-hyphenated segments). */
@@ -22,6 +22,13 @@ export const connectionMethodViewSchema = z.object({
   label: z.string(),
 }) satisfies z.ZodType<Wire<ConnectionMethodView>>
 
+/** One named field an api-key flow asks for. */
+export const connectionFieldViewSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  secret: z.boolean().optional(),
+}) satisfies z.ZodType<Wire<ConnectionFieldView>>
+
 /** One registered flow as a surface shows it. */
 export const connectionFlowViewSchema = z.object({
   key: connectionKeySchema,
@@ -29,6 +36,8 @@ export const connectionFlowViewSchema = z.object({
   methods: z.array(connectionMethodViewSchema),
   configured: z.boolean(),
   inFlight: z.boolean(),
+  docsUrl: z.string().optional(),
+  fields: z.array(connectionFieldViewSchema).optional(),
 }) satisfies z.ZodType<Wire<ConnectionFlowView>>
 
 /** One prompt the running flow needs answered. */

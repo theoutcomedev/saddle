@@ -8,7 +8,7 @@ import { AuthorizationService } from '@deepseek-ai/dsh-authorization'
 import type { AuthorizationNotice, AuthorizationPrompt } from '@deepseek-ai/dsh-authorization'
 import { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type { CredentialKey, CredentialRecord, CredentialRef } from '@deepseek-ai/dsh-credentials'
-import { connectionKey, registerDeviceFlowConnection, registerOAuthConnection } from '../src/index.ts'
+import { connectionKey, registerDeviceFlowConnection, registerOAuthConnection, registerToolService } from '../src/index.ts'
 import { CATALOG, apply as registerCatalog } from '../src/startup.ts'
 
 /** Minimal in-memory credential provider for exercising the flows. */
@@ -288,10 +288,50 @@ describe('shipped catalog', () => {
       for (const connection of CATALOG) {
         const entry = ctx.authorization.describe(connectionKey(connection))
         expect(entry?.methods[0]?.id).toBe('api-key')
+        expect(entry?.docsUrl).toBe(connection.docsUrl)
       }
+      const twilio = ctx.authorization.describe(connectionKey(CATALOG.find(s => s.id === 'twilio') as never))
+      expect(twilio?.fields?.length).toBe(2)
     } finally {
       dispose()
     }
     expect(ctx.authorization.list()).toHaveLength(0)
+  })
+})
+
+describe('tool service registration', () => {
+  it('prompts once per named field and commits the values keyed by id', async () => {
+    const { ctx, credentials } = await setup()
+    const dispose = registerToolService(ctx, {
+      id: 'twilio',
+      label: 'Twilio',
+      docsUrl: 'https://console.twilio.com/',
+      auth: { method: 'api-key', fields: [
+        { id: 'accountSid', label: 'Account SID' },
+        { id: 'authToken', label: 'Auth Token' },
+      ] },
+    })
+    try {
+      // Two prompts, answered in order (a kind-keyed surface would feed both
+      // the same value, which the real UI never does).
+      const values = ['AC123', 'tok-456']
+      let index = 0
+      const interaction = {
+        notify: () => {},
+        prompt: async () => values[index++] ?? '',
+      }
+      const outcome = await ctx.authorization.begin({
+        key: connectionKey({ id: 'twilio', label: 'Twilio' }),
+        method: 'api-key',
+        interaction,
+      })
+      expect(outcome.status).toBe('authorized')
+      expect(index).toBe(2)
+      const record = credentials.read(connectionKey({ id: 'twilio', label: 'Twilio' }))
+      expect(record && record.kind === 'grant' && (record.payload as { values?: unknown }).values)
+        .toEqual({ accountSid: 'AC123', authToken: 'tok-456' })
+    } finally {
+      dispose()
+    }
   })
 })

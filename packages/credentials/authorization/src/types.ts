@@ -79,6 +79,17 @@ export interface AuthorizationOutcome {
 }
 
 /** A registered flow as a surface sees it: what it authorizes and whether it is busy. */
+/** One named field an api-key-style flow asks for, so a surface can name
+ *  exactly what it wants (e.g. Twilio's Account SID and Auth Token). */
+export interface AuthorizationField {
+  /** Stable field id, stored keyed in the committed record. */
+  id: string
+  /** User-facing field label used in the prompt. */
+  label: string
+  /** Optional masked-into-a-secret presentation. */
+  secret?: boolean
+}
+
 export interface AuthorizationEntry {
   /** The credential record this flow writes. */
   key: CredentialKey
@@ -88,4 +99,8 @@ export interface AuthorizationEntry {
   methods: readonly AuthorizationMethod[]
   /** Whether an attempt for this key is running right now. */
   inFlight: boolean
+  /** Provider page to obtain the credential, when the flow knows one. */
+  docsUrl?: string
+  /** The named fields an api-key flow asks for; absent for a single-secret flow. */
+  fields?: readonly AuthorizationField[]
 }
