@@ -14,6 +14,7 @@ import type {
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { ConnectDialog } from './ConnectDialog.tsx'
+import { logoColor, logoSvgPath } from './logos.ts'
 import type { ConnectionsKey } from './locales.ts'
 import css from './ConnectionsSection.module.css'
 
@@ -58,6 +59,29 @@ function monogramColor(label: string): string {
 /** The first letter of a service label for its monogram. */
 function initialOf(label: string): string {
   return label.trim().charAt(0).toUpperCase() || '?'
+}
+
+/** The service id segment of a connection key (connections/twilio -> twilio). */
+function serviceIdOf(key: string): string {
+  const slash = key.lastIndexOf('/')
+  return slash === -1 ? key : key.slice(slash + 1)
+}
+
+/** Render the brand logo on a brand-color badge, or the monogram fallback. */
+function renderLogo(key: string, label: string) {
+  const id = serviceIdOf(key)
+  const path = logoSvgPath(id)
+  const background = logoColor(id) ?? monogramColor(label)
+  if (path !== undefined) {
+    return (
+      <span className={css.logo} aria-hidden="true" style={{ background }}>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" role="img" aria-hidden="true">
+          <path d={path} />
+        </svg>
+      </span>
+    )
+  }
+  return <span className={css.logo} aria-hidden="true" style={{ background }}>{initialOf(label)}</span>
 }
 
 /** Render the Connections page. */
@@ -130,24 +154,24 @@ export function ConnectionsSection({ connections, t }: ConnectionsSectionProps) 
         <ul className={css.rows}>
           {data.flows.map(flow => (
             <li key={flow.key} className={css.rowCard}>
-              <span className={css.logo} aria-hidden="true" style={{ background: monogramColor(flow.label) }}>
-                {initialOf(flow.label)}
-              </span>
-              <div className={css.rowMain}>
-                <span className={css.rowLabel}>{flow.label}</span>
-                <span className={css.rowMeta}>
-                  {flow.methods.map(entry => (
-                    <span key={entry.id} className={css.methodChip}>{methodLabel(entry.id, t)}</span>
-                  ))}
-                  <span className={flow.configured ? css.badgeOn : css.badgeOff}>
-                    {flow.configured ? t('connected') : t('notConnected')}
+              <div className={css.rowLeft}>
+                {renderLogo(flow.key, flow.label)}
+                <div className={css.rowMain}>
+                  <span className={css.rowLabel}>{flow.label}</span>
+                  <span className={css.rowMeta}>
+                    {flow.methods.map(entry => (
+                      <span key={entry.id} className={css.methodChip}>{methodLabel(entry.id, t)}</span>
+                    ))}
+                    <span className={flow.configured ? css.badgeOn : css.badgeOff}>
+                      {flow.configured ? t('connected') : t('notConnected')}
+                    </span>
+                    {flow.docsUrl !== undefined && (
+                      <a className={css.docsLink} href={flow.docsUrl} target="_blank" rel="noreferrer">
+                        {t('docs')}
+                      </a>
+                    )}
                   </span>
-                  {flow.docsUrl !== undefined && (
-                    <a className={css.docsLink} href={flow.docsUrl} target="_blank" rel="noreferrer">
-                      {t('docs')}
-                    </a>
-                  )}
-                </span>
+                </div>
               </div>
               <div className={css.rowActions}>
                 {!flow.configured && (
