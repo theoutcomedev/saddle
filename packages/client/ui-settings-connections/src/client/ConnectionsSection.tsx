@@ -14,7 +14,7 @@ import type {
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { ConnectDialog } from './ConnectDialog.tsx'
-import { logoColor, logoSvgPath } from './logos.ts'
+import { brandIconFor } from './brand-icons.tsx'
 import type { ConnectionsKey } from './locales.ts'
 import css from './ConnectionsSection.module.css'
 
@@ -67,21 +67,22 @@ function serviceIdOf(key: string): string {
   return slash === -1 ? key : key.slice(slash + 1)
 }
 
-/** Render the brand logo on a brand-color badge, or the monogram fallback. */
+/** Render the official brand mark, or a colored monogram for brands without one. */
 function renderLogo(key: string, label: string) {
   const id = serviceIdOf(key)
-  const path = logoSvgPath(id)
-  const background = logoColor(id) ?? monogramColor(label)
-  if (path !== undefined) {
+  const Brand = brandIconFor(id)
+  if (Brand !== undefined) {
     return (
-      <span className={css.logo} aria-hidden="true" style={{ background }}>
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" role="img" aria-hidden="true">
-          <path d={path} />
-        </svg>
+      <span className={css.logo} aria-hidden="true">
+        <Brand className={css.brandSvg} />
       </span>
     )
   }
-  return <span className={css.logo} aria-hidden="true" style={{ background }}>{initialOf(label)}</span>
+  return (
+    <span className={css.monogram} aria-hidden="true" style={{ background: monogramColor(label) }}>
+      {initialOf(label)}
+    </span>
+  )
 }
 
 /** Render the Connections page. */

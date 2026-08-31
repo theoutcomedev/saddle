@@ -2653,6 +2653,10 @@ importers:
         version: 18.3.1
 
   packages/client/ui-settings-connections:
+    dependencies:
+      '@thesvg/react':
+        specifier: ^3.0.10
+        version: 3.3.1(react@18.3.1)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -11721,6 +11725,12 @@ packages:
       '@types/react-dom':
         optional: true
 
+  '@thesvg/react@3.3.1':
+    resolution: {integrity: sha512-5YFVOP02XEyumkW1aTTFy6nfctScJSjPhbswVcA+Bcy0ZF+lmIj4mAg/CqUyw2681fnNSVtsH+T53UNYgDgotg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=18'
+
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
 
@@ -16847,6 +16857,10 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.31
       '@types/react-dom': 18.3.7(@types/react@18.3.31)
+
+  '@thesvg/react@3.3.1(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
 
   '@tybys/wasm-util@0.10.2':
     dependencies:
