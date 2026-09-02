@@ -104,17 +104,15 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
         <span className={css.dir} title={dir}>{dir}</span>
         {selected !== null && (
           <>
-            {(selected.endsWith('.md') || selected.endsWith('.mdx') || selected.endsWith('.txt')) && (
-              <button
-                type="button"
-                className={css.ghost}
-                aria-label={preview ? 'View source' : 'Preview'}
-                title={preview ? 'View source' : 'Preview'}
-                onClick={() => { setPreview(!preview) }}
-              >
-                {preview ? <IconCodeOutline16 size={14} /> : <IconSearchOutline16 size={14} />}
-              </button>
-            )}
+            <button
+              type="button"
+              className={css.ghost}
+              aria-label={preview ? 'View source' : 'Preview'}
+              title={preview ? 'View source' : 'Preview'}
+              onClick={() => { setPreview(!preview) }}
+            >
+              {preview ? <IconCodeOutline16 size={14} /> : <IconSearchOutline16 size={14} />}
+            </button>
             <button type="button" className={css.ghost} aria-label={t('workbench.browser.open')} onClick={() => { void openPath(selected) }}>
               <IconLinkOutline16 size={14} />
             </button>
@@ -135,10 +133,14 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
             ))}
           </ul>
         ) : (
-          (selected.endsWith('.md') || selected.endsWith('.mdx') || selected.endsWith('.txt')) && preview && !loading ? (
-            <div style={{ padding: '12px 16px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
-              <MarkdownText text={text} />
-            </div>
+          preview && !loading ? (
+            selected.endsWith('.html') || selected.endsWith('.htm') ? (
+              <iframe style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} srcDoc={text} title="HTML Preview" sandbox="allow-scripts" />
+            ) : (
+              <div style={{ padding: '12px 16px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
+                <MarkdownText text={text} />
+              </div>
+            )
           ) : (
             <pre className={css.code}>{loading ? '…' : text}</pre>
           )
