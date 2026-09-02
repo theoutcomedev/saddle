@@ -12,6 +12,14 @@ import { NS } from './locales.ts'
 import type {} from './contract/slots.ts'
 import css from './files-pane.module.css'
 
+/** One entry in a Workbench directory listing (a file or a folder). */
+export interface WorkspaceFileEntry {
+  name: string
+  path: string
+  isDir?: boolean | undefined
+  sizeBytes?: number | undefined
+}
+
 /** Injected face: the host file primitives bound from the workspaces service. */
 export interface FilesPaneInjected {
   listFiles: (path: string, signal?: AbortSignal) => Promise<{
@@ -38,7 +46,7 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
   const cwd = useSessions(list => list.byId[sessionId]?.cwd)
   const initialPath = typeof params?.path === 'string' ? params.path : ''
   const [dir, setDir] = useState(initialPath === '' ? (cwd ?? '/') : parentPath(initialPath))
-  const [entries, setEntries] = useState<{ name: string; path: string; isDir: boolean; hidden: boolean }[]>([])
+  const [entries, setEntries] = useState<WorkspaceFileEntry[]>([])
   const [selected, setSelected] = useState<string | null>(initialPath === '' ? null : initialPath)
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
