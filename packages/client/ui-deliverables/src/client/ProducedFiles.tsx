@@ -125,6 +125,7 @@ export function ProducedFiles({
             // that share a basename; the chip itself stays short.
             title={path}
             aria-label={t('produced.open', { name: path })}
+            data-workbench-file={path}
             onClick={() => { openFile(path) }}
           >
             {basename(path)}
@@ -133,7 +134,7 @@ export function ProducedFiles({
         {hidden > 0 && <span className={css.more}>{moreLabel(t, hidden)}</span>}
       </div>
       {hidden > 0 && canOpenPath && (
-        <button type="button" className={css.showFolder} onClick={() => { openFile('.') }}>
+        <button type="button" className={css.showFolder} data-workbench-file="." onClick={() => { openFile('.') }}>
           {t('produced.showInFolder')}
         </button>
       )}
