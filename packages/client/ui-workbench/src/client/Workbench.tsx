@@ -109,6 +109,19 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     setAddOpen(false)
   }
 
+  // Custom event listener for programmatic file opening from chat / tools
+  useEffect(() => {
+    const onCustomOpen = (event: Event): void => {
+      const custom = event as CustomEvent<{ path: string }>
+      if (custom.detail?.path) {
+        openPane('files', { path: custom.detail.path })
+        openDetails()
+      }
+    }
+    window.addEventListener('workbench:open-file', onCustomOpen)
+    return () => window.removeEventListener('workbench:open-file', onCustomOpen)
+  }, [openDetails, openPane])
+
   // URL auto-open: clicking any http(s) link anywhere opens it in the Browser
   // pane instead of navigating away. Delegated at document level so agent-
   // surfaced URLs in the conversation open here by default.

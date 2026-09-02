@@ -52,7 +52,6 @@ services:
       - saddle-data:/app/data
       - saddle-root:/root
       - /var/run/docker.sock:/var/run/docker.sock
-      - saddle-apps:/app/apps
     networks:
       - saddle-network
     labels:
@@ -103,4 +102,3 @@ volumes:
   redis-data:
   saddle-data:
   saddle-root:
-  saddle-apps:
