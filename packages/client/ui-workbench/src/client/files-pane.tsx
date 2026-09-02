@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconLinkOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconLinkOutline16, IconEyeOutline16, IconEyeClosedOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type {} from './contract/slots.ts'
@@ -49,6 +49,7 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
   const [entries, setEntries] = useState<WorkspaceFileEntry[]>([])
   const [selected, setSelected] = useState<string | null>(initialPath === '' ? null : initialPath)
   const [text, setText] = useState('')
+  const [preview, setPreview] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abort = useRef<AbortController | null>(null)
@@ -102,9 +103,22 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
         <button type="button" className={css.ghost} disabled={parent === dir} onClick={() => { load(parent) }}>..</button>
         <span className={css.dir} title={dir}>{dir}</span>
         {selected !== null && (
-          <button type="button" className={css.ghost} aria-label={t('workbench.browser.open')} onClick={() => { void openPath(selected) }}>
-            <IconLinkOutline16 size={14} />
-          </button>
+          <>
+            {(selected.endsWith('.md') || selected.endsWith('.mdx') || selected.endsWith('.txt')) && (
+              <button
+                type="button"
+                className={css.ghost}
+                aria-label={preview ? 'View source' : 'Preview'}
+                title={preview ? 'View source' : 'Preview'}
+                onClick={() => { setPreview(!preview) }}
+              >
+                {preview ? <IconEyeClosedOutline16 size={14} /> : <IconEyeOutline16 size={14} />}
+              </button>
+            )}
+            <button type="button" className={css.ghost} aria-label={t('workbench.browser.open')} onClick={() => { void openPath(selected) }}>
+              <IconLinkOutline16 size={14} />
+            </button>
+          </>
         )}
       </div>
       {error !== null && <div className={css.error}>{error}</div>}
@@ -121,7 +135,13 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
             ))}
           </ul>
         ) : (
-          <pre className={css.code}>{loading ? '…' : text}</pre>
+          (selected.endsWith('.md') || selected.endsWith('.mdx') || selected.endsWith('.txt')) && preview && !loading ? (
+            <div style={{ padding: '12px 16px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
+              <MarkdownText text={text} />
+            </div>
+          ) : (
+            <pre className={css.code}>{loading ? '…' : text}</pre>
+          )
         )}
       </div>
     </div>
