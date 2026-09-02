@@ -3278,7 +3278,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           const isImage = target.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)
           if (isImage) {
             const buffer = await readFile(target)
-            const ext = isImage[1].toLowerCase()
+            const ext = isImage[1]!.toLowerCase()
             const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
             const text = `data:${mimeType};base64,${buffer.toString('base64')}`
             return ok(request, { path: target, text })

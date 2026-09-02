@@ -55,6 +55,25 @@
     left: 0;
   }
   .detailsCol {
+    position: absolute;
+    top: 40px; /* Leave a little space at top to show it's a drawer */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    z-index: 50;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+    transform: translateY(100%);
+    transition: transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+    background: var(--dsw-alias-bg-base);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    overflow: hidden;
+  }
+  .frame:not([data-details-collapsed]) .detailsCol {
+    transform: translateY(0);
+  }
+  .handle {
     display: none !important;
   }
 }

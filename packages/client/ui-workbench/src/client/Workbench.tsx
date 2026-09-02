@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { IconPlusOutline16, IconFullscreenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPlusOutline16, IconFullscreenOutline16, IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchPaneKind } from './types.ts'
 import { NS } from './locales.ts'
@@ -78,7 +78,7 @@ function renderPane(tab: OpenTab | undefined, renderSlot: WorkbenchProps['render
  * @param props - runtime share, declared pane slots, locale, inject face.
  * @returns the workbench element.
  */
-export function Workbench({ renderSlot, t, openDetails }: WorkbenchProps) {
+export function Workbench({ renderSlot, t, openDetails, closeDetails }: WorkbenchProps) {
   const [tabs, setTabs] = useState<OpenTab[]>(() => [{ id: 'details', kind: 'details' }])
   const [activeId, setActiveId] = useState('details')
   const [addOpen, setAddOpen] = useState(false)
@@ -196,6 +196,15 @@ export function Workbench({ renderSlot, t, openDetails }: WorkbenchProps) {
               )}
             </div>
           ))}
+          <div style={{ flex: 1, minWidth: 16 }} />
+          <button
+            type="button"
+            className={css.stripGlobalClose}
+            aria-label={t('close')}
+            onClick={() => { closeDetails() }}
+          >
+            <IconCloseOutline16 size={16} />
+          </button>
         </div>
       )}
       <div className={css.body}>

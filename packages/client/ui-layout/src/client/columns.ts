@@ -60,6 +60,13 @@ export function clampWidth(px: number, min: number, max: number): number {
  * @returns resolved widths; details 0 means visually closed (never unmounted), while a closed sidebar keeps its compact rail.
  */
 export function computeColumns(viewport: number, sidebar: number, details: number): Columns {
+  // On mobile viewports, columns stack/overlay instead of sharing horizontal space,
+  // so bypass the concession chain to allow full-width panels.
+  if (viewport <= 768) {
+    const s = sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
+    return { sidebar: s, center: viewport, details: details === 0 ? 0 : viewport }
+  }
+
   // The sidebar is fixed at its preference (or the rail) — it never concedes.
   const s = sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const d0 = details === 0 ? 0 : clampWidth(details, DETAILS_MIN, DETAILS_MAX)

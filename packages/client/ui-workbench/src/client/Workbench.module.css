@@ -148,3 +148,22 @@
   z-index: 100;
   background: var(--dsw-surface-1, #111);
 }
+
+.stripGlobalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--dsw-alias-text-p2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.stripGlobalClose:hover {
+  background: var(--dsw-alias-button-floating-hover);
+  color: var(--dsw-alias-text-p1);
+}

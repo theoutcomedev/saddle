@@ -214,10 +214,13 @@ function AppFrameInner({
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
       {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
-      {!sidebarCollapsed && narrow && (
+      {(!sidebarCollapsed || cols.details > 0) && narrow && (
         <div
           className={css.mobileBackdrop}
-          onClick={() => actions.toggleSidebar()}
+          onClick={() => {
+            if (!sidebarCollapsed) actions.toggleSidebar()
+            if (cols.details > 0) actions.closeDetails()
+          }}
         />
       )}
     </div>
