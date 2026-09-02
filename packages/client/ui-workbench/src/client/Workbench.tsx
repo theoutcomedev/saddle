@@ -133,13 +133,30 @@ export function Workbench({ renderSlot, t, openDetails }: WorkbenchProps) {
     const onFileClick = (event: MouseEvent): void => {
       const target = event.target as HTMLElement | null
       const chip = target?.closest<HTMLElement>('[data-workbench-file]')
-      if (chip === null || chip === undefined) return
-      const path = chip.getAttribute('data-workbench-file')
-      if (path === null) return
-      event.preventDefault()
-      event.stopPropagation()
-      openPane('files', { path })
-      openDetails()
+      if (chip !== null && chip !== undefined) {
+        const path = chip.getAttribute('data-workbench-file')
+        if (path !== null) {
+          event.preventDefault()
+          event.stopPropagation()
+          openPane('files', { path })
+          openDetails()
+          return
+        }
+      }
+
+      const anchor = target?.closest('a[href^="file:"]') as HTMLAnchorElement | null
+      if (anchor !== null) {
+        const href = anchor.getAttribute('href')
+        if (href !== null) {
+          try {
+            const url = new URL(href)
+            event.preventDefault()
+            event.stopPropagation()
+            openPane('files', { path: decodeURIComponent(url.pathname) })
+            openDetails()
+          } catch {}
+        }
+      }
     }
     document.addEventListener('click', onFileClick, true)
     return () => document.removeEventListener('click', onFileClick, true)

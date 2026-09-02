@@ -458,7 +458,12 @@ function renderTableRow(
 function renderSafeLink(href: string, children: ReactNode[], key: Key): ReactNode {
   const safeHref = sanitizeUrl(href)
   if (safeHref === '') return <Fragment key={key}>{children}</Fragment>
-  const external = ['http:', 'https:'].includes(new URL(safeHref).protocol)
+  let external = false
+  try {
+    external = ['http:', 'https:'].includes(new URL(safeHref).protocol)
+  } catch {
+    // Relative URLs will throw; they are never external.
+  }
   return (
     <a
       key={key}
