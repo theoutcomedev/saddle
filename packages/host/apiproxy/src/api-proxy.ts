@@ -3274,6 +3274,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           const MAX_BYTES = 1_000_000
           if (!info.isFile()) return err(request, { code: 'fs-error', message: 'host.readFile target is not a regular file', details: {} })
           if (info.size > MAX_BYTES) return err(request, { code: 'fs-error', message: 'host.readFile target exceeds 1 MB', details: {} })
+
+          const isImage = target.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)
+          if (isImage) {
+            const buffer = await readFile(target)
+            const ext = isImage[1].toLowerCase()
+            const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
+            const text = `data:${mimeType};base64,${buffer.toString('base64')}`
+            return ok(request, { path: target, text })
+          }
+
           const text = await readFile(target, 'utf8')
           return ok(request, { path: target, text })
         } catch (error: unknown) {

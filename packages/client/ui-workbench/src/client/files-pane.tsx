@@ -134,7 +134,11 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
           </ul>
         ) : (
           preview && !loading ? (
-            selected.endsWith('.html') || selected.endsWith('.htm') ? (
+            text.startsWith('data:image/') ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', overflow: 'hidden' }}>
+                <img src={text} alt={selected} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </div>
+            ) : selected.endsWith('.html') || selected.endsWith('.htm') ? (
               <iframe style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} srcDoc={text} title="HTML Preview" sandbox="allow-scripts" />
             ) : (
               <div style={{ padding: '12px 16px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
