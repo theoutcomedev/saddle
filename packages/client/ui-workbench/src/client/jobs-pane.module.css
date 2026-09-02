@@ -1,0 +1,37 @@
+.list {
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.kind {
+  opacity: 0.6;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.status {
+  opacity: 0.8;
+  font-size: 11px;
+}
+
+.empty {
+  padding: 12px;
+  color: var(--dsw-text-2, #999);
+  font-size: 12px;
+}

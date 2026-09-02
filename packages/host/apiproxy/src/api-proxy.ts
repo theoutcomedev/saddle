@@ -4,9 +4,9 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, resolve } from 'node:path'
+import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
@@ -3244,6 +3244,44 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }
       },
 
+      // Workbench Explorer/File: directory listing + text read, bounded and
+      // anchored to the host workspace / home so the browser cannot roam the disk.
+      async listFiles(request, signal) {
+        const target = resolve(request.payload.path)
+        if (!isAbsolute(target) || !withinWorkspace(target)) {
+          return err(request, { code: 'fs-error', message: 'host.listFiles path is outside the workspace or home', details: { path: request.payload.path } })
+        }
+        try {
+          const children = await readdir(target, { withFileTypes: true })
+          const entries = children
+            .map(child => ({ name: child.name, path: join(target, child.name), isDir: child.isDirectory(), hidden: child.name.startsWith('.') }))
+            .sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1))
+          const TRUNCATE_AT = 500
+          return ok(request, { path: target, entries: entries.slice(0, TRUNCATE_AT), truncated: entries.length > TRUNCATE_AT })
+        } catch (error: unknown) {
+          if (signal.aborted) return err(request, { code: 'cancelled', message: 'directory listing was aborted', details: {} })
+          return err(request, fsError(error))
+        }
+      },
+
+      async readFile(request, signal) {
+        const target = resolve(request.payload.path)
+        if (!isAbsolute(target) || !withinWorkspace(target)) {
+          return err(request, { code: 'fs-error', message: 'host.readFile path is outside the workspace or home', details: { path: request.payload.path } })
+        }
+        try {
+          const info = await stat(target)
+          const MAX_BYTES = 1_000_000
+          if (!info.isFile()) return err(request, { code: 'fs-error', message: 'host.readFile target is not a regular file', details: {} })
+          if (info.size > MAX_BYTES) return err(request, { code: 'fs-error', message: 'host.readFile target exceeds 1 MB', details: {} })
+          const text = await readFile(target, 'utf8')
+          return ok(request, { path: target, text })
+        } catch (error: unknown) {
+          if (signal.aborted) return err(request, { code: 'cancelled', message: 'file read was aborted', details: {} })
+          return err(request, fsError(error))
+        }
+      },
+
       async createDirectory(request) {
         const capability = ctx.directoryPicker.capability()
         if (capability.kind !== 'browse') {
@@ -4321,4 +4359,15 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       return Promise.resolve({ accepted: true })
     },
   }
+}
+
+/** True when a resolved absolute path is under the host workspace or home dir. */
+function withinWorkspace(target: string): boolean {
+  const roots = [process.cwd(), homedir()].map(root => resolve(root))
+  return roots.some(root => target === root || target.startsWith(root + sep))
+}
+
+/** Map a Node filesystem failure to the wire error shape. */
+function fsError(error: unknown): { code: 'fs-error'; message: string; details: Record<string, unknown> } {
+  return { code: 'fs-error', message: error instanceof Error ? error.message : String(error), details: {} }
 }

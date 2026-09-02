@@ -255,6 +255,7 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
               className={css.fileMention}
               title={mention.title}
               aria-label={mention.label}
+              data-workbench-file={mention.title}
               onClick={mention.open}
             >
               {value}

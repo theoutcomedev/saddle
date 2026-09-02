@@ -16,6 +16,36 @@ export interface DirectoryEntry {
 }
 
 /** host.listDirectory response value: one directory level plus its ancestry. */
+/** One entry in a Workbench directory listing (a file or a folder). */
+export interface WorkspaceFileEntry {
+  /** Base name shown in a row. */
+  name: string
+  /** Absolute host path — clients never join path segments themselves. */
+  path: string
+  /** True for a directory. */
+  isDir: boolean
+  /** Hidden by the host platform's convention (dot-prefixed on POSIX). */
+  hidden: boolean
+}
+
+/** host.listFiles response value: one directory's direct children. */
+export interface DirectoryFileListing {
+  /** Absolute path of the listed directory. */
+  path: string
+  /** Direct child files and folders, name-sorted. */
+  entries: WorkspaceFileEntry[]
+  /** True when the backend cut entries at its complete-result bound. */
+  truncated: boolean
+}
+
+/** host.readFile response value: a readable text file's contents. */
+export interface FileText {
+  /** Absolute path of the read file. */
+  path: string
+  /** The file's UTF-8 text. */
+  text: string
+}
+
 export interface DirectoryListing {
   /** Absolute path of the listed directory. */
   path: string
@@ -95,4 +125,22 @@ export interface HostApi {
     request: RpcRequest<{ path: string }>,
     signal: AbortSignal,
   ): Promise<RpcResponse<{ opened: true }>>
+
+  /**
+   * List one directory's direct children (files and folders) for the Workbench
+   * Explorer. Absolute paths only; unreadable targets fail with a stable code.
+   */
+  listFiles(
+    request: RpcRequest<{ path: string }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<DirectoryFileListing>>
+
+  /**
+   * Read a text file for the Workbench File pane. Absolute paths only; binary
+   * or oversized targets fail with a stable code.
+   */
+  readFile(
+    request: RpcRequest<{ path: string }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<FileText>>
 }

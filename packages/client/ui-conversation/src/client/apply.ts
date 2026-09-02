@@ -453,16 +453,20 @@ export function apply(ctx: Context): void {
   // registration path into the input dock declared above.
   ctx.plugin(queueDockEntry)
 
-  slots.register({
-    name: 'details',
-    locale: NS,
-    children: {
-      'conversation.details.tool': { kind: 'single', scope: 'session' },
-    },
-    store: chatStore,
-    inject: (): DetailsInjected => ({
-      closeDetails: () => { layout.closeDetails() },
-    }),
-  }, DetailsPanel)
+  // The session Details panel re-homes into the Workbench's pane slot (the
+  // Workbench owns the details column now). It still declares the tool-details
+  // seat as its own child and still closes the column through ctx.layout.
+  ctx.slots.inject('workbench.pane.details',
+    () => ctx.slots.register({
+      name: 'workbench.pane.details',
+      locale: NS,
+      children: {
+        'conversation.details.tool': { kind: 'single', scope: 'session' },
+      },
+      store: chatStore,
+      inject: (): DetailsInjected => ({
+        closeDetails: () => { layout.closeDetails() },
+      }),
+    }, DetailsPanel))
 
 }

@@ -1,7 +1,7 @@
 /** Test-owned workspaces face: the renderer standard-kit observable plus recorded actions. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type {
-  DirectoryListing, IWorkspaces, SessionId, SnapshotStore, WorkspaceId, WorkspaceListState, WorkspaceView,
+  DirectoryFileListing, DirectoryListing, FileText, IWorkspaces, SessionId, SnapshotStore, WorkspaceId, WorkspaceListState, WorkspaceView,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import { workspaceListState } from './fixtures.ts'
 import type { Stabilizer } from './fixtures.ts'
@@ -135,6 +135,20 @@ export class TestWorkspaces implements IWorkspaces {
       entries: [],
       truncated: false,
     }
+  }
+
+  async listFiles(path: string, signal?: AbortSignal): Promise<DirectoryFileListing> {
+    this.calls.push({ method: 'listFiles', args: [path, signal] })
+    const stub = this.stubs.get('listFiles')
+    if (stub !== undefined) return await (stub(path, signal) as Promise<DirectoryFileListing>)
+    return { path, entries: [], truncated: false }
+  }
+
+  async readFile(path: string, signal?: AbortSignal): Promise<FileText> {
+    this.calls.push({ method: 'readFile', args: [path, signal] })
+    const stub = this.stubs.get('readFile')
+    if (stub !== undefined) return await (stub(path, signal) as Promise<FileText>)
+    return { path, text: '' }
   }
 
   /**

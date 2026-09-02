@@ -131,6 +131,10 @@ export class FakeApiClient implements IApiClient {
   onCreateDirectory: (payload: unknown) => Promise<RpcResponse<{ path: string }>> =
     () => Promise.resolve(ok({ path: '/home/fake/new' }))
 
+  onListFiles: (payload: unknown) => Promise<RpcResponse<{ path: string; entries: { name: string; path: string; isDir: boolean; hidden: boolean }[]; truncated: boolean }>> = () => Promise.resolve(ok({ path: '/home/fake', entries: [], truncated: false }))
+
+  onReadFile: (payload: unknown) => Promise<RpcResponse<{ path: string; text: string }>> = () => Promise.resolve(ok({ path: '/home/fake/f.txt', text: '' }))
+
   private readonly muxConns: StreamConn<MuxFrame>[] = []
   private readonly hostConns: StreamConn<HostFrame>[] = []
   lastSearchSignal: AbortSignal | undefined
@@ -184,6 +188,8 @@ export class FakeApiClient implements IApiClient {
     listDirectory: (payload: unknown) => this.record('host.listDirectory', payload, this.onListDirectory(payload)),
     createDirectory: (payload: unknown) => this.record('host.createDirectory', payload, this.onCreateDirectory(payload)),
     openPath: (payload: unknown) => this.record('host.openPath', payload, this.onOpenPath(payload)),
+    listFiles: (payload: unknown) => this.record('host.listFiles', payload, this.onListFiles(payload)),
+    readFile: (payload: unknown) => this.record('host.readFile', payload, this.onReadFile(payload)),
   }
 
   // The archive-set field defaults at the binding below so list stubs keep

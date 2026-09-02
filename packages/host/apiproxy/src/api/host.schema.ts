@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import type { DirectoryEntry } from './host.ts'
+import type { DirectoryEntry, WorkspaceFileEntry } from './host.ts'
 import type { RequestPayload, ResponseValue } from './rpc-map.ts'
 import type { Wire } from './rpc.schema.ts'
 
@@ -73,3 +73,30 @@ export const hostOpenPathRequestSchema = z.object({
 export const hostOpenPathValueSchema = z.object({
   opened: z.literal(true),
 }) satisfies z.ZodType<Wire<ResponseValue<'host.openPath'>>>
+
+/** One entry in a host.listFiles response. */
+export const workspaceFileEntrySchema = z.object({
+  name: z.string(),
+  path: z.string(),
+  isDir: z.boolean(),
+  hidden: z.boolean(),
+}) satisfies z.ZodType<Wire<WorkspaceFileEntry>>
+
+/** host.listFiles request payload. */
+export const hostListFilesRequestSchema = z.object({ path: z.string() }) satisfies z.ZodType<Wire<RequestPayload<'host.listFiles'>>>
+
+/** host.listFiles response value. */
+export const hostListFilesValueSchema = z.object({
+  path: z.string(),
+  entries: z.array(workspaceFileEntrySchema),
+  truncated: z.boolean(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.listFiles'>>>
+
+/** host.readFile request payload. */
+export const hostReadFileRequestSchema = z.object({ path: z.string() }) satisfies z.ZodType<Wire<RequestPayload<'host.readFile'>>>
+
+/** host.readFile response value. */
+export const hostReadFileValueSchema = z.object({
+  path: z.string(),
+  text: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.readFile'>>>

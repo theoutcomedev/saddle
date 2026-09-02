@@ -168,6 +168,12 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async openPath(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { opened: true as const } } }
       },
+      async listFiles(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: '/w', entries: [], truncated: false } } }
+      },
+      async readFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: '/w/f.txt', text: '' } } }
+      },
     },
     workspace: {
       async list(request) {

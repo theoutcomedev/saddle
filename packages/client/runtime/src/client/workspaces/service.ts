@@ -2,7 +2,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  DirectoryListing, IApiClient, RpcError,
+  DirectoryListing, DirectoryFileListing, FileText, IApiClient, RpcError,
   SessionId, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '../contract/store.ts'
@@ -222,6 +222,30 @@ export class WorkspaceRuntime implements IWorkspaces {
    */
   async listDirectory(path?: string, signal?: AbortSignal): Promise<DirectoryListing> {
     const response = await this.api.host.listDirectory(path === undefined ? {} : { path }, signal)
+    if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
+    return response.result.value
+  }
+
+  /**
+   * List one directory's direct children (files and folders) for the Workbench Explorer.
+   * @param path - absolute directory to list.
+   * @param signal - aborts the wire request when the caller supersedes it.
+   * @returns the directory's direct children.
+   */
+  async listFiles(path: string, signal?: AbortSignal): Promise<DirectoryFileListing> {
+    const response = await this.api.host.listFiles({ path }, signal)
+    if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
+    return response.result.value
+  }
+
+  /**
+   * Read a UTF-8 text file for the Workbench File pane.
+   * @param path - absolute path to read.
+   * @param signal - aborts the wire request when the caller supersedes it.
+   * @returns the file's text.
+   */
+  async readFile(path: string, signal?: AbortSignal): Promise<FileText> {
+    const response = await this.api.host.readFile({ path }, signal)
     if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
     return response.result.value
   }

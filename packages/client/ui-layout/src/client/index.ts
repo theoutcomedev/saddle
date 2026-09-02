@@ -71,6 +71,25 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'details': { kind: 'single'; scope: 'session'; owner: DetailsOwnerProps }
     /**
+     * A session-scoped Workbench pane (one tab in the details dock). Declared
+     * here so both the Workbench occupant (ui-workbench) and a re-homed pane
+     * (ui-conversation's Details panel) can name the key without a cross-package
+     * dependency cycle.
+     */
+    'workbench.pane.details': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    /**
+     * The session background-job pane over the jobsBySession mirror.
+     */
+    'workbench.pane.jobs': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    /**
+     * The Workbench browser/preview pane: a URL bar plus an embedded webview.
+     */
+    'workbench.pane.browser': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    /**
+     * The Workbench files pane: an explorer (directory list) plus a file viewer.
+     */
+    'workbench.pane.files': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    /**
      * Frame-wide floating layer, above every column and outside their scroll
      * containers. Deliberately generic and unowned by any feature: a badge, a
      * toast stack or a status pill all belong here, and entries order among
@@ -117,6 +136,11 @@ export interface ConvOwnerProps {}
 
 /** Details owner share: empty — sessionId arrives as a framework-standard prop. */
 export interface DetailsOwnerProps {}
+/** Workbench pane owner share: the open-instance params the Workbench passes at renderSlot. */
+export interface WorkbenchPaneOwnerProps {
+  /** Pane-instance params (e.g. a File pane's target path). */
+  params?: Record<string, unknown> | undefined
+}
 
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 export const inject = ['slots', 'theme']

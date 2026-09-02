@@ -42,7 +42,7 @@ export type {} from '@deepseek-ai/dsh-settings/types'
 export type {
   ClientResponse, ConfigurableProviderView, ConnectionHandle, ConnectionSinks, ContentBlock,
   ConnectionAttemptState, ConnectionFlowView, ConnectionMethodView, ConnectionNoticeView,
-  ConnectionPromptView, ConnectionsListValue, CredentialView, DirectoryListing,
+  ConnectionPromptView, ConnectionsListValue, CredentialView, DirectoryFileListing, DirectoryListing, FileText,
   DiscoveredModelView, HistoryEntry, HostFrame, IApiClient, McpServerView,
   MessageId, ModelCatalogFailure, ModelProviderGroup, ModelReasoningEffort, ModelSelection,
   MuxFrame, PromptContentPart, QuestionResponsePayload, QueueAction, RpcError, RpcId, RpcReceipt,

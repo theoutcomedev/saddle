@@ -299,6 +299,10 @@
     # Background jobs: the session-header list over the jobsBySession mirror.
     - id: ui-jobs
       name: '@deepseek-ai/dsh-client-ui-jobs'
+    # Workbench: the details column as a tabbed dock (occupant of 'details',
+    # re-homing the session Details panel under workbench.pane.details).
+    - id: ui-workbench
+      name: '@deepseek-ai/dsh-client-ui-workbench'
 
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal
