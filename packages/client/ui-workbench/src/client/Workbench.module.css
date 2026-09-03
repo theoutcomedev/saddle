@@ -214,6 +214,10 @@
   background: var(--dsw-alias-bg-base);
 }
 
+:global([data-details-collapsed]) .rootFullscreen {
+  display: none !important;
+}
+
 .stripGlobalClose {
   display: flex;
   align-items: center;

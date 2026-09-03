@@ -82,7 +82,32 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
   const [tabs, setTabs] = useState<OpenTab[]>(() => [{ id: 'details', kind: 'details' }])
   const [activeId, setActiveId] = useState('details')
   const [addOpen, setAddOpen] = useState(false)
-  const [fullscreen, setFullscreen] = useState(false)
+  const [fullscreen, setFullscreen] = useState(() => {
+    try {
+      return localStorage.getItem('saddle:workbench:maximized') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const toggleFullscreen = useCallback(() => {
+    setFullscreen((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('saddle:workbench:maximized', String(next))
+      } catch {}
+      return next
+    })
+  }, [])
+
+  const handleClose = useCallback(() => {
+    if (fullscreen) {
+      try {
+        localStorage.setItem('saddle:workbench:maximized', 'true')
+      } catch {}
+    }
+    closeDetails()
+  }, [closeDetails, fullscreen])
 
   const active = useMemo(
     () => tabs.find(tab => tab.id === activeId) ?? tabs[0],
@@ -103,9 +128,15 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
   }, [])
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key !== 'Escape' || !addOpen) return
-    event.preventDefault()
-    setAddOpen(false)
+    if (event.key === 'Escape') {
+      if (addOpen) {
+        event.preventDefault()
+        setAddOpen(false)
+      } else if (fullscreen) {
+        event.preventDefault()
+        toggleFullscreen()
+      }
+    }
   }
 
   // Custom event listener for programmatic file opening from chat / tools
@@ -199,15 +230,15 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
                   onClick={(event) => {
                     event.stopPropagation()
                     if (tabs.length === 1) {
-                      closeDetails()
+                      handleClose()
                     } else {
                       const next = dropTab(tabs, tab.id)
                       setTabs(next)
                       if (next.length === 0) {
-                        closeDetails()
+                        handleClose()
                         setTabs([{ id: 'details', kind: 'details' }])
-                      } else if (activeId === tab.id) {
-                        setActiveId(next[0]!.id)
+                      } else if (activeId === tab.id && next[0] !== undefined) {
+                        setActiveId(next[0].id)
                       }
                     }
                   }}
@@ -221,7 +252,7 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
               type="button"
               className={css.stripGlobalClose}
               aria-label={t('close')}
-              onClick={() => { closeDetails() }}
+              onClick={() => { handleClose() }}
             >
               <IconCloseOutline16 size={16} />
             </button>
@@ -245,7 +276,7 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
         className={css.fullscreen}
         aria-label={fullscreen ? t('workbench.exitFullscreen') : t('workbench.fullscreen')}
         title={fullscreen ? t('workbench.exitFullscreen') : t('workbench.fullscreen')}
-        onClick={() => { setFullscreen(value => !value) }}
+        onClick={toggleFullscreen}
       >
         <IconFullscreenOutline16 size={14} />
       </button>

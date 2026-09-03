@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconLinkOutline16, IconSearchOutline16, IconCodeOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconLinkOutline16, IconEyeOutline16, IconCodeOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type {} from './contract/slots.ts'
@@ -111,7 +111,7 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
               title={preview ? 'View source' : 'Preview'}
               onClick={() => { setPreview(!preview) }}
             >
-              {preview ? <IconCodeOutline16 size={14} /> : <IconSearchOutline16 size={14} />}
+              {preview ? <IconCodeOutline16 size={14} /> : <IconEyeOutline16 size={14} />}
             </button>
             <button type="button" className={css.ghost} aria-label={t('workbench.browser.open')} onClick={() => { void openPath(selected) }}>
               <IconLinkOutline16 size={14} />
