@@ -31,14 +31,14 @@ export interface RewindConfirmProps {
  * the user sees what would be overwritten before confirming.
  */
 export function RewindConfirm({ open, seq, onCancel, onConfirm, checkCollisions, titleOf, t }: RewindConfirmProps) {
-  const [revertFiles, setRevertFiles] = useState(false)
+  const [revertFiles, setRevertFiles] = useState(true)
   const [collisions, setCollisions] = useState<RewindCollision[] | null>(null)
   const [checking, setChecking] = useState(false)
   const [checkFailed, setCheckFailed] = useState(false)
 
   useEffect(() => {
     if (!open) {
-      setRevertFiles(false)
+      setRevertFiles(true)
       setCollisions(null)
       setChecking(false)
       setCheckFailed(false)

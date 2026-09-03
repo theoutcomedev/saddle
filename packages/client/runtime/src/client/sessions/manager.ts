@@ -627,9 +627,9 @@ export class SessionManager {
         ? result.value.sessionId
         : workspaceAttachSessionId(result.error)
       if (childId !== undefined) {
+        this.recordMutation({ kind: 'remove', sessionId: opts.sessionId })
         this.recordMutation({ kind: 'upsert', summary: {
           sessionId: childId, updatedAt: Date.now(), running: false, blank: false,
-          parentSessionId: opts.sessionId,
           ...(source?.cwd !== undefined ? { cwd: source.cwd } : {}),
         } })
       }

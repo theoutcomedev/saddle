@@ -580,6 +580,7 @@ export class SessionRuntime implements ISessions {
     atSeq: number
     revertFiles?: boolean
   }): Promise<SessionId> {
+    const sourceTitle = this.list.getSnapshot().byId[opts.sessionId]?.title
     const result = await this.manager.rewind({
       sessionId: opts.sessionId,
       // Flooring lands inside the anchor's own turn (every turn opens with a
@@ -590,7 +591,14 @@ export class SessionRuntime implements ISessions {
     })
     if (!result.ok) throw new SessionRewindError(result.error, opts.sessionId)
     this.projectList()
-    return result.value.sessionId
+    const childId = result.value.sessionId
+    if (sourceTitle !== undefined) {
+      const child = this.binding(childId)?.session
+      if (child !== undefined) {
+        void child.rename(sourceTitle).catch(() => {})
+      }
+    }
+    return childId
   }
 
   /**

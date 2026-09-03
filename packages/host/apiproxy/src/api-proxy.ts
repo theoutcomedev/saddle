@@ -1547,6 +1547,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     if (cwd === undefined) return
     const root = resolve(cwd)
     const calls = new Map<string, { name: string; args: Record<string, unknown> }>()
+    const fileReverts = new Map<string, string | null>()
+
     for (const event of source.events) {
       if (event.type === 'tool/call') {
         try {
@@ -1555,20 +1557,36 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           // Malformed call arguments cannot anchor a revert; skip the call.
         }
       } else if (event.type === 'tool/result' && event.seq > boundarySeq) {
-        const call = calls.get(event.data.message.content[0].toolCallId)
-        if (call === undefined || (call.name !== 'write' && call.name !== 'edit')) continue
-        const filePath = call.args.file_path
-        if (typeof filePath !== 'string' || filePath.length === 0) continue
-        const target = resolve(root, filePath)
-        if (!target.startsWith(root + '/') && target !== root) continue
-        const meta = event.data.meta as { before?: unknown } | null | undefined
+        const meta = event.data.meta as { path?: unknown; before?: unknown } | null | undefined
         const before = typeof meta?.before === 'string' || meta?.before === null ? meta.before : undefined
         if (before === undefined) continue
-        if (before === null) {
-          await unlink(target).catch(() => { /* absent file is already the reverted state */ })
-        } else {
-          await writeFile(target, before, 'utf8').catch(() => { /* keep the current file on failure */ })
+
+        let filePath = typeof meta?.path === 'string' && meta.path.length > 0 ? meta.path : undefined
+        if (filePath === undefined) {
+          const callId = event.data.message.content[0]?.toolCallId
+          const call = callId !== undefined ? calls.get(callId) : undefined
+          if (call !== undefined && (call.name === 'write' || call.name === 'edit')) {
+            const raw = call.args.file_path ?? call.args.path ?? call.args.targetFile
+            if (typeof raw === 'string' && raw.length > 0) filePath = raw
+          }
         }
+        if (filePath === undefined) continue
+
+        const target = resolve(root, filePath)
+        if (!target.startsWith(root + '/') && target !== root) continue
+
+        // Record the EARLIEST before-state after the boundary (the exact state at boundarySeq)
+        if (!fileReverts.has(target)) {
+          fileReverts.set(target, before)
+        }
+      }
+    }
+
+    for (const [target, before] of fileReverts) {
+      if (before === null) {
+        await unlink(target).catch(() => { /* absent file is already the reverted state */ })
+      } else {
+        await writeFile(target, before, 'utf8').catch(() => { /* keep the current file on failure */ })
       }
     }
   }
@@ -2625,6 +2643,18 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             setup: rewindComposition.setup,
           })
           liveHandles.set(childId, rewindHandle)
+          const titles = ctx.get('sessionTitle')
+          if (titles !== undefined) {
+            const lastTitleEvent = source.events.findLast(e => e.type === 'session/title') as { data?: { title?: string } } | undefined
+            const title = lastTitleEvent?.data?.title
+            if (title !== undefined && rewindHandle.agent?.session !== undefined) {
+              try {
+                titles.rename(rewindHandle.agent.session, title)
+              } catch {
+                // best effort title copy
+              }
+            }
+          }
         } catch (error: unknown) {
           return err(request, {
             code: 'internal',
@@ -2641,6 +2671,29 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               message: `session "${childId}" was rewound but could not attach to workspace "${workspace.id}": ${String(error)}`,
               details: { sessionId: childId, workspaceId: workspace.id },
             })
+          }
+        }
+        // In-place rewind: clean up the pre-rewind source session so it does not linger as a duplicate
+        const oldHandle = liveHandles.get(sessionId)
+        if (oldHandle !== undefined) {
+          try {
+            await oldHandle.dispose()
+          } catch {
+            // best-effort cleanup
+          }
+          liveHandles.delete(sessionId)
+        }
+        try {
+          await ctx.workspaceRegistry.removeSession(sessionId)
+        } catch {
+          // best-effort cleanup
+        }
+        const persistence = ctx.get('sessionPersistence')
+        if (persistence !== undefined) {
+          try {
+            await persistence.remove(sessionId)
+          } catch {
+            // best-effort cleanup
           }
         }
         return ok(request, { sessionId: childId })

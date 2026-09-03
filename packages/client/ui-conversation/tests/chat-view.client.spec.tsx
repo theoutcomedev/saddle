@@ -531,10 +531,9 @@ describe('ChatView', () => {
     expect(rewindButtons).toHaveLength(1)
     fireEvent.click(rewindButtons[0]!)
 
-    // The confirm dialog explains the continuation and offers the optional
-    // file revert.
+    // The confirm dialog explains the continuation and has file revert checked by default.
     expect(screen.getByRole('dialog', { name: '回退对话' })).toBeTruthy()
-    fireEvent.click(screen.getByLabelText('同时撤销此点之后修改的所有文件'))
+    expect((screen.getByLabelText('同时撤销此点之后修改的所有文件') as HTMLInputElement).checked).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: '回退' }))
     expect(h.performRewind).toHaveBeenCalledWith(1, true)
 
@@ -558,7 +557,6 @@ describe('ChatView', () => {
       h.set({ running: false, turnEnds: new Map([[1, 3]]) })
     })
     fireEvent.click(view.getAllByRole('button', { name: '回退到此消息' })[0]!)
-    fireEvent.click(screen.getByLabelText('同时撤销此点之后修改的所有文件'))
     expect(await screen.findByText('这些文件也在其他会话中被修改过，回退将覆盖那些修改：')).toBeTruthy()
     // The unknown session title falls back to its id.
     expect(screen.getByText('s-other')).toBeTruthy()
