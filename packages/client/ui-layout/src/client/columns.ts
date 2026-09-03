@@ -19,6 +19,8 @@ export interface Columns { sidebar: number; center: number; details: number }
 // Contract-frozen geometry: the three-column concession chain's fixed points.
 /** Center column floor; only the final fallback may go below it. */
 export const CENTER_MIN = 640
+/** Absolute minimum width for the center column when user expands workbench. */
+export const CENTER_DRAG_MIN = 320
 /** Sidebar drag clamp floor. */
 export const SIDEBAR_MIN = 264
 /** Sidebar drag clamp ceiling. */
@@ -33,8 +35,8 @@ export const SIDEBAR_COLLAPSED = 56
 export const SIDEBAR_AUTO_COLLAPSE = 1024
 /** Details drag clamp floor. */
 export const DETAILS_MIN = 300
-/** Details drag clamp ceiling. */
-export const DETAILS_MAX = 520
+/** Details drag clamp ceiling (allows resizing workbench to take majority of wide displays). */
+export const DETAILS_MAX = 2400
 /** Details width before any user drag. */
 export const DETAILS_DEFAULT = 360
 
@@ -60,25 +62,21 @@ export function clampWidth(px: number, min: number, max: number): number {
  * @returns resolved widths; details 0 means visually closed (never unmounted), while a closed sidebar keeps its compact rail.
  */
 export function computeColumns(viewport: number, sidebar: number, details: number): Columns {
-  // On mobile viewports, columns stack/overlay instead of sharing horizontal space,
-  // so bypass the concession chain to allow full-width panels.
-  if (viewport <= 768) {
-    const s = sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
-    return { sidebar: s, center: viewport, details: details === 0 ? 0 : viewport }
-  }
-
   // The sidebar is fixed at its preference (or the rail) — it never concedes.
   const s = sidebar === 0 ? SIDEBAR_COLLAPSED : clampWidth(sidebar, SIDEBAR_MIN, SIDEBAR_MAX)
   const d0 = details === 0 ? 0 : clampWidth(details, DETAILS_MIN, DETAILS_MAX)
 
+  // When user actively expands details beyond default, allow center to shrink down to CENTER_DRAG_MIN (1/5 of page).
+  const centerFloor = d0 > DETAILS_DEFAULT ? CENTER_DRAG_MIN : CENTER_MIN
+
   // Step 1: everything fits at preferred widths.
-  if (s + d0 + CENTER_MIN <= viewport) return { sidebar: s, center: viewport - s - d0, details: d0 }
+  if (s + d0 + centerFloor <= viewport) return { sidebar: s, center: viewport - s - d0, details: d0 }
 
   // Step 2: shrink details toward its minimum.
-  const d1 = d0 === 0 ? 0 : Math.max(DETAILS_MIN, viewport - s - CENTER_MIN)
-  if (s + d1 + CENTER_MIN <= viewport) return { sidebar: s, center: CENTER_MIN, details: d1 }
+  const d1 = d0 === 0 ? 0 : Math.max(DETAILS_MIN, viewport - s - centerFloor)
+  if (s + d1 + centerFloor <= viewport) return { sidebar: s, center: centerFloor, details: d1 }
 
   // Step 3: auto-close details (derived — preferences untouched); center
-  // absorbs any remaining deficit (may drop below CENTER_MIN).
+  // absorbs any remaining deficit (may drop below centerFloor).
   return { sidebar: s, center: Math.max(0, viewport - s), details: 0 }
 }

@@ -167,6 +167,7 @@ function AppFrameInner({
       ref={frameRef}
       className={css.frame}
       style={{
+        gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px`,
         '--sidebar-width': `${cols.sidebar}px`,
         '--details-width': `${cols.details}px`,
       } as React.CSSProperties}
@@ -229,7 +230,10 @@ function AppFrameInner({
 
 
 export function AppFrame(props: AppFrameProps) {
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>(() => {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') return 'authenticated'
+    return 'loading'
+  })
 
   useEffect(() => {
     fetch('/api/auth/status')

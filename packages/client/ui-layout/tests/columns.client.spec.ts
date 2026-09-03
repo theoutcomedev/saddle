@@ -84,6 +84,13 @@ describe('computeColumns', () => {
     expect(restored.details).toBe(DETAILS_DEFAULT)
     expect(restored.sidebar).toBe(SIDEBAR_DEFAULT)
   })
+
+  it('allows expanding details to majority of screen on wide displays, shrinking center down to ~1/5', () => {
+    // On 1920px screen, closed sidebar (56px rail), user dragged details to 1500px:
+    const cols = computeColumns(1920, closed(0), open(1500))
+    expect(cols.details).toBe(1500)
+    expect(cols.center).toBe(1920 - SIDEBAR_COLLAPSED - 1500) // 364px (~19% of page)
+  })
 })
 
 describe('computeColumns — degenerate viewports', () => {
