@@ -870,3 +870,15 @@ export const IconArchiveOutline20 = ({ size = 20, className }: IconProps) => (
     <path d="M12.7962 12.5661V11.0832H7.20548V12.5661L12.7962 12.5661Z" fill="currentColor" />
   </svg>
 )
+
+/** ic_ds_workbench_outline_16: multi-panel workspace / workbench viewport (board with tabs, preview canvas, and tools panel) */
+export const IconWorkbenchOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1.5" width="14" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.3" />
+    <line x1="1" y1="5.5" x2="15" y2="5.5" stroke="currentColor" strokeWidth="1.3" />
+    <rect x="2.8" y="2.8" width="3.5" height="1.5" rx="0.5" fill="currentColor" />
+    <line x1="9.5" y1="5.5" x2="9.5" y2="14.5" stroke="currentColor" strokeWidth="1.3" />
+    <line x1="9.5" y1="10" x2="15" y2="10" stroke="currentColor" strokeWidth="1.3" />
+  </svg>
+)
+

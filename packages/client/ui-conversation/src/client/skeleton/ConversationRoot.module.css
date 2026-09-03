@@ -392,5 +392,5 @@
 }
 
 .workbenchIcon {
-  transform: scaleX(-1);
+  display: flex;
 }

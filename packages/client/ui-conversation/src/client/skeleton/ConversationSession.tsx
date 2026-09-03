@@ -7,7 +7,7 @@ import type {
   ConversationSessionHeaderSlotProps, ConversationSessionSlotProps,
 } from '../contract/slots.ts'
 import type { ViewTab } from '../contract/views.ts'
-import { IconPanelLeftOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconWorkbenchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './ConversationRoot.module.css'
 
 /** Full props composed from the strict session body contract. */
@@ -149,7 +149,7 @@ export function ConversationSessionHeader({
                   title="Toggle workbench"
                   onClick={() => { toggleWorkbench() }}
                 >
-                  <IconPanelLeftOutline16 className={css.workbenchIcon} size={16} />
+                  <IconWorkbenchOutline16 className={css.workbenchIcon} size={16} />
                 </button>
               )}
             </div>

@@ -1,21 +1,29 @@
 .list {
   margin: 0;
-  padding: 8px;
+  padding: 12px;
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  background: var(--dsw-alias-bg-base);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+  padding: 4px 6px;
+  border-radius: 6px;
 }
 
 .kind {
-  opacity: 0.6;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .label {
@@ -23,15 +31,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  color: var(--dsw-alias-label-primary);
 }
 
 .status {
-  opacity: 0.8;
-  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
 }
 
 .empty {
-  padding: 12px;
-  color: var(--dsw-text-2, #999);
-  font-size: 12px;
+  padding: 24px 16px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  text-align: center;
 }
+

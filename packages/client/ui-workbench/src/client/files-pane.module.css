@@ -12,7 +12,8 @@
   padding: 0 8px;
   height: 40px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--dsw-alias-border-l2, var(--dsw-border, #2a2a2a));
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
 }
 
 .dir {
@@ -22,25 +23,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  opacity: 0.8;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  border: 0;
+  min-width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: inherit;
+  color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   font-size: 12px;
+  transition: all 0.15s ease;
 }
 
 .ghost:hover {
-  background: var(--dsw-surface-2, #222);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-border-l2);
 }
 
 .ghost:disabled {
@@ -52,6 +56,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  background: var(--dsw-alias-bg-base);
 }
 
 .list {
@@ -66,21 +71,23 @@
   gap: 6px;
   width: 100%;
   text-align: left;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border: 0;
+  border-radius: 6px;
   background: transparent;
-  color: inherit;
+  color: var(--dsw-alias-label-primary);
   cursor: pointer;
   font-size: 12px;
+  transition: background 0.1s ease;
 }
 
 .row:hover {
-  background: var(--dsw-surface-2, #222);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .icon {
-  width: 12px;
-  opacity: 0.6;
+  width: 14px;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .name {
