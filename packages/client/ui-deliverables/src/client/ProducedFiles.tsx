@@ -109,13 +109,14 @@ export function ProducedFiles({
     return () => { observer.disconnect() }
   }, [limit, paths, t])
 
+  const [expanded, setExpanded] = useState(false)
   const visibleCount = Math.min(shownCount, limit)
-  const shown = paths.slice(0, visibleCount)
-  const hidden = paths.length - shown.length
+  const shown = expanded ? paths : paths.slice(0, visibleCount)
+  const hidden = expanded ? 0 : paths.length - shown.length
   return (
     <div className={css.root}>
       <span className={css.label}>{t('produced.label')}</span>
-      <div ref={rowRef} className={css.row} data-produced-files-row>
+      <div ref={rowRef} className={css.row} data-produced-files-row data-expanded={expanded ? 'true' : undefined}>
         {shown.map(path => (
           <button
             key={path}
@@ -131,7 +132,27 @@ export function ProducedFiles({
             {basename(path)}
           </button>
         ))}
-        {hidden > 0 && <span className={css.more}>{moreLabel(t, hidden)}</span>}
+        {expanded ? (
+          <button
+            type="button"
+            className={css.moreButton}
+            onClick={() => { setExpanded(false) }}
+            aria-label="Show fewer"
+            title="Show fewer"
+          >
+            ‹
+          </button>
+        ) : hidden > 0 && (
+          <button
+            type="button"
+            className={css.moreButton}
+            onClick={() => { setExpanded(true) }}
+            aria-label={t('produced.open', { name: `${hidden} more` })}
+            title="Show all produced files"
+          >
+            {moreLabel(t, hidden)}
+          </button>
+        )}
       </div>
       {hidden > 0 && canOpenPath && (
         <button type="button" className={css.showFolder} data-workbench-file="." onClick={() => { openFile('.') }}>
