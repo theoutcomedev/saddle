@@ -46,3 +46,15 @@
     display: none;
   }
 }
+
+@container (max-width: 520px) {
+  .sessionLogButton {
+    min-width: 0;
+    width: 32px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .sessionLogButton span {
+    display: none;
+  }
+}

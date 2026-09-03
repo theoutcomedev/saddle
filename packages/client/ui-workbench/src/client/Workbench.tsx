@@ -139,6 +139,18 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     }
   }
 
+  // Set attribute on document.body so mobile shell can un-constrain drawer when maximized
+  useEffect(() => {
+    if (fullscreen) {
+      document.body.setAttribute('data-workbench-fullscreen', 'true')
+    } else {
+      document.body.removeAttribute('data-workbench-fullscreen')
+    }
+    return () => {
+      document.body.removeAttribute('data-workbench-fullscreen')
+    }
+  }, [fullscreen])
+
   // Custom event listener for programmatic file opening from chat / tools
   useEffect(() => {
     const onCustomOpen = (event: Event): void => {

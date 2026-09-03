@@ -34,3 +34,9 @@
 .mobileOnly {
   display: none;
 }
+
+@container (max-width: 520px) {
+  .label {
+    display: none !important;
+  }
+}

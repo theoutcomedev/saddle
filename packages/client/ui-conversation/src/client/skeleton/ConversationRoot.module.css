@@ -27,6 +27,7 @@
 
 .header {
   position: relative;
+  container-type: inline-size;
   flex: none;
   height: 75px;
   box-sizing: border-box;
@@ -367,6 +368,16 @@
   .header {
     padding-left: 64px !important;
     padding-right: 8px !important;
+  }
+}
+
+@container (max-width: 520px) {
+  .headerActions {
+    display: none !important;
+  }
+  .headerUtilities {
+    margin-left: 8px !important;
+    gap: 4px !important;
   }
 }
 
