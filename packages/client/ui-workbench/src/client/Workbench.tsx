@@ -178,52 +178,54 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     <div className={`${css.root} ${fullscreen ? css.rootFullscreen : ''}`} data-workbench="" onKeyDown={onKeyDown}>
       {showStrip && (
         <div className={css.strip} role="tablist" aria-label={t('workbench.addMenu')}>
-          {tabs.map(tab => (
-            <div
-              key={tab.id}
-              className={`${css.tab} ${tab.id === active?.id ? css.tabActive : ''}`}
-              role="tab"
-              aria-selected={tab.id === active?.id}
-              tabIndex={0}
-              onClick={() => { setActiveId(tab.id) }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveId(tab.id) }
-              }}
-            >
-              <span className={css.tabLabel}>{paneLabel(tab.kind, t)}</span>
-              <button
-                type="button"
-                className={css.tabClose}
-                aria-label={t('workbench.tabs.close')}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  if (tabs.length === 1) {
-                    closeDetails()
-                  } else {
-                    const next = dropTab(tabs, tab.id)
-                    setTabs(next)
-                    if (next.length === 0) {
-                      closeDetails()
-                      setTabs([{ id: 'details', kind: 'details' }])
-                    } else if (activeId === tab.id) {
-                      setActiveId(next[0]!.id)
-                    }
-                  }
+          <div className={css.stripRow}>
+            {tabs.map(tab => (
+              <div
+                key={tab.id}
+                className={`${css.tab} ${tab.id === active?.id ? css.tabActive : ''}`}
+                role="tab"
+                aria-selected={tab.id === active?.id}
+                tabIndex={0}
+                onClick={() => { setActiveId(tab.id) }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveId(tab.id) }
                 }}
               >
-                ×
-              </button>
-            </div>
-          ))}
-          <div style={{ flex: 1, minWidth: 16 }} />
-          <button
-            type="button"
-            className={css.stripGlobalClose}
-            aria-label={t('close')}
-            onClick={() => { closeDetails() }}
-          >
-            <IconCloseOutline16 size={16} />
-          </button>
+                <span className={css.tabLabel}>{paneLabel(tab.kind, t)}</span>
+                <button
+                  type="button"
+                  className={css.tabClose}
+                  aria-label={t('workbench.tabs.close')}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    if (tabs.length === 1) {
+                      closeDetails()
+                    } else {
+                      const next = dropTab(tabs, tab.id)
+                      setTabs(next)
+                      if (next.length === 0) {
+                        closeDetails()
+                        setTabs([{ id: 'details', kind: 'details' }])
+                      } else if (activeId === tab.id) {
+                        setActiveId(next[0]!.id)
+                      }
+                    }
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div style={{ flex: 1, minWidth: 16 }} />
+            <button
+              type="button"
+              className={css.stripGlobalClose}
+              aria-label={t('close')}
+              onClick={() => { closeDetails() }}
+            >
+              <IconCloseOutline16 size={16} />
+            </button>
+          </div>
         </div>
       )}
       <div className={css.body}>

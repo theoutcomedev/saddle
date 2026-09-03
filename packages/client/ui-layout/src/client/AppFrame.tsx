@@ -188,18 +188,6 @@ function AppFrameInner({
           </div>
         ),
       })}
-      {narrow && cols.details === 0 && (
-        <div
-          className={css.mobileWorkbenchTrigger}
-          onClick={() => actions.toggleDetails()}
-          title="Open Workbench"
-        >
-          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" style={{ transform: 'scaleX(-1)' }}>
-            <rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="5.5" y1="2" x2="5.5" y2="14" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-        </div>
-      )}
       <div className={css.sidebarCol}>
         {/* Render-site slot call with live concession output: a closed
             sidebar keeps the mounted slot at the compact-rail width, and the
