@@ -12,7 +12,6 @@ import { Workbench } from './Workbench.tsx'
 import { JobsPane } from './jobs-pane.tsx'
 import { BrowserPane } from './browser-pane.tsx'
 import { FilesPane } from './files-pane.tsx'
-import { WorkbenchHeaderToggle } from './WorkbenchHeaderToggle.tsx'
 import { en, NS, zh } from './locales.ts'
 import type {} from './contract/slots.ts'
 
@@ -69,15 +68,4 @@ export function apply(ctx: ClientContext): void {
         openPath: (path: string) => ctx.workspaces.openPath(path),
       }),
     }, FilesPane))
-
-  // Workbench toggle button in the session header utilities (top-right of the app, like Antigravity)
-  ctx.slots.inject('conversation.session.header.utilities',
-    () => ctx.slots.register({
-      name: 'conversation.session.header.utilities',
-      id: 'workbench-toggle',
-      locale: NS,
-      inject: () => ({
-        toggle: () => { ctx.layout.toggleDetails() },
-      }),
-    }, WorkbenchHeaderToggle))
 }
