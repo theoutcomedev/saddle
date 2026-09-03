@@ -162,6 +162,11 @@ function AppFrameInner({
     actions.setDetails(detailsBase.current - dx)
   }, [actions])
 
+  const isMobile = viewport <= 768
+  const detailsOpen = isMobile
+    ? (detailsSession !== undefined && panels.details > 0)
+    : cols.details > 0
+
   return (
     <div
       ref={frameRef}
@@ -172,7 +177,7 @@ function AppFrameInner({
         '--details-width': `${cols.details}px`,
       } as React.CSSProperties}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
-      data-details-collapsed={cols.details === 0 || undefined}
+      data-details-collapsed={!detailsOpen || undefined}
       data-dragging={dragging || undefined}
     >
       {renderSlot('shell.mobile_trigger', {
@@ -215,12 +220,12 @@ function AppFrameInner({
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
       {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
-      {(!sidebarCollapsed || cols.details > 0) && narrow && (
+      {(!sidebarCollapsed || detailsOpen) && narrow && (
         <div
           className={css.mobileBackdrop}
           onClick={() => {
             if (!sidebarCollapsed) actions.toggleSidebar()
-            if (cols.details > 0) actions.closeDetails()
+            if (detailsOpen) actions.closeDetails()
           }}
         />
       )}

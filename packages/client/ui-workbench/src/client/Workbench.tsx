@@ -84,6 +84,9 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
   const [addOpen, setAddOpen] = useState(false)
   const [fullscreen, setFullscreen] = useState(() => {
     try {
+      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        return false
+      }
       return localStorage.getItem('saddle:workbench:maximized') === 'true'
     } catch {
       return false

@@ -73,8 +73,8 @@
   .frame:not([data-details-collapsed]) .detailsCol {
     transform: translateY(0);
   }
-  :global(body[data-workbench-fullscreen]) .detailsCol,
-  .detailsCol:has([class*="rootFullscreen"]) {
+  .frame:not([data-details-collapsed]) .detailsCol:has([class*="rootFullscreen"]),
+  :global(body[data-workbench-fullscreen]) .frame:not([data-details-collapsed]) .detailsCol {
     top: 0 !important;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
