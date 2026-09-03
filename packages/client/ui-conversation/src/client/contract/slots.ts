@@ -511,7 +511,7 @@ export interface ConversationSessionHeaderInjected {
   /** Select a real Session through the runtime navigation owner. */
   open: (sessionId: SessionId) => void
   /** Toggle the workbench/details panel. */
-  toggleWorkbench: () => void
+  toggleWorkbench?: (() => void) | undefined
 }
 
 /**

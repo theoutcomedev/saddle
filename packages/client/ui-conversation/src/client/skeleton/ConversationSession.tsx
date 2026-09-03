@@ -141,15 +141,17 @@ export function ConversationSessionHeader({
             </div>
             <div className={css.headerUtilities}>
               {renderSlot('conversation.session.header.utilities', {})}
-              <button
-                type="button"
-                className={css.workbenchToggle}
-                aria-label="Toggle workbench"
-                title="Toggle workbench"
-                onClick={() => { toggleWorkbench() }}
-              >
-                <IconPanelLeftOutline16 className={css.workbenchIcon} size={16} />
-              </button>
+              {toggleWorkbench !== undefined && (
+                <button
+                  type="button"
+                  className={css.workbenchToggle}
+                  aria-label="Toggle workbench"
+                  title="Toggle workbench"
+                  onClick={() => { toggleWorkbench() }}
+                >
+                  <IconPanelLeftOutline16 className={css.workbenchIcon} size={16} />
+                </button>
+              )}
             </div>
           </div>
           {tabs.length > 1 && (
