@@ -64,7 +64,7 @@ function paneSlot(kind: WorkbenchPaneKind): 'workbench.pane.details' | 'workbenc
  * column always keeps one pane and therefore its own close affordance.
  */
 function dropTab(tabs: readonly OpenTab[], id: string): OpenTab[] {
-  return tabs.filter(tab => tab.kind === 'details' || tab.id !== id)
+  return tabs.filter(tab => tab.id !== id)
 }
 
 /** Render the active pane through its declared pane slot. */
@@ -89,9 +89,8 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     [tabs, activeId],
   )
 
-  // The strip is hidden while only the base Details pane is open, so the default
-  // column looks exactly like the previous single tool-details inspector.
-  const showStrip = tabs.length > 1
+  // Always show strip so tabs are visible with their close affordances
+  const showStrip = true
   const available = AVAILABLE_PANES.filter(kind => !tabs.some(tab => tab.kind === kind))
 
   const openPane = useCallback((kind: WorkbenchPaneKind, params?: Record<string, unknown>): void => {
@@ -192,21 +191,28 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
               }}
             >
               <span className={css.tabLabel}>{paneLabel(tab.kind, t)}</span>
-              {tab.kind !== 'details' && (
-                <button
-                  type="button"
-                  className={css.tabClose}
-                  aria-label={t('workbench.tabs.close')}
-                  onClick={(event) => {
-                    event.stopPropagation()
+              <button
+                type="button"
+                className={css.tabClose}
+                aria-label={t('workbench.tabs.close')}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  if (tabs.length === 1) {
+                    closeDetails()
+                  } else {
                     const next = dropTab(tabs, tab.id)
                     setTabs(next)
-                    if (activeId === tab.id) setActiveId('details')
-                  }}
-                >
-                  ×
-                </button>
-              )}
+                    if (next.length === 0) {
+                      closeDetails()
+                      setTabs([{ id: 'details', kind: 'details' }])
+                    } else if (activeId === tab.id) {
+                      setActiveId(next[0]!.id)
+                    }
+                  }
+                }}
+              >
+                ×
+              </button>
             </div>
           ))}
           <div style={{ flex: 1, minWidth: 16 }} />
