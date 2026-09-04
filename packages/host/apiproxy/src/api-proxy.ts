@@ -1494,8 +1494,33 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   function cutBoundary(
     events: readonly SessionEvent[],
     atSeq: number | undefined,
+    mode: 'fork' | 'rewind' = 'fork',
   ): { boundary: SessionEvent; cut: number } | undefined {
     const lastSeq = events.at(-1)?.seq ?? -1
+
+    if (mode === 'rewind' && atSeq !== undefined) {
+      const targetEvent = events.find(e => e.seq === atSeq)
+      const isUserMessage = targetEvent !== undefined && targetEvent.type === 'user/message'
+
+      if (isUserMessage) {
+        // Rewinding a user message unwinds the session to before that prompt:
+        // Find the completed turn boundary immediately preceding this prompt.
+        const prevBoundary = events.findLast(e => e.type === 'turn/end' && e.seq < atSeq)
+        if (prevBoundary !== undefined) {
+          let cut = prevBoundary.seq + 1
+          while (cut < events.length && events[cut]?.type !== 'turn/start') cut++
+          return { boundary: prevBoundary, cut }
+        }
+        // If there was no preceding completed turn, rewind to session start before any turn.
+        const firstTurnStart = events.find(e => e.type === 'turn/start')
+        const cut = firstTurnStart !== undefined
+          ? events.indexOf(firstTurnStart)
+          : Math.max(0, events.findIndex(e => e.seq >= atSeq))
+        const boundary = { seq: -1, type: 'turn/end', time: 0, data: {} } as SessionEvent
+        return { boundary, cut }
+      }
+    }
+
     const anchoredBoundary = atSeq === undefined
       ? undefined
       : events.find(e => e.type === 'turn/end' && e.seq >= atSeq)
@@ -2531,7 +2556,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             details: {},
           })
         }
-        const cutState = cutBoundary(source.events, atSeq)
+        const cutState = cutBoundary(source.events, atSeq, 'rewind')
         if (cutState === undefined) {
           const lastSeq = source.events.at(-1)?.seq ?? -1
           return err(request, {
@@ -2591,7 +2616,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             details: {},
           })
         }
-        const cutState = cutBoundary(source.events, atSeq)
+        const cutState = cutBoundary(source.events, atSeq, 'rewind')
         if (cutState === undefined) {
           const lastSeq = source.events.at(-1)?.seq ?? -1
           return err(request, {
@@ -3331,7 +3356,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           const isImage = target.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)
           if (isImage) {
             const buffer = await readFile(target)
-            const ext = isImage[1]!.toLowerCase()
+            const ext = isImage[1]?.toLowerCase() ?? ''
             const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
             const text = `data:${mimeType};base64,${buffer.toString('base64')}`
             return ok(request, { path: target, text })

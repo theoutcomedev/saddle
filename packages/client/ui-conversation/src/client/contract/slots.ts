@@ -422,7 +422,7 @@ export interface ChatNodeOwnerProps {
   inspectCall: (callId: CallId) => void
   forkAt: (seq: number) => void
   /** Rewind through the completed turn ending at the eligible message `seq`, then open the continuation. */
-  rewindAt: (seq: number) => void
+  rewindAt: (seq: number, initialDraft?: string) => void
   /** Render a historical image group through the attachment slot. */
   renderMessageImages: RenderMessageImages
   fileMentions: (owner: TurnTailOwnerProps) => MarkdownFileMentions | undefined
@@ -780,13 +780,13 @@ export interface ChatViewInjected {
   /** Fork through the completed turn ending at the eligible message `seq`, then open the child. */
   forkAt: (seq: number) => void
   /** Rewind through the completed turn ending at the eligible message `seq`, then open the continuation. */
-  rewindAt: (seq: number) => void
+  rewindAt: (seq: number, initialDraft?: string) => void
   /**
    * Execute a confirmed rewind: rewinds the session to the completed turn
    * ending at `seq` (optionally reverting file changes) and opens the
    * continuation. Clears the pending rewind request either way.
    */
-  performRewind: (seq: number, revertFiles: boolean) => void
+  performRewind: (seq: number, revertFiles: boolean, initialDraft?: string) => void
   /**
    * Read-only preflight for the rewind dialog: which other sessions mutated
    * files that a file-reverting rewind at `seq` would restore.

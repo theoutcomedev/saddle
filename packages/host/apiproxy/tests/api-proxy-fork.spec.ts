@@ -286,4 +286,42 @@ describe('sessions.fork', () => {
     })
     await ctx.fiber.dispose()
   })
+
+  it('rewinds to before the target user message, unwinding that turn', async () => {
+    const ctx = await composed()
+    const source = liveAgent(ctx, 'session-rewind-source', 2)
+    // In liveAgent with 2 turns:
+    // seq 0: turn/start (turn 1)
+    // seq 1: user/message (turn 1)
+    // seq 2: turn/end (turn 1)
+    // seq 3: turn/start (turn 2)
+    // seq 4: user/message (turn 2)
+    // seq 5: turn/end (turn 2)
+    const response = await api(ctx).sessions.rewind(request({ sessionId: source.id, atSeq: 4 }))
+    expect(response.result.ok).toBe(true)
+    if (!response.result.ok) return
+    const child = ctx.sessions.get(response.result.value.sessionId)
+    // Turn 2 is unwound; only Turn 1 remains:
+    expect(child?.events.map(event => event.type)).toEqual([
+      'turn/start', 'user/message', 'turn/end', 'session/end-seed',
+    ])
+    await ctx.fiber.dispose()
+  })
+
+  it('rewinds to the beginning when rewinding the first user message', async () => {
+    const ctx = await composed()
+    const source = liveAgent(ctx, 'session-rewind-first', 1)
+    // seq 0: turn/start
+    // seq 1: user/message
+    // seq 2: turn/end
+    const response = await api(ctx).sessions.rewind(request({ sessionId: source.id, atSeq: 1 }))
+    expect(response.result.ok).toBe(true)
+    if (!response.result.ok) return
+    const child = ctx.sessions.get(response.result.value.sessionId)
+    // All turns are unwound:
+    expect(child?.events.map(event => event.type)).toEqual([
+      'session/end-seed',
+    ])
+    await ctx.fiber.dispose()
+  })
 })

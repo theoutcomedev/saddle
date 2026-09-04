@@ -294,7 +294,7 @@ export const UserMessageNodeView = memo(function UserMessageNodeView({
           time={data.time}
           clock="start"
           className={css.actions}
-          onRewind={() => { rewindAt(data.seq) }}
+          onRewind={() => { rewindAt(data.seq, text) }}
           t={t}
         />
       )}

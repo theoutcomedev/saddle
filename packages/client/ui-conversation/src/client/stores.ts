@@ -11,7 +11,7 @@ type ChatActions = {
   setDraft: (draft: ChatStoreState, text: string) => void
   setView: (draft: ChatStoreState, view: string) => void
   setInspect: (draft: ChatStoreState, target: { callId: CallId } | null) => void
-  requestRewind: (draft: ChatStoreState, seq: number) => void
+  requestRewind: (draft: ChatStoreState, seq: number, initialDraft?: string) => void
   cancelRewind: (draft: ChatStoreState) => void
 }
 
@@ -31,7 +31,9 @@ export function createChatStore(): EngineStoreHandle<ChatStoreState, ChatActions
       setDraft: (d, text: string) => { d.draft = text },
       setView: (d, view: string) => { d.view = view },
       setInspect: (d, target: { callId: CallId } | null) => { d.inspect = target },
-      requestRewind: (d, seq: number) => { d.rewind = { seq } },
+      requestRewind: (d, seq: number, initialDraft?: string) => {
+        d.rewind = initialDraft !== undefined ? { seq, draft: initialDraft } : { seq }
+      },
       cancelRewind: (d) => { d.rewind = null },
     },
   })

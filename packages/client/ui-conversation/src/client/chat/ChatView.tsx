@@ -496,7 +496,13 @@ export function ChatView({
         seq={rewindRequest?.seq}
         onCancel={() => { actions.cancelRewind() }}
         onConfirm={(revertFiles) => {
-          if (rewindRequest !== null) performRewind(rewindRequest.seq, revertFiles)
+          if (rewindRequest !== null) {
+            if (rewindRequest.draft !== undefined) {
+              performRewind(rewindRequest.seq, revertFiles, rewindRequest.draft)
+            } else {
+              performRewind(rewindRequest.seq, revertFiles)
+            }
+          }
         }}
         checkCollisions={rewindCollisions}
         titleOf={id => sessionTitles[id]?.title ?? id}

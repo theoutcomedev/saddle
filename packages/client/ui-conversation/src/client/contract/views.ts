@@ -34,5 +34,5 @@ export interface ChatStoreState {
    * awaiting confirmation in the chat view. Read with `?? null` — persisted
    * snapshots from before this field rehydrate without it.
    */
-  rewind: { seq: number } | null
+  rewind: { seq: number; draft?: string } | null
 }

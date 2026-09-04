@@ -433,12 +433,22 @@ export function apply(ctx: Context): void {
               // Fork or child-rename failure keeps the source view untouched.
             })
         },
-        rewindAt: (seq) => { actions.requestRewind(seq) },
-        performRewind: (seq, revertFiles) => {
+        rewindAt: (seq, draft) => { actions.requestRewind(seq, draft) },
+        performRewind: (seq, revertFiles, draft) => {
           actions.cancelRewind()
           sessions.rewind({ sessionId, atSeq: seq, revertFiles })
-            .then((childId) => { sessions.open(childId) })
-            .catch(() => {
+            .then((childId) => {
+              if (draft) {
+                try {
+                  inputHub.shell(childId).setDraft(draft)
+                } catch {
+                  // best effort draft restore
+                }
+              }
+              sessions.open(childId)
+            })
+            .catch((error) => {
+              console.error('Rewind failed:', error)
               // Rewind failure keeps the source view untouched.
             })
         },
