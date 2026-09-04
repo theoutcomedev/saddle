@@ -15,7 +15,6 @@ import Aws from '@thesvg/react/aws'
 import Clerk from '@thesvg/react/clerk'
 import Cloudflare from '@thesvg/react/cloudflare'
 import Discord from '@thesvg/react/discord'
-import Firecrawl from '@thesvg/react/firecrawl'
 import Github from '@thesvg/react/github'
 import Hubspot from '@thesvg/react/hubspot'
 import Linear from '@thesvg/react/linear'
@@ -24,7 +23,6 @@ import Neon from '@thesvg/react/neon'
 import Notion from '@thesvg/react/notion'
 import Posthog from '@thesvg/react/posthog'
 import Postmark from '@thesvg/react/postmark'
-import Qdrant from '@thesvg/react/qdrant'
 import Replicate from '@thesvg/react/replicate'
 import Resend from '@thesvg/react/resend'
 import Sentry from '@thesvg/react/sentry'
@@ -48,7 +46,6 @@ export const BRAND_ICONS: Record<string, BrandIcon> = {
   'clerk': Clerk as unknown as BrandIcon,
   'cloudflare': Cloudflare as unknown as BrandIcon,
   'discord': Discord as unknown as BrandIcon,
-  'firecrawl': Firecrawl as unknown as BrandIcon,
   'github': Github as unknown as BrandIcon,
   'hubspot': Hubspot as unknown as BrandIcon,
   'linear': Linear as unknown as BrandIcon,
@@ -57,7 +54,6 @@ export const BRAND_ICONS: Record<string, BrandIcon> = {
   'notion': Notion as unknown as BrandIcon,
   'posthog': Posthog as unknown as BrandIcon,
   'postmark': Postmark as unknown as BrandIcon,
-  'qdrant': Qdrant as unknown as BrandIcon,
   'replicate': Replicate as unknown as BrandIcon,
   'resend': Resend as unknown as BrandIcon,
   'sentry': Sentry as unknown as BrandIcon,
@@ -92,7 +88,4 @@ export const DARK_ONLY_BRANDS: ReadonlySet<string> = new Set([
  * Brand IDs whose SVG marks are black/dark-coloured and invisible on
  * the dark theme — they must be CSS-inverted in dark mode.
  */
-export const LIGHT_ONLY_BRANDS: ReadonlySet<string> = new Set([
-  'firecrawl',
-  'qdrant',
-])
+export const LIGHT_ONLY_BRANDS: ReadonlySet<string> = new Set([])

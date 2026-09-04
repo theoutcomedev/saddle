@@ -64,9 +64,6 @@ export const CATALOG: readonly ToolService[] = [
   { id: 'cloudflare', label: 'Cloudflare', docsUrl: 'https://developers.cloudflare.com', getKeyUrl: 'https://dash.cloudflare.com/profile/api-tokens', auth: { method: 'api-key', fields: [
     { id: 'apiToken', label: 'API token' },
   ] } },
-  { id: 'firecrawl', label: 'Firecrawl', docsUrl: 'https://docs.firecrawl.dev', getKeyUrl: 'https://www.firecrawl.dev/apps', auth: { method: 'api-key', fields: [
-    { id: 'apiKey', label: 'API key' },
-  ] } },
   { id: 'tavily', label: 'Tavily', docsUrl: 'https://docs.tavily.com', getKeyUrl: 'https://app.tavily.com', auth: { method: 'api-key', fields: [
     { id: 'apiKey', label: 'API key' },
   ] } },
@@ -87,9 +84,6 @@ export const CATALOG: readonly ToolService[] = [
   ] } },
   { id: 'upstash', label: 'Upstash', docsUrl: 'https://upstash.com/docs', getKeyUrl: 'https://console.upstash.com', auth: { method: 'api-key', fields: [
     { id: 'restUrl', label: 'REST URL' }, { id: 'restToken', label: 'REST token' },
-  ] } },
-  { id: 'qdrant', label: 'Qdrant', docsUrl: 'https://qdrant.tech/documentation', getKeyUrl: 'https://cloud.qdrant.io', auth: { method: 'api-key', fields: [
-    { id: 'clusterUrl', label: 'Cluster URL' }, { id: 'apiKey', label: 'API key' },
   ] } },
   { id: 'replicate', label: 'Replicate', docsUrl: 'https://replicate.com/docs', getKeyUrl: 'https://replicate.com/account/api-tokens', auth: { method: 'api-key', fields: [
     { id: 'apiToken', label: 'API token' },
