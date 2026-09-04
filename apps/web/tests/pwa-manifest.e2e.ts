@@ -5,25 +5,10 @@ import { expect, it } from 'vitest'
 
 const DIST_ROOT = fileURLToPath(new URL('../dist', import.meta.url))
 
-it('ships install metadata with the built web application', async () => {
+it('does not ship a PWA manifest, keeping Saddle as a clean responsive web app', async () => {
   const index = await readFile(join(DIST_ROOT, 'index.html'), 'utf8')
-  expect(index).toContain('<link rel="manifest" href="/manifest.webmanifest" />')
-
-  const manifest: unknown = JSON.parse(await readFile(join(DIST_ROOT, 'manifest.webmanifest'), 'utf8'))
-  expect(manifest).toEqual({
-    id: '/',
-    name: 'DeepSeek Harness',
-    short_name: 'DSH',
-    start_url: '/',
-    scope: '/',
-    display: 'fullscreen',
-    icons: [{
-      src: '/favicon.svg',
-      sizes: 'any',
-      type: 'image/svg+xml',
-      purpose: 'any',
-    }],
-  })
+  expect(index).not.toContain('rel="manifest"')
+  expect(index).not.toContain('apple-mobile-web-app-capable')
 })
 
 it('ships a favicon that switches to a light mark under dark color scheme', async () => {
