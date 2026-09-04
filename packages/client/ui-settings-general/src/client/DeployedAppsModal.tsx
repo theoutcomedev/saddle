@@ -99,6 +99,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
                           rel="noreferrer"
                           className={css.appUrl}
                           title="Open live public URL in new tab"
+                          onClick={onClose}
                         >
                           {app.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
                         </a>
@@ -124,6 +125,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
                         target="_blank"
                         rel="noreferrer"
                         className={css.openBtn}
+                        onClick={onClose}
                       >
                         Open App ↗
                       </a>
