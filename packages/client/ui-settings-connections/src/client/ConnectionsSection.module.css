@@ -203,6 +203,8 @@
   filter: invert(1);
 }
 
+:global([data-ds-dark-theme]) .brandSvgInvertLight,
+:global(body[data-ds-dark-theme]) .brandSvgInvertLight,
 :global([data-theme="dark"]) .brandSvgInvertLight {
   filter: none;
 }
@@ -212,6 +214,8 @@
   filter: none;
 }
 
+:global([data-ds-dark-theme]) .brandSvgInvertDark,
+:global(body[data-ds-dark-theme]) .brandSvgInvertDark,
 :global([data-theme="dark"]) .brandSvgInvertDark {
-  filter: invert(1);
+  filter: brightness(0) invert(1);
 }

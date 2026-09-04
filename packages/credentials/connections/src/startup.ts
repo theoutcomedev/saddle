@@ -35,9 +35,6 @@ export const CATALOG: readonly ToolService[] = [
   { id: 'resend', label: 'Resend', docsUrl: 'https://resend.com/docs', getKeyUrl: 'https://resend.com/api-keys', auth: { method: 'api-key' } },
 
   // ── productivity / data ─────────────────────────────────────────────────
-  { id: 'notion', label: 'Notion', docsUrl: 'https://developers.notion.com', getKeyUrl: 'https://www.notion.so/my-integrations', auth: { method: 'api-key', fields: [
-    { id: 'token', label: 'Integration token (secret_…)' },
-  ] } },
   { id: 'airtable', label: 'Airtable', docsUrl: 'https://airtable.com/developers', getKeyUrl: 'https://airtable.com/create/tokens', auth: { method: 'api-key', fields: [
     { id: 'personalToken', label: 'Personal access token (pat…)' },
   ] } },
@@ -72,9 +69,6 @@ export const CATALOG: readonly ToolService[] = [
   ] } },
   { id: 'posthog', label: 'PostHog', docsUrl: 'https://posthog.com/docs', getKeyUrl: 'https://app.posthog.com/settings/project', auth: { method: 'api-key', fields: [
     { id: 'apiKey', label: 'Project API key' },
-  ] } },
-  { id: 'clerk', label: 'Clerk', docsUrl: 'https://clerk.com/docs', getKeyUrl: 'https://dashboard.clerk.com', auth: { method: 'api-key', fields: [
-    { id: 'secretKey', label: 'Secret key' },
   ] } },
   { id: 'mongodb', label: 'MongoDB', docsUrl: 'https://www.mongodb.com/docs', getKeyUrl: 'https://www.mongodb.com/cloud/atlas', auth: { method: 'api-key', fields: [
     { id: 'uri', label: 'Connection string (mongodb+srv://…)' },
