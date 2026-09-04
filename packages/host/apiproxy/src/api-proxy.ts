@@ -1106,6 +1106,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   const pendingQuestions = new Map<RpcId, PendingQuestion>()
   const pendingApprovals = new Map<RpcId, PendingApproval>()
   const muxQueues = new Set<FrameQueue<RpcRequest<MuxFrame>>>()
+  const hostQueues = new Set<FrameQueue<RpcRequest<HostFrame>>>()
   const imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
 
   /** Serialize image admission with model selection for one agent. */
@@ -1250,6 +1251,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   function broadcast(payload: MuxFrame): void {
     const envelope = frame(payload)
     for (const queue of muxQueues) queue.push(envelope)
+  }
+
+  /** Send one host frame to every connected host consumer. */
+  function broadcastHost(payload: HostFrame): void {
+    const envelope = frame(payload)
+    for (const queue of hostQueues) queue.push(envelope)
   }
 
   // Projection change feed → session/projection push frames. The carrier
@@ -2754,9 +2761,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           })
         }
         const handle = liveHandles.get(sessionId)
+        let disposedByHandle = false
         if (handle !== undefined) {
           try {
             await handle.dispose()
+            disposedByHandle = true
           } catch (error: unknown) {
             return err(request, {
               code: 'internal',
@@ -2776,7 +2785,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           })
         }
         const persistence = ctx.get('sessionPersistence')
-        if (persistence !== undefined) {
+        if (persistence !== undefined && typeof (persistence as unknown as { remove?: unknown }).remove === 'function') {
           try {
             await persistence.remove(sessionId)
           } catch (error: unknown) {
@@ -2786,6 +2795,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               details: {},
             })
           }
+        }
+        if (!disposedByHandle) {
+          broadcastHost({ type: 'host/session-removed', sessionId })
         }
         return ok(request, { deleted: true })
       },
@@ -4090,6 +4102,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
       host(_request, signal) {
         const queue = new FrameQueue<RpcRequest<HostFrame>>()
+        hostQueues.add(queue)
         const committedWorkspaces = ctx.workspaceRegistry.list()
         const committedWorkspaceIds = new Set(
           committedWorkspaces.map(workspace => String(workspace.id)),
@@ -4189,7 +4202,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             }),
           )),
         ]
-        return queue.iterate(signal, () => { for (const dispose of disposers) dispose() })
+        return queue.iterate(signal, () => {
+          hostQueues.delete(queue)
+          for (const dispose of disposers) dispose()
+        })
       },
     },
 

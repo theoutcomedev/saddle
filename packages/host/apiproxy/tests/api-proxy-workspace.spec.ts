@@ -75,21 +75,24 @@ async function harness(
   const storageDomain = new DomainFacility(ctx, { backend: 'memory', routes: {} })
   ctx.storage.mount('domain', storageDomain)
   ctx.provide('storageDomain', storageDomain)
-  ctx.provide('sessionPersistence', { list: () => Promise.resolve([]) } as never)
+  ctx.provide('sessionPersistence', { list: () => Promise.resolve([]), remove: () => Promise.resolve() } as never)
   await ctx.plugin(WorkspaceRegistry)
 
   const factory: AgentFactory = {
     async createAgent(_ownerCtx, options) {
-      const session = ctx.sessions.create(
+      const session = ctx.sessions.prepare(
         options.sessionId,
         options.meta === undefined ? {} : { meta: options.meta },
       )
+      const detach = ctx.sessions.enter(session)
+      ctx.sessions.announce(session)
       const agent = stubAgent(session)
       const unregister = ctx.agents.register(agent)
       return {
         agent,
         dispose: () => {
           unregister()
+          detach()
           return Promise.resolve()
         },
       }
@@ -566,6 +569,46 @@ describe('Host Workspace increments', () => {
       ok: false,
       error: { code: 'session-not-found', details: { sessionId: 'session-ghost' } },
     })
+    abort.abort()
+  })
+
+  it('permanently deletes a session, removes it from workspace, and streams host/session-removed', async () => {
+    const { api, root } = await harness()
+    const workspace = expectOk(await api.workspace.create(request({ path: stageDir(root, 'delete-session-home') }))).workspace
+    const sessionId = SessionId('session-to-delete')
+    expectOk(await api.sessions.create(request({ workspaceId: workspace.workspaceId, sessionId })))
+
+    const abort = new AbortController()
+    const stream: AsyncIterator<RpcRequest<HostFrame>> =
+      api.events.host(request({}), abort.signal)[Symbol.asyncIterator]()
+
+    const removedFrame = nextHostFrame(stream)
+    const delRes = await api.sessions.delete(request({ sessionId }))
+    expectOk(delRes)
+
+    expect(await removedFrame).toMatchObject({
+      payload: { type: 'host/session-removed', sessionId },
+    })
+
+    const workspaceChangedFrame = nextHostFrame(stream)
+    expect(await workspaceChangedFrame).toMatchObject({
+      payload: { type: 'host/workspace-changed' },
+    })
+
+    // Deleted session must be gone from sessions list and workspace sessionIds.
+    const sessionsList = expectOk(await api.sessions.list(request({})))
+    expect(sessionsList.items.map(s => s.sessionId)).not.toContain(sessionId)
+
+    const workspaceList = expectOk(await api.workspace.list(request({})))
+    expect(workspaceList.items[0]?.sessionIds).not.toContain(sessionId)
+
+    // Deleting an already deleted session should fail with session-not-found.
+    const missing = await api.sessions.delete(request({ sessionId }))
+    expect(missing.result).toMatchObject({
+      ok: false,
+      error: { code: 'session-not-found', details: { sessionId } },
+    })
+
     abort.abort()
   })
 })

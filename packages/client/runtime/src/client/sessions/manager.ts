@@ -649,6 +649,17 @@ export class SessionManager {
   async deleteSession(sessionId: SessionId): Promise<RpcResult<{ deleted: true }>> {
     try {
       const { result } = await this.api.sessions.delete({ sessionId })
+      if (result.ok) {
+        this.recordMutation({ kind: 'remove', sessionId })
+        this.sessions.get(sessionId)?.handleRemoved()
+        if (this.selected === sessionId) {
+          this.selected = undefined
+        }
+        this.pendingBuffers.delete(sessionId)
+        this.pendingInteractions.delete(sessionId)
+        this.jobsBySession.delete(sessionId)
+        this.projectionStores.delete(sessionId)
+      }
       return result
     } catch (error) {
       return transportError(error)
@@ -897,6 +908,9 @@ export class SessionManager {
           this.sessions.get(frame.sessionId)?.handleRunning(false)
         } else {
           this.sessions.get(frame.sessionId)?.handleRemoved()
+          if (this.selected === frame.sessionId) {
+            this.selected = undefined
+          }
         }
         this.pendingBuffers.delete(frame.sessionId) // a removed session's buffered frames must not replay on a future instantiation
         this.pendingInteractions.delete(frame.sessionId) // a removed session cannot wait on anyone
