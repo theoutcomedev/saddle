@@ -1,14 +1,13 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FilesPane } from '../src/client/files-pane.tsx'
+import { FilesPane, type FilesPaneProps } from '../src/client/files-pane.tsx'
 
 afterEach(cleanup)
 
 describe('FilesPane', () => {
-  const dummyT = ((key: string) => key) as unknown as Parameters<typeof FilesPane>[0]['t']
   const dummyUseSessions = (<T,>(selector: (state: { byId: Record<string, { cwd: string }> }) => T): T =>
-    selector({ byId: { 's-1': { cwd: '/workspace/my-project' } } })) as unknown as Parameters<typeof FilesPane>[0]['useSessions']
+    selector({ byId: { 's-1': { cwd: '/workspace/my-project' } } })) as unknown as FilesPaneProps['useSessions']
 
   it('renders directory entries and breadcrumbs', async () => {
     const listFiles = vi.fn().mockResolvedValue({
@@ -22,17 +21,16 @@ describe('FilesPane', () => {
     const readFile = vi.fn().mockResolvedValue({ path: '/workspace/my-project/README.md', text: '# Hello World' })
     const openPath = vi.fn().mockResolvedValue(undefined)
 
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile,
+      openPath,
+    } as unknown as FilesPaneProps
+
     await act(async () => {
-      render(
-        <FilesPane
-          sessionId={'s-1' as unknown as Parameters<typeof FilesPane>[0]['sessionId']}
-          useSessions={dummyUseSessions}
-          listFiles={listFiles}
-          readFile={readFile}
-          openPath={openPath}
-          t={dummyT}
-        />,
-      )
+      render(<FilesPane {...props} />)
     })
 
     expect(listFiles).toHaveBeenCalledWith('/workspace/my-project', expect.any(AbortSignal))
@@ -53,17 +51,16 @@ describe('FilesPane', () => {
     const readFile = vi.fn()
     const openPath = vi.fn()
 
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile,
+      openPath,
+    } as unknown as FilesPaneProps
+
     await act(async () => {
-      render(
-        <FilesPane
-          sessionId={'s-1' as unknown as Parameters<typeof FilesPane>[0]['sessionId']}
-          useSessions={dummyUseSessions}
-          listFiles={listFiles}
-          readFile={readFile}
-          openPath={openPath}
-          t={dummyT}
-        />,
-      )
+      render(<FilesPane {...props} />)
     })
 
     const vpsRootBtn = screen.getByRole('button', { name: /VPS Root/i })

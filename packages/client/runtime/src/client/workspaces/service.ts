@@ -272,7 +272,10 @@ export class WorkspaceRuntime implements IWorkspaces {
    * Create an empty file or write initial content.
    */
   async createFile(path: string, content?: string): Promise<{ path: string }> {
-    const response = await this.api.host.createFile({ path, content })
+    const response = await this.api.host.createFile({
+      path,
+      ...(content !== undefined ? { content } : {}),
+    })
     if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
     return response.result.value
   }

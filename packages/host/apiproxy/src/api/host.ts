@@ -166,7 +166,7 @@ export interface HostApi {
    * Create an empty file or write initial content.
    */
   createFile(
-    request: RpcRequest<{ path: string; content?: string }>,
+    request: RpcRequest<{ path: string; content?: string | undefined }>,
     signal?: AbortSignal,
   ): Promise<RpcResponse<{ path: string }>>
 
