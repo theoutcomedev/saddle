@@ -138,6 +138,58 @@ export function FilesPane({
   const [showHidden, setShowHidden] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Environment detection: Check if VPS /host mount is available
+  const [hasVpsMount, setHasVpsMount] = useState<boolean>(false)
+
+  // Custom user-pinned presets (stored in localStorage)
+  const [pinnedPresets, setPinnedPresets] = useState<Array<{ name: string; path: string }>>(() => {
+    try {
+      const saved = localStorage.getItem('saddle:pinned_file_presets')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+
+  // Check if /host exists on initial load
+  useEffect(() => {
+    let active = true
+    void listFiles('/host').then((res) => {
+      if (active && res.entries.length > 0) {
+        setHasVpsMount(true)
+      }
+    }).catch(() => {
+      if (active) setHasVpsMount(false)
+    })
+    return () => { active = false }
+  }, [listFiles])
+
+  // Save pinned presets to localStorage
+  const savePinnedPresets = (newPresets: Array<{ name: string; path: string }>) => {
+    setPinnedPresets(newPresets)
+    try {
+      localStorage.setItem('saddle:pinned_file_presets', JSON.stringify(newPresets))
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
+  const togglePinCurrentDir = () => {
+    const existingIdx = pinnedPresets.findIndex(p => p.path === dir)
+    if (existingIdx >= 0) {
+      // Unpin
+      const updated = pinnedPresets.filter((_, idx) => idx !== existingIdx)
+      savePinnedPresets(updated)
+    } else {
+      // Pin: get folder name
+      const name = dir === '/' ? 'Root' : (dir.split('/').filter(Boolean).pop() || dir)
+      const updated = [...pinnedPresets, { name, path: dir }]
+      savePinnedPresets(updated)
+    }
+  }
+
+  const isCurrentDirPinned = pinnedPresets.some(p => p.path === dir)
+
   // Multi-select & Batch
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
 
@@ -432,6 +484,16 @@ export function FilesPane({
         <button
           type="button"
           className={css.ghost}
+          title={isCurrentDirPinned ? 'Unpin this folder from presets' : 'Pin this folder to presets'}
+          onClick={togglePinCurrentDir}
+          style={isCurrentDirPinned ? { color: 'var(--dsw-alias-interactive-primary, #3b82f6)' } : undefined}
+        >
+          {isCurrentDirPinned ? '★' : '☆'}
+        </button>
+
+        <button
+          type="button"
+          className={css.ghost}
           title="Refresh current folder"
           onClick={() => load(dir)}
         >
@@ -441,38 +503,7 @@ export function FilesPane({
 
       {/* --- QUICK JUMP PRESETS --- */}
       <div className={css.presetsBar}>
-        <button
-          type="button"
-          className={`${css.presetChip} ${dir === '/host' ? css.presetChipActive : ''}`}
-          onClick={() => load('/host')}
-          title="VPS Host Root (/host)"
-        >
-          🖥️ VPS Root (/host)
-        </button>
-        <button
-          type="button"
-          className={`${css.presetChip} ${dir === '/host/root' || dir === '/root' ? css.presetChipActive : ''}`}
-          onClick={() => load('/host/root')}
-          title="Root Home (/host/root)"
-        >
-          📁 /host/root
-        </button>
-        <button
-          type="button"
-          className={`${css.presetChip} ${dir.includes('apps') ? css.presetChipActive : ''}`}
-          onClick={() => load('/host/root/apps')}
-          title="Apps (/host/root/apps)"
-        >
-          🚀 Apps
-        </button>
-        <button
-          type="button"
-          className={`${css.presetChip} ${dir.includes('context') ? css.presetChipActive : ''}`}
-          onClick={() => load('/host/root/context')}
-          title="Context Docs (/host/root/context)"
-        >
-          📄 Context
-        </button>
+        {/* Active Session Workspace (Available everywhere) */}
         {cwd && (
           <button
             type="button"
@@ -483,14 +514,79 @@ export function FilesPane({
             💼 Workspace
           </button>
         )}
+
+        {/* System Root (Universal) */}
         <button
           type="button"
           className={`${css.presetChip} ${dir === '/' ? css.presetChipActive : ''}`}
           onClick={() => load('/')}
           title="System Root (/)"
         >
-          / Root
+          🗂️ / Root
         </button>
+
+        {/* VPS Specific Presets: Only shown if /host volume mount exists */}
+        {hasVpsMount && (
+          <>
+            <button
+              type="button"
+              className={`${css.presetChip} ${dir === '/host' ? css.presetChipActive : ''}`}
+              onClick={() => load('/host')}
+              title="VPS Host Root (/host)"
+            >
+              🖥️ VPS Root
+            </button>
+            <button
+              type="button"
+              className={`${css.presetChip} ${dir === '/host/root' ? css.presetChipActive : ''}`}
+              onClick={() => load('/host/root')}
+              title="VPS Root Home (/host/root)"
+            >
+              📁 /host/root
+            </button>
+            <button
+              type="button"
+              className={`${css.presetChip} ${dir === '/host/root/apps' ? css.presetChipActive : ''}`}
+              onClick={() => load('/host/root/apps')}
+              title="Apps Directory (/host/root/apps)"
+            >
+              🚀 Apps
+            </button>
+            <button
+              type="button"
+              className={`${css.presetChip} ${dir === '/host/root/context' ? css.presetChipActive : ''}`}
+              onClick={() => load('/host/root/context')}
+              title="Context Docs (/host/root/context)"
+            >
+              📄 Context
+            </button>
+          </>
+        )}
+
+        {/* User Pinned Custom Presets */}
+        {pinnedPresets.map(preset => (
+          <span key={preset.path} className={css.pinnedChipGroup}>
+            <button
+              type="button"
+              className={`${css.presetChip} ${dir === preset.path ? css.presetChipActive : ''}`}
+              onClick={() => load(preset.path)}
+              title={preset.path}
+            >
+              ★ {preset.name}
+            </button>
+            <button
+              type="button"
+              className={css.pinnedRemoveBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                savePinnedPresets(pinnedPresets.filter(p => p.path !== preset.path))
+              }}
+              title={`Unpin ${preset.name}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
       </div>
 
       {/* --- ERROR MESSAGE --- */}

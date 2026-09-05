@@ -136,6 +136,36 @@
   font-weight: 500;
 }
 
+.pinnedChipGroup {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.pinnedChipGroup .presetChip {
+  padding-right: 18px;
+}
+
+.pinnedRemoveBtn {
+  position: absolute;
+  right: 4px;
+  background: none;
+  border: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pinnedRemoveBtn:hover {
+  color: var(--dsw-alias-status-danger, #ef4444);
+}
+
 /* --- Action & Bulk Bar --- */
 .actionBar {
   display: flex;
