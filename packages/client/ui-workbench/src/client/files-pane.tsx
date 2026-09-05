@@ -18,7 +18,7 @@ import {
   IconLinkOutline16, IconEyeOutline16, IconCodeOutline16,
   IconPlusOutline16, IconTrashOutline16,
   IconRefreshOutline16, IconEditOutline16, IconCheckOutline16,
-  IconCloseOutline16, MarkdownText,
+  IconCloseOutline16, IconFolderClose16, MarkdownText,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
@@ -110,6 +110,44 @@ function fileIcon(name: string, isDir?: boolean): string {
     default:
       return '📄'
   }
+}
+
+/** Crisp, minimalist hard drive SVG icon for root volume */
+function IconHardDrive({ size = 12, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="2" y="3.5" width="12" height="9" rx="1.5" />
+      <circle cx="11.5" cy="8" r="0.8" fill="currentColor" stroke="none" />
+      <line x1="4.5" y1="8" x2="7.5" y2="8" />
+    </svg>
+  )
+}
+
+/** Crisp, minimalist star SVG icon for pinned presets */
+function IconStar({ size = 11, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path d="M8 1.75l1.87 3.79 4.18.61-3.03 2.95.72 4.16L8 11.3l-3.74 1.96.72-4.16-3.03-2.95 4.18-.61L8 1.75z" />
+    </svg>
+  )
 }
 
 export function FilesPane({
@@ -409,7 +447,8 @@ export function FilesPane({
           onClick={() => load(cwd)}
           title={`Session Workspace (${cwd})`}
         >
-          💼 Workspace
+          <IconFolderClose16 size={12} className={css.chipIcon} />
+          <span>Workspace</span>
         </button>
       )}
 
@@ -420,7 +459,8 @@ export function FilesPane({
         onClick={() => load('/')}
         title="System Root (/)"
       >
-        🗂️ / Root
+        <IconHardDrive size={12} className={css.chipIcon} />
+        <span>/ Root</span>
       </button>
 
       {/* User Pinned Custom Presets */}
@@ -432,7 +472,8 @@ export function FilesPane({
             onClick={() => load(preset.path)}
             title={preset.path}
           >
-            ★ {preset.name}
+            <IconStar size={11} className={css.chipIcon} />
+            <span>{preset.name}</span>
           </button>
           <button
             type="button"

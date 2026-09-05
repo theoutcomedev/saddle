@@ -113,7 +113,7 @@
 .presetChip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   height: 22px;
   padding: 0 8px;
   border-radius: 11px;
@@ -121,10 +121,17 @@
   background: var(--dsw-alias-interactive-bg-subtle, transparent);
   color: var(--dsw-alias-label-secondary);
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s ease;
   box-sizing: border-box;
+}
+
+.chipIcon {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
 }
 
 .presetChip:hover {
@@ -133,11 +140,20 @@
   border-color: var(--dsw-alias-label-tertiary);
 }
 
+.presetChip:hover .chipIcon {
+  opacity: 1;
+}
+
 .presetChipActive {
   background: var(--dsw-alias-interactive-bg-active, rgba(59, 130, 246, 0.15));
   color: var(--dsw-alias-interactive-primary, #3b82f6);
   border-color: var(--dsw-alias-interactive-primary, #3b82f6);
   font-weight: 500;
+}
+
+.presetChipActive .chipIcon {
+  opacity: 1;
+  color: var(--dsw-alias-interactive-primary, #3b82f6);
 }
 
 .pinnedChipGroup {

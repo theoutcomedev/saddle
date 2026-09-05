@@ -63,7 +63,7 @@ describe('FilesPane', () => {
       render(<FilesPane {...props} />)
     })
 
-    const rootBtn = screen.getByRole('button', { name: /🗂️ \/ Root/i })
+    const rootBtn = screen.getByRole('button', { name: /\/ Root/i })
     await act(async () => {
       fireEvent.click(rootBtn)
     })
