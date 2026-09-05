@@ -40,11 +40,11 @@ describe('FilesPane', () => {
     expect(screen.getByText('my-project')).toBeDefined()
   })
 
-  it('supports quick jump presets to VPS root and apps', async () => {
+  it('supports quick jump presets to Workspace and System Root', async () => {
     const listFiles = vi.fn().mockResolvedValue({
-      path: '/host',
+      path: '/',
       entries: [
-        { name: 'root', path: '/host/root', isDir: true },
+        { name: 'etc', path: '/etc', isDir: true },
       ],
       truncated: false,
     })
@@ -63,11 +63,11 @@ describe('FilesPane', () => {
       render(<FilesPane {...props} />)
     })
 
-    const vpsRootBtn = screen.getByRole('button', { name: /VPS Root/i })
+    const rootBtn = screen.getByRole('button', { name: /🗂️ \/ Root/i })
     await act(async () => {
-      fireEvent.click(vpsRootBtn)
+      fireEvent.click(rootBtn)
     })
 
-    expect(listFiles).toHaveBeenCalledWith('/host', expect.any(AbortSignal))
+    expect(listFiles).toHaveBeenCalledWith('/', expect.any(AbortSignal))
   })
 })

@@ -138,9 +138,6 @@ export function FilesPane({
   const [showHidden, setShowHidden] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Environment detection: Check if VPS /host mount is available
-  const [hasVpsMount, setHasVpsMount] = useState<boolean>(false)
-
   // Custom user-pinned presets (stored in localStorage)
   const [pinnedPresets, setPinnedPresets] = useState<Array<{ name: string; path: string }>>(() => {
     try {
@@ -150,19 +147,6 @@ export function FilesPane({
       return []
     }
   })
-
-  // Check if /host exists on initial load
-  useEffect(() => {
-    let active = true
-    void listFiles('/host').then((res) => {
-      if (active && res.entries.length > 0) {
-        setHasVpsMount(true)
-      }
-    }).catch(() => {
-      if (active) setHasVpsMount(false)
-    })
-    return () => { active = false }
-  }, [listFiles])
 
   // Save pinned presets to localStorage
   const savePinnedPresets = (newPresets: Array<{ name: string; path: string }>) => {
@@ -404,6 +388,56 @@ export function FilesPane({
 
   return (
     <div className={css.root}>
+      {/* --- QUICK JUMP PRESETS (Under Workbench Tabs) --- */}
+      <div className={css.presetsBar}>
+        {/* Active Session Workspace (Available everywhere) */}
+        {cwd && (
+          <button
+            type="button"
+            className={`${css.presetChip} ${dir === cwd ? css.presetChipActive : ''}`}
+            onClick={() => load(cwd)}
+            title={`Session Workspace (${cwd})`}
+          >
+            💼 Workspace
+          </button>
+        )}
+
+        {/* System Root (Universal) */}
+        <button
+          type="button"
+          className={`${css.presetChip} ${dir === '/' ? css.presetChipActive : ''}`}
+          onClick={() => load('/')}
+          title="System Root (/)"
+        >
+          🗂️ / Root
+        </button>
+
+        {/* User Pinned Custom Presets */}
+        {pinnedPresets.map(preset => (
+          <span key={preset.path} className={css.pinnedChipGroup}>
+            <button
+              type="button"
+              className={`${css.presetChip} ${dir === preset.path ? css.presetChipActive : ''}`}
+              onClick={() => load(preset.path)}
+              title={preset.path}
+            >
+              ★ {preset.name}
+            </button>
+            <button
+              type="button"
+              className={css.pinnedRemoveBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                savePinnedPresets(pinnedPresets.filter(p => p.path !== preset.path))
+              }}
+              title={`Unpin ${preset.name}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+
       {/* --- TOP NAVIGATION BAR --- */}
       <div className={css.navBar}>
         <button
@@ -499,94 +533,6 @@ export function FilesPane({
         >
           <IconRefreshOutline16 size={14} />
         </button>
-      </div>
-
-      {/* --- QUICK JUMP PRESETS --- */}
-      <div className={css.presetsBar}>
-        {/* Active Session Workspace (Available everywhere) */}
-        {cwd && (
-          <button
-            type="button"
-            className={`${css.presetChip} ${dir === cwd ? css.presetChipActive : ''}`}
-            onClick={() => load(cwd)}
-            title={`Session Workspace (${cwd})`}
-          >
-            💼 Workspace
-          </button>
-        )}
-
-        {/* System Root (Universal) */}
-        <button
-          type="button"
-          className={`${css.presetChip} ${dir === '/' ? css.presetChipActive : ''}`}
-          onClick={() => load('/')}
-          title="System Root (/)"
-        >
-          🗂️ / Root
-        </button>
-
-        {/* VPS Specific Presets: Only shown if /host volume mount exists */}
-        {hasVpsMount && (
-          <>
-            <button
-              type="button"
-              className={`${css.presetChip} ${dir === '/host' ? css.presetChipActive : ''}`}
-              onClick={() => load('/host')}
-              title="VPS Host Root (/host)"
-            >
-              🖥️ VPS Root
-            </button>
-            <button
-              type="button"
-              className={`${css.presetChip} ${dir === '/host/root' ? css.presetChipActive : ''}`}
-              onClick={() => load('/host/root')}
-              title="VPS Root Home (/host/root)"
-            >
-              📁 /host/root
-            </button>
-            <button
-              type="button"
-              className={`${css.presetChip} ${dir === '/host/root/apps' ? css.presetChipActive : ''}`}
-              onClick={() => load('/host/root/apps')}
-              title="Apps Directory (/host/root/apps)"
-            >
-              🚀 Apps
-            </button>
-            <button
-              type="button"
-              className={`${css.presetChip} ${dir === '/host/root/context' ? css.presetChipActive : ''}`}
-              onClick={() => load('/host/root/context')}
-              title="Context Docs (/host/root/context)"
-            >
-              📄 Context
-            </button>
-          </>
-        )}
-
-        {/* User Pinned Custom Presets */}
-        {pinnedPresets.map(preset => (
-          <span key={preset.path} className={css.pinnedChipGroup}>
-            <button
-              type="button"
-              className={`${css.presetChip} ${dir === preset.path ? css.presetChipActive : ''}`}
-              onClick={() => load(preset.path)}
-              title={preset.path}
-            >
-              ★ {preset.name}
-            </button>
-            <button
-              type="button"
-              className={css.pinnedRemoveBtn}
-              onClick={(e) => {
-                e.stopPropagation()
-                savePinnedPresets(pinnedPresets.filter(p => p.path !== preset.path))
-              }}
-              title={`Unpin ${preset.name}`}
-            >
-              ×
-            </button>
-          </span>
-        ))}
       </div>
 
       {/* --- ERROR MESSAGE --- */}
@@ -785,9 +731,11 @@ export function FilesPane({
                       setPromptMode('new-file')
                       setPromptInputText('')
                     }}
+                    title="Create new file"
                   >
                     <IconPlusOutline16 size={13} />
-                    New File
+                    <span className={css.btnTextFull}>New File</span>
+                    <span className={css.btnTextShort}>File</span>
                   </button>
                   <button
                     type="button"
@@ -796,9 +744,11 @@ export function FilesPane({
                       setPromptMode('new-folder')
                       setPromptInputText('')
                     }}
+                    title="Create new folder"
                   >
                     <IconPlusOutline16 size={13} />
-                    New Folder
+                    <span className={css.btnTextFull}>New Folder</span>
+                    <span className={css.btnTextShort}>Folder</span>
                   </button>
                 </>
               )}

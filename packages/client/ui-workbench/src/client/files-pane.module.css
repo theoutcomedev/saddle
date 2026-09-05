@@ -8,6 +8,7 @@
   font-family: inherit;
   font-size: 13px;
   position: relative;
+  container: filespane / inline-size;
 }
 
 /* --- Top Navigation & Address Bar --- */
@@ -182,6 +183,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .searchInput {
@@ -216,8 +218,10 @@
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .btn:hover {
@@ -228,6 +232,30 @@
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.btnTextFull {
+  display: inline;
+}
+
+.btnTextShort {
+  display: none;
+}
+
+/* When workbench pane is narrow, shorten "+ New File" -> "+ File", "+ New Folder" -> "+ Folder" */
+@container filespane (max-width: 380px) {
+  .btnTextFull {
+    display: none;
+  }
+  .btnTextShort {
+    display: inline;
+  }
+  .searchInput {
+    width: 90px;
+  }
+  .searchInput:focus {
+    width: 130px;
+  }
 }
 
 .btnPrimary {
