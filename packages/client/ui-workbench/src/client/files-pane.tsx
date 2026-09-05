@@ -455,7 +455,7 @@ export function FilesPane({
   // Breadcrumbs
   const breadcrumbs = useMemo(() => {
     const parts = dir.split('/').filter(Boolean)
-    const crumbs: { name: string; path: string }[] = [{ name: 'root', path: '/' }]
+    const crumbs: { name: string; path: string }[] = [{ name: '..', path: '/' }]
     let cur = ''
     for (const part of parts) {
       cur += `/${part}`
