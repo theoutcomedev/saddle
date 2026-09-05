@@ -18,7 +18,7 @@ import {
   IconLinkOutline16, IconEyeOutline16, IconCodeOutline16,
   IconPlusOutline16, IconTrashOutline16,
   IconRefreshOutline16, IconEditOutline16, IconCheckOutline16,
-  IconCloseOutline16, IconFolderClose16, MarkdownText,
+  IconCloseOutline16, IconFolderClose16, MarkdownText, type IconProps,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
@@ -113,7 +113,7 @@ function fileIcon(name: string, isDir?: boolean): string {
 }
 
 /** Crisp, minimalist hard drive SVG icon for root volume */
-function IconHardDrive({ size = 12, className }: { size?: number; className?: string }) {
+function IconHardDrive({ size = 12, className }: IconProps) {
   return (
     <svg
       width={size}
@@ -135,7 +135,7 @@ function IconHardDrive({ size = 12, className }: { size?: number; className?: st
 }
 
 /** Crisp, minimalist star SVG icon for pinned presets */
-function IconStar({ size = 11, className }: { size?: number; className?: string }) {
+function IconStar({ size = 11, className }: IconProps) {
   return (
     <svg
       width={size}
