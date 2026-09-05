@@ -25,6 +25,24 @@
   height: 32px;
   min-height: 32px;
   width: 100%;
+  min-width: 0;
+}
+
+.tabsList {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabsList::-webkit-scrollbar {
+  display: none;
 }
 
 .stripSubRow {
@@ -33,7 +51,14 @@
   height: 30px;
   min-height: 30px;
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stripSubRow::-webkit-scrollbar {
+  display: none;
 }
 
 .stripSubRow:empty {
@@ -41,6 +66,7 @@
 }
 
 .tab {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
