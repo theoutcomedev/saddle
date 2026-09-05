@@ -272,6 +272,7 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
               <IconCloseOutline16 size={16} />
             </button>
           </div>
+          <div id="workbench-strip-subrow" className={css.stripSubRow} />
         </div>
       )}
       <div className={css.body}>

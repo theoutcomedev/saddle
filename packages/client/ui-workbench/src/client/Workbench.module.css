@@ -27,6 +27,19 @@
   width: 100%;
 }
 
+.stripSubRow {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  min-height: 30px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.stripSubRow:empty {
+  display: none;
+}
+
 .tab {
   display: inline-flex;
   align-items: center;

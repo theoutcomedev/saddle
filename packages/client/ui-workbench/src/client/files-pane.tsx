@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconLinkOutline16, IconEyeOutline16, IconCodeOutline16,
   IconPlusOutline16, IconTrashOutline16,
@@ -137,6 +138,18 @@ export function FilesPane({
   const [pathInput, setPathInput] = useState(dir)
   const [showHidden, setShowHidden] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Target DOM element in Workbench header row 2
+  const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
+    return typeof document !== 'undefined' ? document.getElementById('workbench-strip-subrow') : null
+  })
+
+  useEffect(() => {
+    if (!subrowEl && typeof document !== 'undefined') {
+      const el = document.getElementById('workbench-strip-subrow')
+      if (el) setSubrowEl(el)
+    }
+  }, [subrowEl])
 
   // Custom user-pinned presets (stored in localStorage)
   const [pinnedPresets, setPinnedPresets] = useState<Array<{ name: string; path: string }>>(() => {
@@ -386,57 +399,61 @@ export function FilesPane({
 
   const parent = parentPath(dir)
 
-  return (
-    <div className={css.root}>
-      {/* --- QUICK JUMP PRESETS (Under Workbench Tabs) --- */}
-      <div className={css.presetsBar}>
-        {/* Active Session Workspace (Available everywhere) */}
-        {cwd && (
-          <button
-            type="button"
-            className={`${css.presetChip} ${dir === cwd ? css.presetChipActive : ''}`}
-            onClick={() => load(cwd)}
-            title={`Session Workspace (${cwd})`}
-          >
-            💼 Workspace
-          </button>
-        )}
-
-        {/* System Root (Universal) */}
+  const presetsContent = (
+    <div className={css.presetsBar}>
+      {/* Active Session Workspace (Available everywhere) */}
+      {cwd && (
         <button
           type="button"
-          className={`${css.presetChip} ${dir === '/' ? css.presetChipActive : ''}`}
-          onClick={() => load('/')}
-          title="System Root (/)"
+          className={`${css.presetChip} ${dir === cwd ? css.presetChipActive : ''}`}
+          onClick={() => load(cwd)}
+          title={`Session Workspace (${cwd})`}
         >
-          🗂️ / Root
+          💼 Workspace
         </button>
+      )}
 
-        {/* User Pinned Custom Presets */}
-        {pinnedPresets.map(preset => (
-          <span key={preset.path} className={css.pinnedChipGroup}>
-            <button
-              type="button"
-              className={`${css.presetChip} ${dir === preset.path ? css.presetChipActive : ''}`}
-              onClick={() => load(preset.path)}
-              title={preset.path}
-            >
-              ★ {preset.name}
-            </button>
-            <button
-              type="button"
-              className={css.pinnedRemoveBtn}
-              onClick={(e) => {
-                e.stopPropagation()
-                savePinnedPresets(pinnedPresets.filter(p => p.path !== preset.path))
-              }}
-              title={`Unpin ${preset.name}`}
-            >
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
+      {/* System Root (Universal) */}
+      <button
+        type="button"
+        className={`${css.presetChip} ${dir === '/' ? css.presetChipActive : ''}`}
+        onClick={() => load('/')}
+        title="System Root (/)"
+      >
+        🗂️ / Root
+      </button>
+
+      {/* User Pinned Custom Presets */}
+      {pinnedPresets.map(preset => (
+        <span key={preset.path} className={css.pinnedChipGroup}>
+          <button
+            type="button"
+            className={`${css.presetChip} ${dir === preset.path ? css.presetChipActive : ''}`}
+            onClick={() => load(preset.path)}
+            title={preset.path}
+          >
+            ★ {preset.name}
+          </button>
+          <button
+            type="button"
+            className={css.pinnedRemoveBtn}
+            onClick={(e) => {
+              e.stopPropagation()
+              savePinnedPresets(pinnedPresets.filter(p => p.path !== preset.path))
+            }}
+            title={`Unpin ${preset.name}`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+    </div>
+  )
+
+  return (
+    <div className={css.root}>
+      {/* Renders in Workbench header row 2 (aligned with Chat/Trajectory tabs) or fallback inline */}
+      {subrowEl ? createPortal(presetsContent, subrowEl) : presetsContent}
 
       {/* --- TOP NAVIGATION BAR --- */}
       <div className={css.navBar}>

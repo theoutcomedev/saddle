@@ -70,4 +70,36 @@ describe('FilesPane', () => {
 
     expect(listFiles).toHaveBeenCalledWith('/', expect.any(AbortSignal))
   })
+
+  it('portals quick presets into #workbench-strip-subrow when present in document', async () => {
+    const subrow = document.createElement('div')
+    subrow.id = 'workbench-strip-subrow'
+    document.body.appendChild(subrow)
+
+    const listFiles = vi.fn().mockResolvedValue({
+      path: '/workspace/my-project',
+      entries: [],
+      truncated: false,
+    })
+    const readFile = vi.fn()
+    const openPath = vi.fn()
+
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile,
+      openPath,
+    } as unknown as FilesPaneProps
+
+    await act(async () => {
+      render(<FilesPane {...props} />)
+    })
+
+    expect(subrow.querySelector('button')).toBeDefined()
+    expect(subrow.textContent).toContain('Workspace')
+    expect(subrow.textContent).toContain('Root')
+
+    document.body.removeChild(subrow)
+  })
 })
