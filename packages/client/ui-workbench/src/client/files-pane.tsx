@@ -18,7 +18,9 @@ import {
   IconLinkOutline16, IconEyeOutline16, IconCodeOutline16,
   IconPlusOutline16, IconTrashOutline16,
   IconRefreshOutline16, IconEditOutline16, IconCheckOutline16,
-  IconCloseOutline16, IconFolderClose16, MarkdownText, type IconProps,
+  IconCloseOutline16, IconFolderClose16, IconEllipsisOutline16,
+  IconCopyOutline16, IconSendOutline14,
+  Menu, MarkdownText, type IconProps,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
@@ -227,6 +229,33 @@ export function FilesPane({
 
   // Multi-select & Batch
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
+  const [openMenuPath, setOpenMenuPath] = useState<string | null>(null)
+
+  const addPathToChat = useCallback((path: string) => {
+    const textarea = document.querySelector<HTMLTextAreaElement>('textarea[data-conversation-input]')
+      || document.querySelector<HTMLTextAreaElement>('footer textarea')
+      || document.querySelector<HTMLTextAreaElement>('main textarea')
+      || document.querySelector<HTMLTextAreaElement>('textarea')
+    if (textarea) {
+      const current = textarea.value
+      const insert = (current && !current.endsWith(' ') ? ' @' : '@') + path + ' '
+      const start = textarea.selectionStart ?? current.length
+      const end = textarea.selectionEnd ?? current.length
+      const next = current.substring(0, start) + insert + current.substring(end)
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+      if (nativeSetter) nativeSetter.call(textarea, next)
+      else textarea.value = next
+      textarea.dispatchEvent(new Event('input', { bubbles: true }))
+      textarea.dispatchEvent(new Event('change', { bubbles: true }))
+      textarea.focus()
+      const pos = start + insert.length
+      textarea.setSelectionRange(pos, pos)
+    }
+  }, [])
+
+  const copyPathToClipboard = useCallback((path: string) => {
+    void navigator.clipboard.writeText(path)
+  }, [])
 
   // Inline Prompts (new file, new folder, rename, delete confirm)
   type PromptMode = 'new-file' | 'new-folder' | 'rename' | 'delete-selected' | 'delete-single'
@@ -435,8 +464,6 @@ export function FilesPane({
     return crumbs
   }, [dir])
 
-  const parent = parentPath(dir)
-
   const presetsContent = (
     <div className={css.presetsBar}>
       {/* Active Session Workspace (Available everywhere) */}
@@ -498,16 +525,6 @@ export function FilesPane({
 
       {/* --- TOP NAVIGATION BAR --- */}
       <div className={css.navBar}>
-        <button
-          type="button"
-          className={css.ghost}
-          disabled={parent === dir}
-          onClick={() => load(parent)}
-          title="Go to parent directory (..)"
-        >
-          ..
-        </button>
-
         {isEditingPath ? (
           <div className={css.pathInputWrapper}>
             <input
@@ -759,7 +776,8 @@ export function FilesPane({
               {selectedPaths.size > 0 ? (
                 <>
                   <span className={css.selectionPill}>
-                    {selectedPaths.size} selected
+                    <span className={css.btnTextFull}>{selectedPaths.size} selected</span>
+                    <span className={css.btnTextShort}>{selectedPaths.size}</span>
                   </span>
                   <button
                     type="button"
@@ -767,9 +785,11 @@ export function FilesPane({
                     onClick={() => {
                       setPromptMode('delete-selected')
                     }}
+                    title={`Delete ${selectedPaths.size} item(s)`}
                   >
                     <IconTrashOutline16 size={13} />
-                    Delete Selected
+                    <span className={css.btnTextFull}>Delete Selected</span>
+                    <span className={css.btnTextShort}>Delete</span>
                   </button>
                   <button
                     type="button"
@@ -929,10 +949,10 @@ export function FilesPane({
               <table className={css.table}>
                 <thead>
                   <tr>
-                    <th style={{ width: 24, paddingLeft: 10 }}></th>
+                    <th style={{ width: 28, paddingLeft: 8, paddingRight: 0 }}></th>
                     <th>Name</th>
-                    <th style={{ width: 80, textAlign: 'right' }}>Size</th>
-                    <th style={{ width: 70, textAlign: 'center' }}>Actions</th>
+                    <th style={{ width: 55, textAlign: 'right', paddingRight: 4 }}>Size</th>
+                    <th style={{ width: 34, textAlign: 'right', paddingRight: 8 }}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -942,8 +962,14 @@ export function FilesPane({
                       <tr
                         key={entry.path}
                         className={`${css.tableRow} ${isSelected ? css.tableRowSelected : ''}`}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', `@${entry.path}`)
+                          e.dataTransfer.setData('application/x-saddle-path', entry.path)
+                          e.dataTransfer.effectAllowed = 'copy'
+                        }}
                         onClick={(e) => {
-                          // Prevent triggering if clicked directly on checkbox or action buttons
+                          // Prevent triggering if clicked directly on checkbox or action menu
                           if ((e.target as HTMLElement).closest('input') || (e.target as HTMLElement).closest(`.${css.itemActions}`)) {
                             return
                           }
@@ -951,7 +977,7 @@ export function FilesPane({
                           else openFile(entry.path)
                         }}
                       >
-                        <td style={{ paddingLeft: 10 }}>
+                        <td style={{ paddingLeft: 8, paddingRight: 0 }}>
                           <input
                             type="checkbox"
                             className={css.checkbox}
@@ -961,43 +987,77 @@ export function FilesPane({
                           />
                         </td>
                         <td>
-                          <div className={css.itemCol}>
+                          <div className={css.itemCol} title={entry.name}>
                             <span className={css.itemIcon}>{fileIcon(entry.name, entry.isDir)}</span>
                             <span className={`${css.itemName} ${entry.isDir ? css.dirName : ''}`}>
                               {entry.name}
                             </span>
                           </div>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'right', paddingRight: 4 }}>
                           <span className={css.itemSize}>
                             {entry.isDir ? '—' : formatSize(entry.sizeBytes)}
                           </span>
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'right', paddingRight: 8 }}>
                           <div className={css.itemActions} onClick={e => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              className={css.ghost}
-                              title="Rename"
-                              onClick={() => {
-                                setPromptMode('rename')
-                                setPromptTarget(entry.path)
-                                setPromptInputText(entry.name)
+                            <Menu
+                              open={openMenuPath === entry.path}
+                              align="end"
+                              portal
+                              anchor={
+                                <button
+                                  type="button"
+                                  className={css.actionDotsBtn}
+                                  title="Actions"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenMenuPath(curr => (curr === entry.path ? null : entry.path))
+                                  }}
+                                >
+                                  <IconEllipsisOutline16 size={13} />
+                                </button>
+                              }
+                              items={[
+                                {
+                                  id: 'add-chat',
+                                  label: 'Add to Chat',
+                                  icon: <IconSendOutline14 size={14} />,
+                                },
+                                {
+                                  id: 'copy-path',
+                                  label: 'Copy Path',
+                                  icon: <IconCopyOutline16 size={14} />,
+                                },
+                                {
+                                  id: 'rename',
+                                  label: 'Rename',
+                                  icon: <IconEditOutline16 size={14} />,
+                                },
+                                {
+                                  id: 'delete',
+                                  label: 'Delete',
+                                  danger: true,
+                                  icon: <IconTrashOutline16 size={14} />,
+                                },
+                              ]}
+                              onSelect={(id) => {
+                                setOpenMenuPath(null)
+                                if (id === 'add-chat') {
+                                  addPathToChat(entry.path)
+                                } else if (id === 'copy-path') {
+                                  copyPathToClipboard(entry.path)
+                                } else if (id === 'rename') {
+                                  setPromptMode('rename')
+                                  setPromptTarget(entry.path)
+                                  setPromptInputText(entry.name)
+                                } else if (id === 'delete') {
+                                  setPromptMode('delete-single')
+                                  setPromptTarget(entry.path)
+                                }
                               }}
-                            >
-                              <IconEditOutline16 size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              className={`${css.ghost} ${css.btnDanger}`}
-                              title="Delete"
-                              onClick={() => {
-                                setPromptMode('delete-single')
-                                setPromptTarget(entry.path)
-                              }}
-                            >
-                              <IconTrashOutline16 size={13} />
-                            </button>
+                              onClose={() => setOpenMenuPath(null)}
+                            />
                           </div>
                         </td>
                       </tr>
