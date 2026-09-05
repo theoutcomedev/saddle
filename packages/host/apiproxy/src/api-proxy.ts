@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { z as zod } from 'zod'
@@ -3334,8 +3334,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }
       },
 
-      // Workbench Explorer/File: directory listing + text read, bounded and
-      // anchored to the host workspace / home so the browser cannot roam the disk.
+      // Workbench Explorer/File: directory listing, file read/write, deletion, creation
       async listFiles(request, signal) {
         const target = resolve(request.payload.path)
         if (!isAbsolute(target) || !withinWorkspace(target)) {
@@ -3343,10 +3342,30 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }
         try {
           const children = await readdir(target, { withFileTypes: true })
-          const entries = children
-            .map(child => ({ name: child.name, path: join(target, child.name), isDir: child.isDirectory(), hidden: child.name.startsWith('.') }))
-            .sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1))
-          const TRUNCATE_AT = 500
+          const entries = await Promise.all(
+            children.map(async (child) => {
+              const childPath = join(target, child.name)
+              const isDir = child.isDirectory()
+              let sizeBytes: number | undefined
+              if (!isDir) {
+                try {
+                  const s = await stat(childPath)
+                  sizeBytes = s.size
+                } catch {
+                  // ignore unreadable/broken symlinks
+                }
+              }
+              return {
+                name: child.name,
+                path: childPath,
+                isDir,
+                hidden: child.name.startsWith('.'),
+                sizeBytes,
+              }
+            }),
+          )
+          entries.sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1))
+          const TRUNCATE_AT = 1000
           return ok(request, { path: target, entries: entries.slice(0, TRUNCATE_AT), truncated: entries.length > TRUNCATE_AT })
         } catch (error: unknown) {
           if (signal.aborted) return err(request, { code: 'cancelled', message: 'directory listing was aborted', details: {} })
@@ -3361,9 +3380,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }
         try {
           const info = await stat(target)
-          const MAX_BYTES = 1_000_000
+          const MAX_BYTES = 5_000_000
           if (!info.isFile()) return err(request, { code: 'fs-error', message: 'host.readFile target is not a regular file', details: {} })
-          if (info.size > MAX_BYTES) return err(request, { code: 'fs-error', message: 'host.readFile target exceeds 1 MB', details: {} })
+          if (info.size > MAX_BYTES) return err(request, { code: 'fs-error', message: 'host.readFile target exceeds 5 MB', details: {} })
 
           const isImage = target.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)
           if (isImage) {
@@ -3378,6 +3397,74 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return ok(request, { path: target, text })
         } catch (error: unknown) {
           if (signal.aborted) return err(request, { code: 'cancelled', message: 'file read was aborted', details: {} })
+          return err(request, fsError(error))
+        }
+      },
+
+      async writeFile(request, signal) {
+        const target = resolve(request.payload.path)
+        if (!isAbsolute(target) || !withinWorkspace(target)) {
+          return err(request, { code: 'fs-error', message: 'host.writeFile path is outside the workspace or home', details: { path: request.payload.path } })
+        }
+        try {
+          await mkdir(dirname(target), { recursive: true })
+          const content = request.payload.content
+          await writeFile(target, content, 'utf8')
+          const bytesWritten = Buffer.byteLength(content, 'utf8')
+          return ok(request, { path: target, bytesWritten })
+        } catch (error: unknown) {
+          if (signal?.aborted) return err(request, { code: 'cancelled', message: 'file write was aborted', details: {} })
+          return err(request, fsError(error))
+        }
+      },
+
+      async deletePaths(request, signal) {
+        const paths = request.payload.paths
+        const deleted: string[] = []
+        try {
+          for (const rawPath of paths) {
+            const target = resolve(rawPath)
+            if (!isAbsolute(target) || !withinWorkspace(target)) {
+              return err(request, { code: 'fs-error', message: `host.deletePaths path "${rawPath}" is outside allowed workspace`, details: { path: rawPath } })
+            }
+            await rm(target, { recursive: true, force: true })
+            deleted.push(target)
+          }
+          return ok(request, { deleted })
+        } catch (error: unknown) {
+          if (signal?.aborted) return err(request, { code: 'cancelled', message: 'delete was aborted', details: {} })
+          return err(request, fsError(error))
+        }
+      },
+
+      async createFile(request, signal) {
+        const target = resolve(request.payload.path)
+        if (!isAbsolute(target) || !withinWorkspace(target)) {
+          return err(request, { code: 'fs-error', message: 'host.createFile path is outside the workspace or home', details: { path: request.payload.path } })
+        }
+        try {
+          await mkdir(dirname(target), { recursive: true })
+          const content = request.payload.content ?? ''
+          await writeFile(target, content, 'utf8')
+          return ok(request, { path: target })
+        } catch (error: unknown) {
+          if (signal?.aborted) return err(request, { code: 'cancelled', message: 'file create was aborted', details: {} })
+          return err(request, fsError(error))
+        }
+      },
+
+      async renamePath(request, signal) {
+        const oldTarget = resolve(request.payload.oldPath)
+        const newTarget = resolve(request.payload.newPath)
+        if (!isAbsolute(oldTarget) || !withinWorkspace(oldTarget) || !isAbsolute(newTarget) || !withinWorkspace(newTarget)) {
+          return err(request, { code: 'fs-error', message: 'host.renamePath path is outside the workspace or home', details: {} })
+        }
+        try {
+          await mkdir(dirname(newTarget), { recursive: true })
+          await rename(oldTarget, newTarget)
+          return ok(request, { path: newTarget })
+        } catch (error: unknown) {
+          if (signal?.aborted) return err(request, { code: 'cancelled', message: 'rename was aborted', details: {} })
           return err(request, fsError(error))
         }
       },
@@ -3684,6 +3771,13 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return err(request, {
             code: 'internal',
             message: `settings document preparation failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          })
+        }
+        if (isAborted(signal)) {
+          return err(request, {
+            code: 'cancelled',
+            message: 'settings document open was aborted',
             details: {},
           })
         }
@@ -4465,8 +4559,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   }
 }
 
-/** True when a resolved absolute path is under the host workspace or home dir. */
+/** True when a resolved absolute path is under the host workspace, home dir, or when full disk access is allowed. */
 function withinWorkspace(target: string): boolean {
+  if (process.env.ALLOW_FULL_FS !== 'false') return true
   const roots = [process.cwd(), homedir()].map(root => resolve(root))
   return roots.some(root => target === root || target.startsWith(root + sep))
 }

@@ -2723,6 +2723,10 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       openPath: request => ok(request, { opened: true as const }),
       listFiles: request => ok(request, { path: request.payload.path, entries: [], truncated: false }),
       readFile: request => ok(request, { path: request.payload.path, text: '' }),
+      writeFile: request => ok(request, { path: request.payload.path, bytesWritten: request.payload.content.length }),
+      deletePaths: request => ok(request, { deleted: request.payload.paths }),
+      createFile: request => ok(request, { path: request.payload.path }),
+      renamePath: request => ok(request, { path: request.payload.newPath }),
     },
     workspace: {
       list: request => ok(request, {
@@ -3284,6 +3288,10 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'host.openPath': return this.api.host.openPath(request, new AbortController().signal)
       case 'host.listFiles': return this.api.host.listFiles(request, new AbortController().signal)
       case 'host.readFile': return this.api.host.readFile(request, new AbortController().signal)
+      case 'host.writeFile': return this.api.host.writeFile(request)
+      case 'host.deletePaths': return this.api.host.deletePaths(request)
+      case 'host.createFile': return this.api.host.createFile(request)
+      case 'host.renamePath': return this.api.host.renamePath(request)
       case 'workspace.list': return this.api.workspace.list(request)
       case 'workspace.create': return this.api.workspace.create(request)
       case 'workspace.rename': return this.api.workspace.rename(request)

@@ -97,6 +97,10 @@ export class FakeApiClient implements IApiClient {
   onListFiles: (payload: unknown) => Promise<RpcResponse<{ path: string; entries: { name: string; path: string; isDir: boolean; hidden: boolean }[]; truncated: boolean }>> = () => Promise.resolve(ok({ path: '/home/fake', entries: [], truncated: false }))
 
   onReadFile: (payload: unknown) => Promise<RpcResponse<{ path: string; text: string }>> = () => Promise.resolve(ok({ path: '/home/fake/f.txt', text: '' }))
+  onWriteFile: (payload: unknown) => Promise<RpcResponse<{ path: string; bytesWritten: number }>> = () => Promise.resolve(ok({ path: '/home/fake/f.txt', bytesWritten: 0 }))
+  onDeletePaths: (payload: unknown) => Promise<RpcResponse<{ deleted: string[] }>> = () => Promise.resolve(ok({ deleted: [] }))
+  onCreateFile: (payload: unknown) => Promise<RpcResponse<{ path: string }>> = () => Promise.resolve(ok({ path: '/home/fake/new.txt' }))
+  onRenamePath: (payload: unknown) => Promise<RpcResponse<{ path: string }>> = () => Promise.resolve(ok({ path: '/home/fake/renamed.txt' }))
 
   onCreateDirectory: (payload: unknown) => Promise<RpcResponse<{ path: string }>> =
     () => Promise.resolve(ok({ path: '/home/fake/new' }))
@@ -156,6 +160,10 @@ export class FakeApiClient implements IApiClient {
     openPath: payload => this.record('host.openPath', payload, this.onOpenPath(payload)),
     listFiles: payload => this.record('host.listFiles', payload, this.onListFiles(payload)),
     readFile: payload => this.record('host.readFile', payload, this.onReadFile(payload)),
+    writeFile: payload => this.record('host.writeFile', payload, this.onWriteFile(payload)),
+    deletePaths: payload => this.record('host.deletePaths', payload, this.onDeletePaths(payload)),
+    createFile: payload => this.record('host.createFile', payload, this.onCreateFile(payload)),
+    renamePath: payload => this.record('host.renamePath', payload, this.onRenamePath(payload)),
   }
 
   readonly workspace: IApiClient['workspace'] = {

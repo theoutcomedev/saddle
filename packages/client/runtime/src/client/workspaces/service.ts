@@ -251,6 +251,42 @@ export class WorkspaceRuntime implements IWorkspaces {
   }
 
   /**
+   * Write a UTF-8 text file from the Workbench File editor.
+   */
+  async writeFile(path: string, content: string): Promise<{ path: string; bytesWritten: number }> {
+    const response = await this.api.host.writeFile({ path, content })
+    if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
+    return response.result.value
+  }
+
+  /**
+   * Delete one or more files or directories recursively.
+   */
+  async deletePaths(paths: string[]): Promise<{ deleted: string[] }> {
+    const response = await this.api.host.deletePaths({ paths })
+    if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
+    return response.result.value
+  }
+
+  /**
+   * Create an empty file or write initial content.
+   */
+  async createFile(path: string, content?: string): Promise<{ path: string }> {
+    const response = await this.api.host.createFile({ path, content })
+    if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
+    return response.result.value
+  }
+
+  /**
+   * Rename or move a file or directory.
+   */
+  async renamePath(oldPath: string, newPath: string): Promise<{ path: string }> {
+    const response = await this.api.host.renamePath({ oldPath, newPath })
+    if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
+    return response.result.value
+  }
+
+  /**
    * Create one child directory through the Host's `browse` capability.
    * @param path - absolute existing parent directory.
    * @param name - single non-blank path segment.

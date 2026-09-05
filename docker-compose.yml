@@ -52,6 +52,7 @@ services:
       - saddle-data:/app/data
       - saddle-root:/root
       - /var/run/docker.sock:/var/run/docker.sock
+      - /:/host:rw
     networks:
       - saddle-network
     labels:

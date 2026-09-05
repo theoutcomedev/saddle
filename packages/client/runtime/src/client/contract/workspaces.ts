@@ -50,6 +50,14 @@ export interface IWorkspaces {
   listFiles(path: string, signal?: AbortSignal): Promise<DirectoryFileListing>
   /** Read a UTF-8 text file for the Workbench File pane. */
   readFile(path: string, signal?: AbortSignal): Promise<FileText>
+  /** Write a UTF-8 text file from the Workbench File editor. */
+  writeFile(path: string, content: string): Promise<{ path: string; bytesWritten: number }>
+  /** Delete one or more files or directories recursively. */
+  deletePaths(paths: string[]): Promise<{ deleted: string[] }>
+  /** Create an empty file or write initial content. */
+  createFile(path: string, content?: string): Promise<{ path: string }>
+  /** Rename or move a file or directory. */
+  renamePath(oldPath: string, newPath: string): Promise<{ path: string }>
   /**
    * Create one child directory through the Host's `browse` capability.
    * @param path - absolute existing parent directory.

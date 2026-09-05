@@ -16,6 +16,7 @@ import { hostFrameSchema, muxFrameSchema } from '../api/events.schema.ts'
 import {
   hostCreateDirectoryValueSchema, hostDescribeValueSchema,
   hostListDirectoryValueSchema, hostListFilesValueSchema, hostOpenPathValueSchema, hostPickDirectoryValueSchema, hostReadFileValueSchema,
+  hostWriteFileValueSchema, hostDeletePathsValueSchema, hostCreateFileValueSchema, hostRenamePathValueSchema,
 } from '../api/host.schema.ts'
 import {
   sessionCancelValueSchema,
@@ -131,6 +132,10 @@ export interface IApiClient {
     openPath(payload: RequestPayload<'host.openPath'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.openPath'>>>
     listFiles(payload: RequestPayload<'host.listFiles'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.listFiles'>>>
     readFile(payload: RequestPayload<'host.readFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.readFile'>>>
+    writeFile(payload: RequestPayload<'host.writeFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.writeFile'>>>
+    deletePaths(payload: RequestPayload<'host.deletePaths'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.deletePaths'>>>
+    createFile(payload: RequestPayload<'host.createFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.createFile'>>>
+    renamePath(payload: RequestPayload<'host.renamePath'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.renamePath'>>>
   }
   workspace: {
     list(payload: RequestPayload<'workspace.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'workspace.list'>>>
@@ -232,6 +237,10 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'host.openPath': hostOpenPathValueSchema,
   'host.listFiles': hostListFilesValueSchema,
   'host.readFile': hostReadFileValueSchema,
+  'host.writeFile': hostWriteFileValueSchema,
+  'host.deletePaths': hostDeletePathsValueSchema,
+  'host.createFile': hostCreateFileValueSchema,
+  'host.renamePath': hostRenamePathValueSchema,
   'workspace.list': workspaceListValueSchema,
   'workspace.create': workspaceCreateValueSchema,
   'workspace.rename': workspaceRenameValueSchema,
@@ -499,6 +508,10 @@ export abstract class AbstractApiClient implements IApiClient {
     openPath: (payload, signal) => this.callUnary('host.openPath', payload, signal),
     listFiles: (payload, signal) => this.callUnary('host.listFiles', payload, signal),
     readFile: (payload, signal) => this.callUnary('host.readFile', payload, signal),
+    writeFile: (payload, signal) => this.callUnary('host.writeFile', payload, signal),
+    deletePaths: (payload, signal) => this.callUnary('host.deletePaths', payload, signal),
+    createFile: (payload, signal) => this.callUnary('host.createFile', payload, signal),
+    renamePath: (payload, signal) => this.callUnary('host.renamePath', payload, signal),
   }
 
   readonly workspace: IApiClient['workspace'] = {

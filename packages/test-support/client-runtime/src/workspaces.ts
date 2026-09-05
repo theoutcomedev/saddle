@@ -151,6 +151,34 @@ export class TestWorkspaces implements IWorkspaces {
     return { path, text: '' }
   }
 
+  async writeFile(path: string, content: string): Promise<{ path: string; bytesWritten: number }> {
+    this.calls.push({ method: 'writeFile', args: [path, content] })
+    const stub = this.stubs.get('writeFile')
+    if (stub !== undefined) return await (stub(path, content) as Promise<{ path: string; bytesWritten: number }>)
+    return { path, bytesWritten: content.length }
+  }
+
+  async deletePaths(paths: string[]): Promise<{ deleted: string[] }> {
+    this.calls.push({ method: 'deletePaths', args: [paths] })
+    const stub = this.stubs.get('deletePaths')
+    if (stub !== undefined) return await (stub(paths) as Promise<{ deleted: string[] }>)
+    return { deleted: paths }
+  }
+
+  async createFile(path: string, content?: string): Promise<{ path: string }> {
+    this.calls.push({ method: 'createFile', args: [path, content] })
+    const stub = this.stubs.get('createFile')
+    if (stub !== undefined) return await (stub(path, content) as Promise<{ path: string }>)
+    return { path }
+  }
+
+  async renamePath(oldPath: string, newPath: string): Promise<{ path: string }> {
+    this.calls.push({ method: 'renamePath', args: [oldPath, newPath] })
+    const stub = this.stubs.get('renamePath')
+    if (stub !== undefined) return await (stub(oldPath, newPath) as Promise<{ path: string }>)
+    return { path: newPath }
+  }
+
   /**
    * Browse child creation (recorded). The default joins parent and name.
    * @param path - absolute existing parent directory.

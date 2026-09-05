@@ -84,6 +84,10 @@ function scriptedApi(overrides: {
       openPath: r => ok(r, { opened: true as const }),
       listFiles: r => ok(r, { path: '/t', entries: [], truncated: false }),
       readFile: r => ok(r, { path: '/t/f.txt', text: '' }),
+      writeFile: r => ok(r, { path: '/t/f.txt', bytesWritten: 0 }),
+      deletePaths: r => ok(r, { deleted: r.payload.paths }),
+      createFile: r => ok(r, { path: r.payload.path }),
+      renamePath: r => ok(r, { path: r.payload.newPath }),
       ...overrides.host,
     },
     workspace: {

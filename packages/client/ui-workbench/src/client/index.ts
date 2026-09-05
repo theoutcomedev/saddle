@@ -57,7 +57,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('workbench.pane.browser',
     () => ctx.slots.register({ name: 'workbench.pane.browser', locale: NS }, BrowserPane))
 
-  // The files pane (explorer + viewer) is backed by the workspaces host service.
+  // The files pane (explorer + viewer + editor + manager) is backed by the workspaces host service.
   ctx.slots.inject('workbench.pane.files',
     () => ctx.slots.register({
       name: 'workbench.pane.files',
@@ -65,6 +65,11 @@ export function apply(ctx: ClientContext): void {
       inject: () => ({
         listFiles: (path: string, signal?: AbortSignal) => ctx.workspaces.listFiles(path, signal),
         readFile: (path: string, signal?: AbortSignal) => ctx.workspaces.readFile(path, signal),
+        writeFile: (path: string, content: string) => ctx.workspaces.writeFile(path, content),
+        deletePaths: (paths: string[]) => ctx.workspaces.deletePaths(paths),
+        createFile: (path: string, content?: string) => ctx.workspaces.createFile(path, content),
+        renamePath: (oldPath: string, newPath: string) => ctx.workspaces.renamePath(oldPath, newPath),
+        createDirectory: (path: string, name: string) => ctx.workspaces.createDirectory(path, name),
         openPath: (path: string) => ctx.workspaces.openPath(path),
       }),
     }, FilesPane))

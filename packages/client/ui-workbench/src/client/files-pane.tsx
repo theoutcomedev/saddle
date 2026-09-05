@@ -1,23 +1,36 @@
 /**
- * Workbench files pane: an explorer (directory list) plus a file viewer. It
- * starts at the session cwd (or an explicit file path from its open params),
- * lists a directory's children, and reads a selected file into the viewer. An
- * 'Open externally' control hands the selected file to the host's default app.
+ * Workbench files pane: a comprehensive VPS filesystem explorer and editor.
+ * Supports:
+ * - Full VPS / host directory navigation and clickable breadcrumbs
+ * - Quick jump presets (/host, /root, /host/root/apps, cwd)
+ * - Direct path jump input
+ * - Search filter within directory
+ * - Multi-select checkboxes and batch deletion with confirmation
+ * - Create new files and folders
+ * - Rename and single delete
+ * - Rich file viewer (markdown, html preview, images)
+ * - Full code/text editor with Cmd+S / Ctrl+S saving and unsaved changes tracking
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { IconLinkOutline16, IconEyeOutline16, IconCodeOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  IconLinkOutline16, IconEyeOutline16, IconCodeOutline16,
+  IconPlusOutline16, IconTrashOutline16,
+  IconRefreshOutline16, IconEditOutline16, IconCheckOutline16,
+  IconCloseOutline16, MarkdownText,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type {} from './contract/slots.ts'
 import css from './files-pane.module.css'
 
-/** One entry in a Workbench directory listing (a file or a folder). */
+/** One entry in a directory listing (a file or a folder). */
 export interface WorkspaceFileEntry {
   name: string
   path: string
   isDir?: boolean | undefined
   sizeBytes?: number | undefined
+  hidden?: boolean | undefined
 }
 
 /** Injected face: the host file primitives bound from the workspaces service. */
@@ -28,6 +41,11 @@ export interface FilesPaneInjected {
     truncated: boolean
   }>
   readFile: (path: string, signal?: AbortSignal) => Promise<{ path: string; text: string }>
+  writeFile?: (path: string, content: string) => Promise<{ path: string; bytesWritten: number }>
+  deletePaths?: (paths: string[]) => Promise<{ deleted: string[] }>
+  createFile?: (path: string, content?: string) => Promise<{ path: string }>
+  renamePath?: (oldPath: string, newPath: string) => Promise<{ path: string }>
+  createDirectory?: (path: string, name: string) => Promise<string>
   openPath: (path: string) => Promise<void>
 }
 
@@ -41,28 +59,121 @@ function parentPath(path: string): string {
   return idx <= 0 ? '/' : trimmed.slice(0, idx)
 }
 
-/** Render the files pane. */
-export function FilesPane({ params, sessionId, useSessions, listFiles, readFile, openPath, t }: FilesPaneProps) {
+/** Format byte size to human readable string. */
+function formatSize(bytes?: number): string {
+  if (bytes === undefined) return '—'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
+/** Get a clean emoji or icon descriptor for a file/folder. */
+function fileIcon(name: string, isDir?: boolean): string {
+  if (isDir) return '📁'
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  switch (ext) {
+    case 'ts':
+    case 'tsx':
+    case 'js':
+    case 'jsx':
+    case 'mjs':
+      return '📄'
+    case 'json':
+    case 'yaml':
+    case 'yml':
+    case 'toml':
+      return '⚙️'
+    case 'md':
+    case 'txt':
+    case 'log':
+      return '📝'
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'gif':
+    case 'svg':
+    case 'webp':
+      return '🖼️'
+    case 'html':
+    case 'htm':
+    case 'css':
+      return '🌐'
+    case 'py':
+    case 'sh':
+    case 'bash':
+      return '⚡'
+    case 'sql':
+    case 'db':
+      return '🗄️'
+    default:
+      return '📄'
+  }
+}
+
+export function FilesPane({
+  params,
+  sessionId,
+  useSessions,
+  listFiles,
+  readFile,
+  writeFile,
+  deletePaths,
+  createFile,
+  renamePath,
+  createDirectory,
+  openPath,
+  t,
+}: FilesPaneProps) {
   const cwd = useSessions(list => list.byId[sessionId]?.cwd)
   const initialPath = typeof params?.path === 'string' ? params.path : ''
   const [dir, setDir] = useState(initialPath === '' ? (cwd ?? '/') : parentPath(initialPath))
   const [entries, setEntries] = useState<WorkspaceFileEntry[]>([])
-  const [selected, setSelected] = useState<string | null>(initialPath === '' ? null : initialPath)
-  const [text, setText] = useState('')
-  const [preview, setPreview] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const abort = useRef<AbortController | null>(null)
 
+  // Address Bar & Navigation
+  const [isEditingPath, setIsEditingPath] = useState(false)
+  const [pathInput, setPathInput] = useState(dir)
+  const [showHidden, setShowHidden] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Multi-select & Batch
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
+
+  // Inline Prompts (new file, new folder, rename, delete confirm)
+  type PromptMode = 'new-file' | 'new-folder' | 'rename' | 'delete-selected' | 'delete-single'
+  const [promptMode, setPromptMode] = useState<PromptMode | null>(null)
+  const [promptTarget, setPromptTarget] = useState<string | null>(null)
+  const [promptInputText, setPromptInputText] = useState('')
+
+  // File Viewer & Editor
+  const [selectedFile, setSelectedFile] = useState<string | null>(initialPath === '' ? null : initialPath)
+  const [originalText, setOriginalText] = useState('')
+  const [editText, setEditText] = useState('')
+  const [previewMode, setPreviewMode] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveBanner, setSaveBanner] = useState<string | null>(null)
+
+  const abortRef = useRef<AbortController | null>(null)
+  const editorRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const isDirty = useMemo(() => selectedFile !== null && editText !== originalText, [selectedFile, editText, originalText])
+
+  // Load directory entries
   const load = useCallback((path: string) => {
-    abort.current?.abort()
+    abortRef.current?.abort()
     const controller = new AbortController()
-    abort.current = controller
+    abortRef.current = controller
+
     setDir(path)
-    setSelected(null)
-    setText('')
+    setPathInput(path)
+    setIsEditingPath(false)
+    setSelectedPaths(new Set())
+    setPromptMode(null)
     setLoading(true)
     setError(null)
+
     void listFiles(path, controller.signal).then((result) => {
       if (controller.signal.aborted) return
       setEntries(result.entries)
@@ -75,17 +186,27 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
     })
   }, [listFiles])
 
-  const open = useCallback((path: string) => {
-    abort.current?.abort()
+  // Open a file for viewing & editing
+  const openFile = useCallback((path: string) => {
+    abortRef.current?.abort()
     const controller = new AbortController()
-    abort.current = controller
-    setSelected(path)
-    setText('')
+    abortRef.current = controller
+
+    setSelectedFile(path)
+    setOriginalText('')
+    setEditText('')
+    setSaveBanner(null)
     setLoading(true)
     setError(null)
+
+    // Preview mode by default for Markdown, HTML, images
+    const isVisual = /\.(md|markdown|html|htm|png|jpg|jpeg|gif|svg|webp)$/i.test(path)
+    setPreviewMode(isVisual)
+
     void readFile(path, controller.signal).then((result) => {
       if (controller.signal.aborted) return
-      setText(result.text)
+      setOriginalText(result.text)
+      setEditText(result.text)
       setLoading(false)
     }).catch((reason: unknown) => {
       if (controller.signal.aborted) return
@@ -94,62 +215,696 @@ export function FilesPane({ params, sessionId, useSessions, listFiles, readFile,
     })
   }, [readFile])
 
-  useEffect(() => { if (initialPath !== '') open(initialPath); else load(dir) }, [])
+  // Save current file
+  const handleSave = useCallback(async () => {
+    if (!selectedFile || !writeFile) return
+    setIsSaving(true)
+    setError(null)
+    try {
+      await writeFile(selectedFile, editText)
+      setOriginalText(editText)
+      setSaveBanner('Saved!')
+      setTimeout(() => setSaveBanner(null), 2500)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setIsSaving(false)
+    }
+  }, [selectedFile, editText, writeFile])
+
+  // Keyboard shortcut Cmd+S / Ctrl+S
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        if (selectedFile !== null) {
+          e.preventDefault()
+          void handleSave()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedFile, handleSave])
+
+  useEffect(() => {
+    if (initialPath !== '') openFile(initialPath)
+    else load(dir)
+  }, [])
+
+  // Multi-select toggle
+  const toggleSelect = (path: string) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedPaths.size === filteredEntries.length) {
+      setSelectedPaths(new Set())
+    } else {
+      setSelectedPaths(new Set(filteredEntries.map(e => e.path)))
+    }
+  }
+
+  // Filtered entries
+  const filteredEntries = useMemo(() => {
+    return entries.filter((entry) => {
+      if (!showHidden && entry.hidden) return false
+      if (searchQuery.trim() !== '') {
+        return entry.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      }
+      return true
+    })
+  }, [entries, showHidden, searchQuery])
+
+  // Prompt action execution
+  const executePrompt = async () => {
+    if (!promptMode) return
+    setError(null)
+    try {
+      if (promptMode === 'new-file') {
+        const name = promptInputText.trim()
+        if (!name) return
+        const filePath = `${dir.replace(/\/+$/, '')}/${name}`
+        if (createFile) {
+          await createFile(filePath, '')
+        } else if (writeFile) {
+          await writeFile(filePath, '')
+        }
+        setPromptMode(null)
+        load(dir)
+        openFile(filePath)
+      } else if (promptMode === 'new-folder') {
+        const name = promptInputText.trim()
+        if (!name) return
+        if (createDirectory) {
+          await createDirectory(dir, name)
+        }
+        setPromptMode(null)
+        load(dir)
+      } else if (promptMode === 'rename' && promptTarget) {
+        const newName = promptInputText.trim()
+        if (!newName) return
+        const newPath = `${dir.replace(/\/+$/, '')}/${newName}`
+        if (renamePath) {
+          await renamePath(promptTarget, newPath)
+        }
+        setPromptMode(null)
+        load(dir)
+      } else if (promptMode === 'delete-selected') {
+        if (deletePaths && selectedPaths.size > 0) {
+          await deletePaths(Array.from(selectedPaths))
+        }
+        setSelectedPaths(new Set())
+        setPromptMode(null)
+        load(dir)
+      } else if (promptMode === 'delete-single' && promptTarget) {
+        if (deletePaths) {
+          await deletePaths([promptTarget])
+        }
+        if (selectedFile === promptTarget) {
+          setSelectedFile(null)
+        }
+        setPromptMode(null)
+        load(dir)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => {
+    const parts = dir.split('/').filter(Boolean)
+    const crumbs: { name: string; path: string }[] = [{ name: 'root', path: '/' }]
+    let cur = ''
+    for (const part of parts) {
+      cur += `/${part}`
+      crumbs.push({ name: part, path: cur })
+    }
+    return crumbs
+  }, [dir])
 
   const parent = parentPath(dir)
+
   return (
     <div className={css.root}>
-      <div className={css.bar}>
-        <button type="button" className={css.ghost} disabled={parent === dir} onClick={() => { load(parent) }}>..</button>
-        <span className={css.dir} title={dir}>{dir}</span>
-        {selected !== null && (
-          <>
+      {/* --- TOP NAVIGATION BAR --- */}
+      <div className={css.navBar}>
+        <button
+          type="button"
+          className={css.ghost}
+          disabled={parent === dir}
+          onClick={() => load(parent)}
+          title="Go to parent directory (..)"
+        >
+          ..
+        </button>
+
+        {isEditingPath ? (
+          <div className={css.pathInputWrapper}>
+            <input
+              type="text"
+              className={css.pathInput}
+              value={pathInput}
+              autoFocus
+              onChange={e => setPathInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') load(pathInput.trim() || '/')
+                if (e.key === 'Escape') {
+                  setPathInput(dir)
+                  setIsEditingPath(false)
+                }
+              }}
+              placeholder="/host, /root, /etc..."
+            />
+            <button
+              type="button"
+              className={`${css.btn} ${css.btnPrimary}`}
+              onClick={() => load(pathInput.trim() || '/')}
+            >
+              Go
+            </button>
             <button
               type="button"
               className={css.ghost}
-              aria-label={preview ? 'View source' : 'Preview'}
-              title={preview ? 'View source' : 'Preview'}
-              onClick={() => { setPreview(!preview) }}
+              onClick={() => {
+                setPathInput(dir)
+                setIsEditingPath(false)
+              }}
             >
-              {preview ? <IconCodeOutline16 size={14} /> : <IconEyeOutline16 size={14} />}
+              <IconCloseOutline16 size={12} />
             </button>
-            <button type="button" className={css.ghost} aria-label={t('workbench.browser.open')} onClick={() => { void openPath(selected) }}>
-              <IconLinkOutline16 size={14} />
-            </button>
-          </>
-        )}
-      </div>
-      {error !== null && <div className={css.error}>{error}</div>}
-      <div className={css.body}>
-        {selected === null ? (
-          <ul className={css.list}>
-            {entries.map(entry => (
-              <li key={entry.path}>
-                <button type="button" className={css.row} onClick={() => { if (entry.isDir) load(entry.path); else open(entry.path) }}>
-                  <span className={css.icon}>{entry.isDir ? '/' : ''}</span>
-                  <span className={css.name}>{entry.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          </div>
         ) : (
-          preview && !loading ? (
-            text.startsWith('data:image/') ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', overflow: 'hidden' }}>
-                <img src={text} alt={selected} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-              </div>
-            ) : selected.endsWith('.html') || selected.endsWith('.htm') ? (
-              <iframe style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} srcDoc={text} title="HTML Preview" sandbox="allow-scripts" />
-            ) : (
-              <div style={{ padding: '12px 16px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
-                <MarkdownText text={text} />
-              </div>
-            )
-          ) : (
-            <pre className={css.code}>{loading ? '…' : text}</pre>
-          )
+          <div className={css.breadcrumbs} onDoubleClick={() => setIsEditingPath(true)}>
+            {breadcrumbs.map((crumb, idx) => (
+              <span key={crumb.path} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {idx > 0 && <span className={css.crumbSep}>/</span>}
+                <button
+                  type="button"
+                  className={`${css.crumb} ${idx === breadcrumbs.length - 1 ? css.crumbActive : ''}`}
+                  onClick={() => load(crumb.path)}
+                  title={crumb.path}
+                >
+                  {crumb.name}
+                </button>
+              </span>
+            ))}
+          </div>
         )}
+
+        <button
+          type="button"
+          className={css.ghost}
+          title={isEditingPath ? 'Done editing path' : 'Type path manually'}
+          onClick={() => {
+            if (!isEditingPath) setPathInput(dir)
+            setIsEditingPath(!isEditingPath)
+          }}
+        >
+          <IconEditOutline16 size={14} />
+        </button>
+
+        <button
+          type="button"
+          className={css.ghost}
+          title="Refresh current folder"
+          onClick={() => load(dir)}
+        >
+          <IconRefreshOutline16 size={14} />
+        </button>
       </div>
+
+      {/* --- QUICK JUMP PRESETS --- */}
+      <div className={css.presetsBar}>
+        <button
+          type="button"
+          className={`${css.presetChip} ${dir === '/host' ? css.presetChipActive : ''}`}
+          onClick={() => load('/host')}
+          title="VPS Host Root (/host)"
+        >
+          🖥️ VPS Root (/host)
+        </button>
+        <button
+          type="button"
+          className={`${css.presetChip} ${dir === '/host/root' || dir === '/root' ? css.presetChipActive : ''}`}
+          onClick={() => load('/host/root')}
+          title="Root Home (/host/root)"
+        >
+          📁 /host/root
+        </button>
+        <button
+          type="button"
+          className={`${css.presetChip} ${dir.includes('apps') ? css.presetChipActive : ''}`}
+          onClick={() => load('/host/root/apps')}
+          title="Apps (/host/root/apps)"
+        >
+          🚀 Apps
+        </button>
+        <button
+          type="button"
+          className={`${css.presetChip} ${dir.includes('context') ? css.presetChipActive : ''}`}
+          onClick={() => load('/host/root/context')}
+          title="Context Docs (/host/root/context)"
+        >
+          📄 Context
+        </button>
+        {cwd && (
+          <button
+            type="button"
+            className={`${css.presetChip} ${dir === cwd ? css.presetChipActive : ''}`}
+            onClick={() => load(cwd)}
+            title={`Session Workspace (${cwd})`}
+          >
+            💼 Workspace
+          </button>
+        )}
+        <button
+          type="button"
+          className={`${css.presetChip} ${dir === '/' ? css.presetChipActive : ''}`}
+          onClick={() => load('/')}
+          title="System Root (/)"
+        >
+          / Root
+        </button>
+      </div>
+
+      {/* --- ERROR MESSAGE --- */}
+      {error !== null && (
+        <div className={css.error}>
+          <span>{error}</span>
+          <button type="button" className={css.ghost} style={{ float: 'right', padding: 0 }} onClick={() => setError(null)}>
+            <IconCloseOutline16 size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* --- FILE VIEWER / EDITOR VIEW --- */}
+      {selectedFile !== null ? (
+        <div className={css.editorContainer}>
+          <div className={css.editorBar}>
+            <div className={css.fileMeta}>
+              <button
+                type="button"
+                className={css.btn}
+                onClick={() => setSelectedFile(null)}
+                title="Return to folder listing"
+              >
+                ← Back
+              </button>
+              <span className={css.fileName} title={selectedFile}>
+                {selectedFile.split('/').pop()}
+              </span>
+              {isDirty ? (
+                <span className={css.dirtyBadge}>● Unsaved</span>
+              ) : saveBanner ? (
+                <span className={css.savedBadge}>✓ {saveBanner}</span>
+              ) : null}
+            </div>
+
+            <div className={css.editorActions}>
+              <button
+                type="button"
+                className={css.ghost}
+                aria-label={previewMode ? 'Edit Source' : 'Visual Preview'}
+                title={previewMode ? 'Switch to Source Editor' : 'Switch to Visual Preview'}
+                onClick={() => setPreviewMode(!previewMode)}
+              >
+                {previewMode ? <IconCodeOutline16 size={14} /> : <IconEyeOutline16 size={14} />}
+              </button>
+
+              <button
+                type="button"
+                className={`${css.btn} ${css.btnPrimary}`}
+                disabled={isSaving || !isDirty}
+                onClick={() => void handleSave()}
+                title="Save file (⌘S / Ctrl+S)"
+              >
+                <IconCheckOutline16 size={14} />
+                {isSaving ? 'Saving…' : 'Save'}
+              </button>
+
+              <button
+                type="button"
+                className={css.ghost}
+                aria-label={t('workbench.browser.open')}
+                title="Open with system default app"
+                onClick={() => { void openPath(selectedFile) }}
+              >
+                <IconLinkOutline16 size={14} />
+              </button>
+
+              <button
+                type="button"
+                className={`${css.ghost} ${css.btnDanger}`}
+                title="Delete this file"
+                onClick={() => {
+                  setPromptMode('delete-single')
+                  setPromptTarget(selectedFile)
+                }}
+              >
+                <IconTrashOutline16 size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Delete prompt while in file view */}
+          {promptMode === 'delete-single' && (
+            <div className={css.promptBar}>
+              <span style={{ fontSize: 12, color: '#ef4444' }}>
+                Permanently delete <b>{selectedFile.split('/').pop()}</b>?
+              </span>
+              <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
+                Yes, Delete
+              </button>
+              <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Editor Body */}
+          <div className={css.body} style={{ display: 'flex', flexDirection: 'column' }}>
+            {previewMode && !loading ? (
+              originalText.startsWith('data:image/') ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', overflow: 'hidden' }}>
+                  <img src={originalText} alt={selectedFile} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </div>
+              ) : selectedFile.endsWith('.html') || selectedFile.endsWith('.htm') ? (
+                <iframe
+                  style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
+                  srcDoc={editText}
+                  title="HTML Preview"
+                  sandbox="allow-scripts"
+                />
+              ) : (
+                <div style={{ padding: '16px 20px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
+                  <MarkdownText text={editText} />
+                </div>
+              )
+            ) : (
+              <textarea
+                ref={editorRef}
+                className={css.codeTextarea}
+                value={editText}
+                disabled={loading}
+                onChange={e => setEditText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Tab') {
+                    e.preventDefault()
+                    const start = e.currentTarget.selectionStart
+                    const end = e.currentTarget.selectionEnd
+                    const next = editText.substring(0, start) + '  ' + editText.substring(end)
+                    setEditText(next)
+                    requestAnimationFrame(() => {
+                      if (editorRef.current) {
+                        editorRef.current.selectionStart = editorRef.current.selectionEnd = start + 2
+                      }
+                    })
+                  }
+                }}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoComplete="off"
+                autoCorrect="off"
+              />
+            )}
+          </div>
+
+          <div className={css.editorFooter}>
+            <span>{selectedFile}</span>
+            <span>
+              {editText.split('\n').length} lines · {editText.length} chars
+            </span>
+          </div>
+        </div>
+      ) : (
+        /* --- DIRECTORY EXPLORER VIEW --- */
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* Actions & Multi-select Toolbar */}
+          <div className={css.actionBar}>
+            <div className={css.actionGroup}>
+              <input
+                type="checkbox"
+                className={css.checkbox}
+                checked={filteredEntries.length > 0 && selectedPaths.size === filteredEntries.length}
+                onChange={toggleSelectAll}
+                title="Select all"
+              />
+
+              {selectedPaths.size > 0 ? (
+                <>
+                  <span className={css.selectionPill}>
+                    {selectedPaths.size} selected
+                  </span>
+                  <button
+                    type="button"
+                    className={`${css.btn} ${css.btnDanger}`}
+                    onClick={() => {
+                      setPromptMode('delete-selected')
+                    }}
+                  >
+                    <IconTrashOutline16 size={13} />
+                    Delete Selected
+                  </button>
+                  <button
+                    type="button"
+                    className={css.ghost}
+                    onClick={() => setSelectedPaths(new Set())}
+                    title="Clear selection"
+                  >
+                    Clear
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={css.btn}
+                    onClick={() => {
+                      setPromptMode('new-file')
+                      setPromptInputText('')
+                    }}
+                  >
+                    <IconPlusOutline16 size={13} />
+                    New File
+                  </button>
+                  <button
+                    type="button"
+                    className={css.btn}
+                    onClick={() => {
+                      setPromptMode('new-folder')
+                      setPromptInputText('')
+                    }}
+                  >
+                    <IconPlusOutline16 size={13} />
+                    New Folder
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className={css.actionGroup}>
+              <input
+                type="text"
+                className={css.searchInput}
+                placeholder="Filter files…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              <button
+                type="button"
+                className={`${css.ghost} ${showHidden ? css.presetChipActive : ''}`}
+                title={showHidden ? 'Hide dotfiles' : 'Show hidden dotfiles'}
+                onClick={() => setShowHidden(!showHidden)}
+              >
+                .{showHidden ? '✓' : ''}
+              </button>
+            </div>
+          </div>
+
+          {/* Inline Action Prompts */}
+          {promptMode && (
+            <div className={css.promptBar}>
+              {promptMode === 'new-file' && (
+                <>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>New File:</span>
+                  <input
+                    type="text"
+                    className={css.promptInput}
+                    placeholder="filename.txt or script.py"
+                    autoFocus
+                    value={promptInputText}
+                    onChange={e => setPromptInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void executePrompt()
+                      if (e.key === 'Escape') setPromptMode(null)
+                    }}
+                  />
+                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                    Create
+                  </button>
+                </>
+              )}
+              {promptMode === 'new-folder' && (
+                <>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>New Folder:</span>
+                  <input
+                    type="text"
+                    className={css.promptInput}
+                    placeholder="folder_name"
+                    autoFocus
+                    value={promptInputText}
+                    onChange={e => setPromptInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void executePrompt()
+                      if (e.key === 'Escape') setPromptMode(null)
+                    }}
+                  />
+                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                    Create
+                  </button>
+                </>
+              )}
+              {promptMode === 'rename' && (
+                <>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>Rename:</span>
+                  <input
+                    type="text"
+                    className={css.promptInput}
+                    autoFocus
+                    value={promptInputText}
+                    onChange={e => setPromptInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void executePrompt()
+                      if (e.key === 'Escape') setPromptMode(null)
+                    }}
+                  />
+                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                    Rename
+                  </button>
+                </>
+              )}
+              {promptMode === 'delete-selected' && (
+                <>
+                  <span style={{ color: '#ef4444', fontWeight: 500, fontSize: 12 }}>
+                    Permanently delete {selectedPaths.size} selected items?
+                  </span>
+                  <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
+                    Yes, Delete All
+                  </button>
+                </>
+              )}
+              {promptMode === 'delete-single' && (
+                <>
+                  <span style={{ color: '#ef4444', fontWeight: 500, fontSize: 12 }}>
+                    Permanently delete <b>{promptTarget?.split('/').pop()}</b>?
+                  </span>
+                  <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
+                    Yes, Delete
+                  </button>
+                </>
+              )}
+              <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Directory Files Table */}
+          <div className={css.body}>
+            {filteredEntries.length === 0 ? (
+              <div className={css.emptyDir}>
+                {loading ? 'Scanning directory…' : 'This folder is empty'}
+              </div>
+            ) : (
+              <table className={css.table}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 24, paddingLeft: 10 }}></th>
+                    <th>Name</th>
+                    <th style={{ width: 80, textAlign: 'right' }}>Size</th>
+                    <th style={{ width: 70, textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEntries.map((entry) => {
+                    const isSelected = selectedPaths.has(entry.path)
+                    return (
+                      <tr
+                        key={entry.path}
+                        className={`${css.tableRow} ${isSelected ? css.tableRowSelected : ''}`}
+                        onClick={(e) => {
+                          // Prevent triggering if clicked directly on checkbox or action buttons
+                          if ((e.target as HTMLElement).closest('input') || (e.target as HTMLElement).closest(`.${css.itemActions}`)) {
+                            return
+                          }
+                          if (entry.isDir) load(entry.path)
+                          else openFile(entry.path)
+                        }}
+                      >
+                        <td style={{ paddingLeft: 10 }}>
+                          <input
+                            type="checkbox"
+                            className={css.checkbox}
+                            checked={isSelected}
+                            onChange={() => toggleSelect(entry.path)}
+                            onClick={e => e.stopPropagation()}
+                          />
+                        </td>
+                        <td>
+                          <div className={css.itemCol}>
+                            <span className={css.itemIcon}>{fileIcon(entry.name, entry.isDir)}</span>
+                            <span className={`${css.itemName} ${entry.isDir ? css.dirName : ''}`}>
+                              {entry.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className={css.itemSize}>
+                            {entry.isDir ? '—' : formatSize(entry.sizeBytes)}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={css.itemActions} onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className={css.ghost}
+                              title="Rename"
+                              onClick={() => {
+                                setPromptMode('rename')
+                                setPromptTarget(entry.path)
+                                setPromptInputText(entry.name)
+                              }}
+                            >
+                              <IconEditOutline16 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              className={`${css.ghost} ${css.btnDanger}`}
+                              title="Delete"
+                              onClick={() => {
+                                setPromptMode('delete-single')
+                                setPromptTarget(entry.path)
+                              }}
+                            >
+                              <IconTrashOutline16 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

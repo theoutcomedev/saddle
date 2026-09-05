@@ -134,6 +134,10 @@ export class FakeApiClient implements IApiClient {
   onListFiles: (payload: unknown) => Promise<RpcResponse<{ path: string; entries: { name: string; path: string; isDir: boolean; hidden: boolean }[]; truncated: boolean }>> = () => Promise.resolve(ok({ path: '/home/fake', entries: [], truncated: false }))
 
   onReadFile: (payload: unknown) => Promise<RpcResponse<{ path: string; text: string }>> = () => Promise.resolve(ok({ path: '/home/fake/f.txt', text: '' }))
+  onWriteFile: (payload: unknown) => Promise<RpcResponse<{ path: string; bytesWritten: number }>> = () => Promise.resolve(ok({ path: '/home/fake/f.txt', bytesWritten: 0 }))
+  onDeletePaths: (payload: unknown) => Promise<RpcResponse<{ deleted: string[] }>> = () => Promise.resolve(ok({ deleted: [] }))
+  onCreateFile: (payload: unknown) => Promise<RpcResponse<{ path: string }>> = () => Promise.resolve(ok({ path: '/home/fake/new.txt' }))
+  onRenamePath: (payload: unknown) => Promise<RpcResponse<{ path: string }>> = () => Promise.resolve(ok({ path: '/home/fake/renamed.txt' }))
 
   private readonly muxConns: StreamConn<MuxFrame>[] = []
   private readonly hostConns: StreamConn<HostFrame>[] = []
@@ -190,6 +194,10 @@ export class FakeApiClient implements IApiClient {
     openPath: (payload: unknown) => this.record('host.openPath', payload, this.onOpenPath(payload)),
     listFiles: (payload: unknown) => this.record('host.listFiles', payload, this.onListFiles(payload)),
     readFile: (payload: unknown) => this.record('host.readFile', payload, this.onReadFile(payload)),
+    writeFile: (payload: unknown) => this.record('host.writeFile', payload, this.onWriteFile(payload)),
+    deletePaths: (payload: unknown) => this.record('host.deletePaths', payload, this.onDeletePaths(payload)),
+    createFile: (payload: unknown) => this.record('host.createFile', payload, this.onCreateFile(payload)),
+    renamePath: (payload: unknown) => this.record('host.renamePath', payload, this.onRenamePath(payload)),
   }
 
   // The archive-set field defaults at the binding below so list stubs keep

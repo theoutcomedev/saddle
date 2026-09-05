@@ -174,6 +174,21 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async readFile(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: '/w/f.txt', text: '' } } }
       },
+      async writeFile(request) {
+        return {
+          rpcId: request.rpcId,
+          result: { ok: true, value: { path: request.payload.path, bytesWritten: request.payload.content.length } },
+        }
+      },
+      async deletePaths(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { deleted: request.payload.paths } } }
+      },
+      async createFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }
+      },
+      async renamePath(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.newPath } } }
+      },
     },
     workspace: {
       async list(request) {
@@ -467,6 +482,30 @@ describe('unary round trip (handler ⇄ client, no network)', () => {
     const response = await client(api).host.openPath({ path: '/tmp/a.txt' })
     expect(opened).toBe('/tmp/a.txt')
     expect(response.result).toEqual({ ok: true, value: { opened: true } })
+  })
+
+  it('round-trips host.writeFile through the wire form', async () => {
+    const c = client()
+    const res = await c.host.writeFile({ path: '/tmp/a.txt', content: 'hello world' })
+    expect(res.result).toEqual({ ok: true, value: { path: '/tmp/a.txt', bytesWritten: 11 } })
+  })
+
+  it('round-trips host.deletePaths through the wire form', async () => {
+    const c = client()
+    const res = await c.host.deletePaths({ paths: ['/tmp/a.txt', '/tmp/b.txt'] })
+    expect(res.result).toEqual({ ok: true, value: { deleted: ['/tmp/a.txt', '/tmp/b.txt'] } })
+  })
+
+  it('round-trips host.createFile through the wire form', async () => {
+    const c = client()
+    const res = await c.host.createFile({ path: '/tmp/new.txt' })
+    expect(res.result).toEqual({ ok: true, value: { path: '/tmp/new.txt' } })
+  })
+
+  it('round-trips host.renamePath through the wire form', async () => {
+    const c = client()
+    const res = await c.host.renamePath({ oldPath: '/tmp/old.txt', newPath: '/tmp/new.txt' })
+    expect(res.result).toEqual({ ok: true, value: { path: '/tmp/new.txt' } })
   })
 
   it('round-trips skill.list through the wire form', async () => {

@@ -80,6 +80,7 @@ export const workspaceFileEntrySchema = z.object({
   path: z.string(),
   isDir: z.boolean(),
   hidden: z.boolean(),
+  sizeBytes: z.number().optional(),
 }) satisfies z.ZodType<Wire<WorkspaceFileEntry>>
 
 /** host.listFiles request payload. */
@@ -100,3 +101,47 @@ export const hostReadFileValueSchema = z.object({
   path: z.string(),
   text: z.string(),
 }) satisfies z.ZodType<Wire<ResponseValue<'host.readFile'>>>
+
+/** host.writeFile request payload. */
+export const hostWriteFileRequestSchema = z.object({
+  path: z.string(),
+  content: z.string(),
+}) satisfies z.ZodType<Wire<RequestPayload<'host.writeFile'>>>
+
+/** host.writeFile response value. */
+export const hostWriteFileValueSchema = z.object({
+  path: z.string(),
+  bytesWritten: z.number(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.writeFile'>>>
+
+/** host.deletePaths request payload. */
+export const hostDeletePathsRequestSchema = z.object({
+  paths: z.array(z.string()),
+}) satisfies z.ZodType<Wire<RequestPayload<'host.deletePaths'>>>
+
+/** host.deletePaths response value. */
+export const hostDeletePathsValueSchema = z.object({
+  deleted: z.array(z.string()),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.deletePaths'>>>
+
+/** host.createFile request payload. */
+export const hostCreateFileRequestSchema = z.object({
+  path: z.string(),
+  content: z.string().optional(),
+}) satisfies z.ZodType<Wire<RequestPayload<'host.createFile'>>>
+
+/** host.createFile response value. */
+export const hostCreateFileValueSchema = z.object({
+  path: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.createFile'>>>
+
+/** host.renamePath request payload. */
+export const hostRenamePathRequestSchema = z.object({
+  oldPath: z.string(),
+  newPath: z.string(),
+}) satisfies z.ZodType<Wire<RequestPayload<'host.renamePath'>>>
+
+/** host.renamePath response value. */
+export const hostRenamePathValueSchema = z.object({
+  path: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.renamePath'>>>

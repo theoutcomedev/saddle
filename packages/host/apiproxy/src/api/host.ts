@@ -26,6 +26,8 @@ export interface WorkspaceFileEntry {
   isDir: boolean
   /** Hidden by the host platform's convention (dot-prefixed on POSIX). */
   hidden: boolean
+  /** File size in bytes if regular file. */
+  sizeBytes?: number
 }
 
 /** host.listFiles response value: one directory's direct children. */
@@ -143,4 +145,36 @@ export interface HostApi {
     request: RpcRequest<{ path: string }>,
     signal: AbortSignal,
   ): Promise<RpcResponse<FileText>>
+
+  /**
+   * Write a text file for the Workbench File editor. Absolute paths only.
+   */
+  writeFile(
+    request: RpcRequest<{ path: string; content: string }>,
+    signal?: AbortSignal,
+  ): Promise<RpcResponse<{ path: string; bytesWritten: number }>>
+
+  /**
+   * Delete one or more files or directories recursively.
+   */
+  deletePaths(
+    request: RpcRequest<{ paths: string[] }>,
+    signal?: AbortSignal,
+  ): Promise<RpcResponse<{ deleted: string[] }>>
+
+  /**
+   * Create an empty file or write initial content.
+   */
+  createFile(
+    request: RpcRequest<{ path: string; content?: string }>,
+    signal?: AbortSignal,
+  ): Promise<RpcResponse<{ path: string }>>
+
+  /**
+   * Rename or move a file or directory.
+   */
+  renamePath(
+    request: RpcRequest<{ oldPath: string; newPath: string }>,
+    signal?: AbortSignal,
+  ): Promise<RpcResponse<{ path: string }>>
 }
