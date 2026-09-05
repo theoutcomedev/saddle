@@ -42,7 +42,7 @@ import type {
   McpServerView, ModelCatalogFailure, ModelProviderGroup,
   ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem,
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
-  WorkspaceId, WorkspaceView, DeployedAppView,
+  WorkspaceId, WorkspaceView, DeployedAppView, WorkspaceFileEntry,
 } from './api/index.ts'
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
@@ -3355,13 +3355,14 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
                   // ignore unreadable/broken symlinks
                 }
               }
-              return {
+              const entry: WorkspaceFileEntry = {
                 name: child.name,
                 path: childPath,
                 isDir,
                 hidden: child.name.startsWith('.'),
-                sizeBytes,
+                ...(sizeBytes !== undefined ? { sizeBytes } : {}),
               }
+              return entry
             }),
           )
           entries.sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1))

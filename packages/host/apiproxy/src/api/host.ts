@@ -27,7 +27,7 @@ export interface WorkspaceFileEntry {
   /** Hidden by the host platform's convention (dot-prefixed on POSIX). */
   hidden: boolean
   /** File size in bytes if regular file. */
-  sizeBytes?: number
+  sizeBytes?: number | undefined
 }
 
 /** host.listFiles response value: one directory's direct children. */
