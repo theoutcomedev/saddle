@@ -152,6 +152,51 @@ function IconStar({ size = 11, className }: IconProps) {
   )
 }
 
+/** Crisp arrow right-left icon for Move actions */
+function IconArrowRightLeft({ size = 13, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M11 2.5l3 3-3 3" />
+      <path d="M2 5.5h12" />
+      <path d="M5 13.5l-3-3 3-3" />
+      <path d="M14 10.5H2" />
+    </svg>
+  )
+}
+
+/** Crisp upload icon for file and folder uploads */
+function IconUpload({ size = 13, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M8 10V2.5" />
+      <path d="M4.5 6L8 2.5 11.5 6" />
+      <path d="M2.5 10.5v2a1 1 0 001 1h9a1 1 0 001-1v-2" />
+    </svg>
+  )
+}
+
 export function FilesPane({
   params,
   sessionId,
@@ -257,11 +302,17 @@ export function FilesPane({
     void navigator.clipboard.writeText(path)
   }, [])
 
-  // Inline Prompts (new file, new folder, rename, delete confirm)
-  type PromptMode = 'new-file' | 'new-folder' | 'rename' | 'delete-selected' | 'delete-single'
+  // Inline Prompts (new file, new folder, rename, delete, move)
+  type PromptMode = 'new-file' | 'new-folder' | 'rename' | 'delete-selected' | 'delete-single' | 'move-selected' | 'move-single'
   const [promptMode, setPromptMode] = useState<PromptMode | null>(null)
   const [promptTarget, setPromptTarget] = useState<string | null>(null)
   const [promptInputText, setPromptInputText] = useState('')
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null)
+  const [isDragOverDropZone, setIsDragOverDropZone] = useState(false)
+  const dragDepthRef = useRef(0)
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const folderInputRef = useRef<HTMLInputElement | null>(null)
 
   // File Viewer & Editor
   const [selectedFile, setSelectedFile] = useState<string | null>(initialPath === '' ? null : initialPath)
@@ -430,6 +481,36 @@ export function FilesPane({
         }
         setPromptMode(null)
         load(dir)
+      } else if (promptMode === 'move-selected') {
+        const destDir = promptInputText.trim().replace(/\/+$/, '')
+        if (!destDir) return
+        if (renamePath && selectedPaths.size > 0) {
+          for (const srcPath of selectedPaths) {
+            const fileName = srcPath.split('/').filter(Boolean).pop() || ''
+            if (fileName) {
+              const target = `${destDir}/${fileName}`
+              await renamePath(srcPath, target)
+            }
+          }
+        }
+        setSelectedPaths(new Set())
+        setPromptMode(null)
+        load(dir)
+      } else if (promptMode === 'move-single' && promptTarget) {
+        const destDir = promptInputText.trim().replace(/\/+$/, '')
+        if (!destDir) return
+        if (renamePath) {
+          const fileName = promptTarget.split('/').filter(Boolean).pop() || ''
+          if (fileName) {
+            const target = `${destDir}/${fileName}`
+            await renamePath(promptTarget, target)
+          }
+        }
+        if (selectedFile === promptTarget) {
+          setSelectedFile(null)
+        }
+        setPromptMode(null)
+        load(dir)
       } else if (promptMode === 'delete-selected') {
         if (deletePaths && selectedPaths.size > 0) {
           await deletePaths(Array.from(selectedPaths))
@@ -449,6 +530,31 @@ export function FilesPane({
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  // Upload handler for files (from input or drop)
+  const uploadFiles = async (fileList: FileList | File[]) => {
+    if (!writeFile) return
+    const files = Array.from(fileList)
+    if (files.length === 0) return
+    setUploadStatus(`Uploading ${files.length} item(s)…`)
+    setError(null)
+    try {
+      const baseDir = dir.replace(/\/+$/, '')
+      for (const file of files) {
+        // webkitRelativePath is present when uploading a folder
+        const relPath = (file as { webkitRelativePath?: string }).webkitRelativePath || file.name
+        const targetPath = `${baseDir}/${relPath.replace(/^\/+/, '')}`
+        const text = await file.text()
+        await writeFile(targetPath, text)
+      }
+      setUploadStatus(`Uploaded ${files.length} item(s)!`)
+      setTimeout(() => setUploadStatus(null), 2500)
+      load(dir)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
+      setUploadStatus(null)
     }
   }
 
@@ -781,6 +887,19 @@ export function FilesPane({
                   </span>
                   <button
                     type="button"
+                    className={css.btn}
+                    onClick={() => {
+                      setPromptMode('move-selected')
+                      setPromptInputText(dir)
+                    }}
+                    title={`Move ${selectedPaths.size} item(s)`}
+                  >
+                    <IconArrowRightLeft size={13} />
+                    <span className={css.btnTextFull}>Move Selected</span>
+                    <span className={css.btnTextShort}>Move</span>
+                  </button>
+                  <button
+                    type="button"
                     className={`${css.btn} ${css.btnDanger}`}
                     onClick={() => {
                       setPromptMode('delete-selected')
@@ -828,6 +947,44 @@ export function FilesPane({
                     <span className={css.btnTextFull}>New Folder</span>
                     <span className={css.btnTextShort}>Folder</span>
                   </button>
+                  <button
+                    type="button"
+                    className={css.btn}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Upload files to this folder"
+                  >
+                    <IconUpload size={13} />
+                    <span className={css.btnTextFull}>Upload</span>
+                    <span className={css.btnTextShort}>Upload</span>
+                  </button>
+                  {/* Hidden inputs for uploading files and directories */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        void uploadFiles(e.target.files)
+                        e.target.value = ''
+                      }
+                    }}
+                  />
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    // @ts-expect-error webkitdirectory attribute is standard in browsers
+                    webkitdirectory=""
+                    directory=""
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        void uploadFiles(e.target.files)
+                        e.target.value = ''
+                      }
+                    }}
+                  />
                 </>
               )}
             </div>
@@ -850,6 +1007,14 @@ export function FilesPane({
               </button>
             </div>
           </div>
+
+          {/* Upload Status Banner */}
+          {uploadStatus && (
+            <div className={css.uploadStatusBanner}>
+              <IconUpload size={13} />
+              <span>{uploadStatus}</span>
+            </div>
+          )}
 
           {/* Inline Action Prompts */}
           {promptMode && (
@@ -913,6 +1078,46 @@ export function FilesPane({
                   </button>
                 </>
               )}
+              {promptMode === 'move-selected' && (
+                <>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>Move {selectedPaths.size} item(s) to:</span>
+                  <input
+                    type="text"
+                    className={css.promptInput}
+                    placeholder="Destination folder path (e.g. /root or /host)"
+                    autoFocus
+                    value={promptInputText}
+                    onChange={e => setPromptInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void executePrompt()
+                      if (e.key === 'Escape') setPromptMode(null)
+                    }}
+                  />
+                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                    Move
+                  </button>
+                </>
+              )}
+              {promptMode === 'move-single' && (
+                <>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>Move <b>{promptTarget?.split('/').pop()}</b> to:</span>
+                  <input
+                    type="text"
+                    className={css.promptInput}
+                    placeholder="Destination folder path (e.g. /root or /host)"
+                    autoFocus
+                    value={promptInputText}
+                    onChange={e => setPromptInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void executePrompt()
+                      if (e.key === 'Escape') setPromptMode(null)
+                    }}
+                  />
+                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                    Move
+                  </button>
+                </>
+              )}
               {promptMode === 'delete-selected' && (
                 <>
                   <span style={{ color: '#ef4444', fontWeight: 500, fontSize: 12 }}>
@@ -940,7 +1145,43 @@ export function FilesPane({
           )}
 
           {/* Directory Files Table */}
-          <div className={css.body}>
+          <div
+            className={`${css.body} ${css.dropTarget}`}
+            onDragEnter={(e) => {
+              if (e.dataTransfer.types.includes('Files')) {
+                e.preventDefault()
+                dragDepthRef.current += 1
+                setIsDragOverDropZone(true)
+              }
+            }}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes('Files')) {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'copy'
+              }
+            }}
+            onDragLeave={(e) => {
+              if (e.dataTransfer.types.includes('Files')) {
+                e.preventDefault()
+                dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+                if (dragDepthRef.current === 0) setIsDragOverDropZone(false)
+              }
+            }}
+            onDrop={(e) => {
+              dragDepthRef.current = 0
+              setIsDragOverDropZone(false)
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                e.preventDefault()
+                void uploadFiles(e.dataTransfer.files)
+              }
+            }}
+          >
+            {isDragOverDropZone && (
+              <div className={css.dropOverlay}>
+                <IconUpload size={24} />
+                <span>Drop files or folders here to upload to {dir === '/' ? '/ (root)' : dir.split('/').pop()}</span>
+              </div>
+            )}
             {filteredEntries.length === 0 ? (
               <div className={css.emptyDir}>
                 {loading ? 'Scanning directory…' : 'This folder is empty'}
@@ -964,8 +1205,12 @@ export function FilesPane({
                         className={`${css.tableRow} ${isSelected ? css.tableRowSelected : ''}`}
                         draggable={true}
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', `@${entry.path}`)
+                          const paths = isSelected && selectedPaths.size > 1
+                            ? Array.from(selectedPaths)
+                            : [entry.path]
+                          e.dataTransfer.setData('text/plain', paths.map(p => `@${p}`).join(' '))
                           e.dataTransfer.setData('application/x-saddle-path', entry.path)
+                          e.dataTransfer.setData('application/x-saddle-paths', JSON.stringify(paths))
                           e.dataTransfer.effectAllowed = 'copy'
                         }}
                         onClick={(e) => {
@@ -1030,6 +1275,11 @@ export function FilesPane({
                                   icon: <IconCopyOutline16 size={14} />,
                                 },
                                 {
+                                  id: 'move',
+                                  label: 'Move to…',
+                                  icon: <IconArrowRightLeft size={13} />,
+                                },
+                                {
                                   id: 'rename',
                                   label: 'Rename',
                                   icon: <IconEditOutline16 size={14} />,
@@ -1047,6 +1297,10 @@ export function FilesPane({
                                   addPathToChat(entry.path)
                                 } else if (id === 'copy-path') {
                                   copyPathToClipboard(entry.path)
+                                } else if (id === 'move') {
+                                  setPromptMode('move-single')
+                                  setPromptTarget(entry.path)
+                                  setPromptInputText(dir)
                                 } else if (id === 'rename') {
                                   setPromptMode('rename')
                                   setPromptTarget(entry.path)

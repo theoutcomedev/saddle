@@ -707,6 +707,63 @@ export function InputBar({
         data-composer-card
         onClick={workspaceTrigger ? onRequestWorkspace : undefined}
         onPointerDown={workspaceTrigger ? (e) => { e.stopPropagation() } : undefined}
+        onDragOver={(e) => {
+          // If files or saddle items are dragged over, allow copy
+          const types = e.dataTransfer.types
+          if (
+            types.includes('application/x-saddle-paths') ||
+            types.includes('application/x-saddle-path') ||
+            types.includes('application/x-saddle-session') ||
+            types.includes('application/x-saddle-workspace') ||
+            types.includes('text/plain')
+          ) {
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'copy'
+          }
+        }}
+        onDrop={(e) => {
+          // If dropping images, let attachments slot / global listener handle it
+          if (e.dataTransfer.files.length > 0 && e.dataTransfer.types.includes('Files')) {
+            const hasImages = Array.from(e.dataTransfer.files).some(f => f.type.startsWith('image/'))
+            if (hasImages) return // handled by attachment overlay
+          }
+          const saddlePaths = e.dataTransfer.getData('application/x-saddle-paths')
+          const saddlePath = e.dataTransfer.getData('application/x-saddle-path')
+          const text = e.dataTransfer.getData('text/plain')
+
+          let insertText = ''
+          if (saddlePaths) {
+            try {
+              const parsed: string[] = JSON.parse(saddlePaths)
+              insertText = parsed.map(p => `@${p}`).join(' ')
+            } catch {
+              insertText = text
+            }
+          } else if (saddlePath) {
+            insertText = `@${saddlePath}`
+          } else if (text) {
+            insertText = text
+          }
+
+          if (insertText) {
+            e.preventDefault()
+            e.stopPropagation()
+            if (keyboard !== undefined && !locked && !machineBusy) {
+              const el = inputRef.current
+              const sel = el ? selectionOf(el) : { start: draft.length, end: draft.length }
+              // Add leading space if needed
+              const prefix = (sel.start > 0 && !draft.slice(0, sel.start).endsWith(' ') && !insertText.startsWith(' ')) ? ' ' : ''
+              const fullInsert = prefix + insertText + ' '
+              keyboard.pasteBegin(fullInsert, sel)
+              const caret = sel.start + fullInsert.length
+              if (el) {
+                el.focus()
+                restoreCaret(el, caret)
+              }
+              keyboard.track(keyboard.snapshot.draft, caret)
+            }
+          }
+        }}
       >
         {overlay !== undefined && <div className={css.overlayAnchor}>{overlay}</div>}
         {accessory !== undefined && <div className={css.accessory}>{accessory}</div>}

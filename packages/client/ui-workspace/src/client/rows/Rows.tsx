@@ -136,14 +136,15 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
       role="treeitem"
       aria-expanded={row.expanded}
       onClick={onToggle}
-      draggable={drag !== undefined}
-      onDragStart={drag === undefined
-        ? undefined
-        : (e) => {
-          e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', row.key)
-          drag.start()
-        }}
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'copyMove'
+        const pathOrName = row.cwd ?? label
+        e.dataTransfer.setData('text/plain', `@${pathOrName}`)
+        e.dataTransfer.setData('application/x-saddle-workspace', pathOrName)
+        e.dataTransfer.setData('application/x-saddle-workspace-key', row.key)
+        drag?.start()
+      }}
       onDragEnd={drag?.end}
     >
       <span className={clsx(css.slot, css.folder, active && css.folderActive)}>
@@ -407,14 +408,14 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
       role="treeitem"
       aria-selected={selected}
       onClick={() => { onOpen(node.id) }}
-      draggable={drag !== undefined}
-      onDragStart={drag === undefined
-        ? undefined
-        : (e) => {
-          e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', node.id)
-          drag.start()
-        }}
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'copyMove'
+        e.dataTransfer.setData('text/plain', `[Session: ${title}](conversation://${node.id})`)
+        e.dataTransfer.setData('application/x-saddle-session', node.id)
+        e.dataTransfer.setData('application/x-saddle-session-title', title)
+        drag?.start()
+      }}
       onDragEnd={drag?.end}
       onDragOver={drag === undefined
         ? undefined

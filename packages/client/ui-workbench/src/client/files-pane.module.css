@@ -666,3 +666,53 @@
   color: #ef4444;
   font-size: 12px;
 }
+
+/* --- Drop Overlay for Uploads --- */
+.dropTarget {
+  position: relative;
+}
+
+.dropOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.12);
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+  color: #2563eb;
+  font-weight: 500;
+  font-size: 13px;
+  animation: fadeIn 0.15s ease;
+}
+
+:global([data-theme="dark"]) .dropOverlay {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.uploadStatusBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--dsw-alias-interactive-bg-subtle, rgba(59, 130, 246, 0.1));
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  font-size: 12px;
+  color: var(--dsw-alias-interactive-primary, #3b82f6);
+}
