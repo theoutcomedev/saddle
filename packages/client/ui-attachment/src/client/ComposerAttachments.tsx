@@ -60,9 +60,20 @@ export function ComposerAttachments({
     const onDrop = (event: globalThis.DragEvent): void => {
       const dataTransfer = fileTransfer(event)
       if (dataTransfer === null) return
-      event.preventDefault()
       reset()
-      if (canAcceptDrop) onAddImages([...dataTransfer.files])
+      // If the drop target is inside workbench, let workbench handle file/folder uploads
+      const target = event.target as HTMLElement | null
+      if (target && target.closest('[data-slot="workbench"], [class*="workbench"], [class*="files-pane"]')) {
+        return
+      }
+      // If all dropped files are non-images (or folders), do not trigger the chat image intake
+      const files = Array.from(dataTransfer.files)
+      const hasImages = files.some(f => f.type.startsWith('image/'))
+      if (!hasImages) {
+        return
+      }
+      event.preventDefault()
+      if (canAcceptDrop) onAddImages(files)
     }
     document.addEventListener('dragenter', onDragEnter)
     document.addEventListener('dragover', onDragOver)

@@ -533,23 +533,92 @@ export function FilesPane({
     }
   }
 
-  // Upload handler for files (from input or drop)
-  const uploadFiles = async (fileList: FileList | File[]) => {
+  // Interfaces for standard FileSystemEntry web API
+  interface DroppedFileEntry {
+    isFile: true
+    isDirectory: false
+    name: string
+    file: (successCallback: (file: File) => void, errorCallback?: (error: Error) => void) => void
+  }
+  interface DroppedDirReader {
+    readEntries: (successCallback: (entries: DroppedEntry[]) => void, errorCallback?: (error: Error) => void) => void
+  }
+  interface DroppedDirEntry {
+    isFile: false
+    isDirectory: true
+    name: string
+    createReader: () => DroppedDirReader
+  }
+  type DroppedEntry = DroppedFileEntry | DroppedDirEntry
+
+  // Helper: recursively traverse FileSystemEntry objects dropped from desktop
+  const traverseEntry = async (entry: DroppedEntry, currentPath: string, fileList: Array<{ path: string; file: File }>): Promise<void> => {
+    if (entry.isFile) {
+      const file: File = await new Promise((resolve, reject) => {
+        entry.file(resolve, reject)
+      })
+      fileList.push({ path: currentPath, file })
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader()
+      const readAllEntries = async (): Promise<DroppedEntry[]> => {
+        const result: DroppedEntry[] = []
+        let batch = await new Promise<DroppedEntry[]>((resolve, reject) => {
+          dirReader.readEntries(resolve, reject)
+        })
+        while (batch.length > 0) {
+          result.push(...batch)
+          batch = await new Promise<DroppedEntry[]>((resolve, reject) => {
+            dirReader.readEntries(resolve, reject)
+          })
+        }
+        return result
+      }
+      const children = await readAllEntries()
+      for (const child of children) {
+        await traverseEntry(child, `${currentPath}/${child.name}`, fileList)
+      }
+    }
+  }
+
+  // Upload handler for files (from input or drop items)
+  const uploadFiles = async (source: FileList | File[] | DataTransferItemList) => {
     if (!writeFile) return
-    const files = Array.from(fileList)
-    if (files.length === 0) return
-    setUploadStatus(`Uploading ${files.length} item(s)…`)
     setError(null)
     try {
+      const collected: Array<{ path: string; file: File }> = []
       const baseDir = dir.replace(/\/+$/, '')
-      for (const file of files) {
-        // webkitRelativePath is present when uploading a folder
-        const relPath = (file as { webkitRelativePath?: string }).webkitRelativePath || file.name
-        const targetPath = `${baseDir}/${relPath.replace(/^\/+/, '')}`
+
+      // Check if source is DataTransferItemList with webkitGetAsEntry (dropped folders/files)
+      if ('length' in source && source.length > 0 && 'webkitGetAsEntry' in (source[0] as unknown as Record<string, unknown>)) {
+        const items = Array.from(source as DataTransferItemList)
+        for (const item of items) {
+          if (item.kind === 'file') {
+            const entry = item.webkitGetAsEntry() as DroppedEntry | null
+            if (entry) {
+              await traverseEntry(entry, `${baseDir}/${entry.name}`, collected)
+            } else {
+              const file = item.getAsFile()
+              if (file) collected.push({ path: `${baseDir}/${file.name}`, file })
+            }
+          }
+        }
+      } else {
+        const files = Array.from(source as FileList | File[])
+        for (const file of files) {
+          const relPath = (file as { webkitRelativePath?: string }).webkitRelativePath || file.name
+          collected.push({ path: `${baseDir}/${relPath.replace(/^\/+/, '')}`, file })
+        }
+      }
+
+      if (collected.length === 0) return
+      setUploadStatus(`Uploading ${collected.length} item(s)…`)
+
+      for (const { path: targetPath, file } of collected) {
         const text = await file.text()
         await writeFile(targetPath, text)
       }
-      setUploadStatus(`Uploaded ${files.length} item(s)!`)
+
+      setUploadStatus(`Uploaded ${collected.length} item(s)!`)
       setTimeout(() => setUploadStatus(null), 2500)
       load(dir)
     } catch (err: unknown) {
@@ -1168,10 +1237,13 @@ export function FilesPane({
               }
             }}
             onDrop={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
               dragDepthRef.current = 0
               setIsDragOverDropZone(false)
-              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                e.preventDefault()
+              if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+                void uploadFiles(e.dataTransfer.items)
+              } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 void uploadFiles(e.dataTransfer.files)
               }
             }}
