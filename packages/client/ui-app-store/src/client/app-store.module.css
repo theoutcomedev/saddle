@@ -112,7 +112,8 @@
   background: var(--dsw-alias-bg-layer-3);
 }
 
-.close {
+.close,
+.iconBtn {
   /* Reset iOS default button chrome; circle geometry matches Settings. */
   -webkit-appearance: none;
   appearance: none;
@@ -125,12 +126,15 @@
   border: none;
   border-radius: 28px;
   background: transparent;
-  color: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-label-secondary);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.close:hover {
+.close:hover,
+.iconBtn:hover {
   background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
 }
 
 .toolbar {
@@ -338,9 +342,10 @@
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
   box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
 }
 
 .npTaDocked::placeholder {
@@ -408,6 +413,7 @@
   font-size: 16px;
   line-height: 1.6;
   box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
 }
 
 .npTa::placeholder {
