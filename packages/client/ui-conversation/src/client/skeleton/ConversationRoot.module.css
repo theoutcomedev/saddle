@@ -34,7 +34,7 @@
   min-height: calc(75px + var(--safe-top, 0px));
   box-sizing: border-box;
   /* Base padding + safe area top for notch/Dynamic Island in iOS PWA */
-  padding: calc(12px + var(--safe-top, 0px)) 28px 0 20px;
+  padding: calc(12px + var(--safe-top, 0px)) 12px 0 20px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 
@@ -387,15 +387,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: 1px solid var(--dsw-alias-border-l2, transparent);
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   padding: 0;
   transition: all 0.15s ease;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .workbenchToggle:hover {
@@ -408,10 +410,16 @@
   display: flex;
 }
 
+/* Hide workbench button when workbench is currently open */
+:global([data-details-open]) .workbenchToggle,
+:global([data-workbench-open]) .workbenchToggle {
+  display: none !important;
+}
+
 .heroHeader {
   position: absolute;
-  top: calc(12px + var(--safe-top, 0px));
-  right: 28px;
+  top: calc(22px + var(--safe-top, 0px));
+  right: 12px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -419,12 +427,14 @@
 
 @container (max-width: 768px) {
   .heroHeader {
-    right: 12px;
+    top: calc(18px + var(--safe-top, 0px));
+    right: 10px;
   }
 }
 
 @media (max-width: 768px) {
   .heroHeader {
-    right: 12px;
+    top: calc(18px + var(--safe-top, 0px));
+    right: 10px;
   }
 }

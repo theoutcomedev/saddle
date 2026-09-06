@@ -76,7 +76,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * seat is declared by whoever occupies this one, so replacing the header
      * takes every action entry down with it.
      */
-    'conversation.session.header': { kind: 'single'; scope: 'session' }
+    'conversation.session.header': { kind: 'single'; scope: 'session'; owner: { detailsOpen?: boolean | undefined } }
     /**
      * One breadcrumb title and its lineage controls. The render site keeps
      * the ordinary title as fallback; an occupant receives plain title data

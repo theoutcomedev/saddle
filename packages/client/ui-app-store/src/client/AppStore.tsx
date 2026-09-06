@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Button, IconCloseOutline16, IconFullscreenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutline16, IconFullscreenOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
 
@@ -31,7 +31,7 @@ const APP_CATALOG: readonly AppCatalogEntry[] = [
     id: 'notepad',
     name: 'Notepad',
     category: 'Notes',
-    icon: '📝',
+    icon: 'notepad',
     tags: ['notes', 'autosave'],
     description: 'A full-screen notepad that autosaves. I can read what you type.',
   },
@@ -132,7 +132,7 @@ export function NotepadApp({
     void appStore.save(text)
     onClose?.()
     window.dispatchEvent(new CustomEvent('workbench:open-app', {
-      detail: { appId: 'notepad', title: 'Notepad', icon: '📝' },
+      detail: { appId: 'notepad', title: 'Notepad', icon: 'notepad' },
     }))
   }
 
@@ -184,7 +184,10 @@ export function NotepadApp({
   const fullscreenElement = (
     <div className={css.npRoot}>
       <div className={css.npHeader}>
-        <h2 className={css.npTitle}>Notepad</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconListPenOutline16 size={18} />
+          <h2 className={css.npTitle}>Notepad</h2>
+        </div>
         <div className={css.npActions}>
           <span className={css.npStatus}>{status}</span>
           <Button variant="primary" size="sm" onClick={save}>Save</Button>
@@ -281,7 +284,9 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
               {filtered.map(app => (
                 <div key={app.id} className={css.card}>
                   <div className={css.cardHead}>
-                    <div className={css.cardIcon}>{app.icon || '📦'}</div>
+                    <div className={css.cardIcon}>
+                      {app.id === 'notepad' ? <IconListPenOutline16 size={22} /> : (app.icon || '📦')}
+                    </div>
                     <div className={css.cardTitle}>
                       <div className={css.cardName}>{app.name}</div>
                       <div className={css.cardCat}>{app.category}</div>

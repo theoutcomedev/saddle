@@ -15,7 +15,7 @@ export type ConversationRootProps = ConversationSlotProps
 
 export function ConversationRoot({
   sessionId, useSession, useSessions, useWorkspaces, useInput, useComposerBlock,
-  renderSlot, renderSlotChain, selectWorkspace, toggleWorkbench, t,
+  renderSlot, renderSlotChain, selectWorkspace, toggleWorkbench, detailsOpen, t,
 }: ConversationRootProps) {
   const openState = useSession(s => s.openState)
   const composerPhase = useSession(s => s.composerPhase)
@@ -186,7 +186,7 @@ export function ConversationRoot({
 
   return (
     <div className={css.root} data-phase={phase}>
-      {hero && toggleWorkbench !== undefined && (
+      {hero && toggleWorkbench !== undefined && !detailsOpen && (
         <div className={css.heroHeader}>
           <button
             type="button"
@@ -199,7 +199,7 @@ export function ConversationRoot({
           </button>
         </div>
       )}
-      {renderSlot('conversation.session.header', {})}
+      {renderSlot('conversation.session.header', { detailsOpen })}
       <div className={css.scrollBody} data-conversation-scroll="">
         {renderSlot('conversation.session', {})}
         {composerSeat}

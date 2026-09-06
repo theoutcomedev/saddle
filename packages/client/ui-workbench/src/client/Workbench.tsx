@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { IconPlusOutline16, IconFullscreenOutline16, IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPlusOutline16, IconFullscreenOutline16, IconCloseOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchPaneKind } from './types.ts'
 import { NS } from './locales.ts'
@@ -48,10 +48,9 @@ function paneLabel(kind: WorkbenchPaneKind, t: WorkbenchProps['t'], tab?: OpenTa
     case 'files': return t('workbench.pane.files')
     case 'app': {
       if (tab?.params?.appTitle) {
-        const icon = tab.params.appIcon ? `${tab.params.appIcon} ` : '📝 '
-        return `${icon}${tab.params.appTitle}`
+        return String(tab.params.appTitle)
       }
-      return `📝 ${t('workbench.pane.app')}`
+      return t('workbench.pane.app')
     }
   }
 }
@@ -189,7 +188,7 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
         openPane('app', {
           appId: custom.detail.appId,
           appTitle: custom.detail.title ?? 'Notepad',
-          appIcon: custom.detail.icon ?? '📝',
+          appIcon: custom.detail.icon ?? 'notepad',
         })
         openDetails()
       }
@@ -279,7 +278,16 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
                     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveId(tab.id) }
                   }}
                 >
-                  <span className={css.tabLabel}>{paneLabel(tab.kind, t, tab)}</span>
+                  <span className={css.tabLabel}>
+                    {tab.kind === 'app' ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <IconListPenOutline16 size={13} />
+                        <span>{paneLabel(tab.kind, t, tab)}</span>
+                      </span>
+                    ) : (
+                      paneLabel(tab.kind, t, tab)
+                    )}
+                  </span>
                   <button
                     type="button"
                     className={css.tabClose}

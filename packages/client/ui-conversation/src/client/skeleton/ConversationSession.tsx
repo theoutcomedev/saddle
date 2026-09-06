@@ -66,7 +66,7 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  */
 export function ConversationSessionHeader({
   sessionId, useSession, useSessions, useStore, actions,
-  renderSlot, views, open, toggleWorkbench, t,
+  renderSlot, views, open, toggleWorkbench, detailsOpen, t,
 }: ConversationSessionHeaderProps) {
   useSyncExternalStore(views.subscribe, views.version)
   const tabs = views.list()
@@ -141,7 +141,7 @@ export function ConversationSessionHeader({
             </div>
             <div className={css.headerUtilities}>
               {renderSlot('conversation.session.header.utilities', {})}
-              {toggleWorkbench !== undefined && (
+              {toggleWorkbench !== undefined && !detailsOpen && (
                 <button
                   type="button"
                   className={css.workbenchToggle}

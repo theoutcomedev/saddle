@@ -140,7 +140,7 @@ function AppFrameInner({
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  const cols = computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+  const cols = computeColumns(viewport, sidebarPreference, panels.details)
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -164,7 +164,7 @@ function AppFrameInner({
 
   const isMobile = viewport <= 768
   const detailsOpen = isMobile
-    ? (detailsSession !== undefined && panels.details > 0)
+    ? panels.details > 0
     : cols.details > 0
 
   return (
@@ -178,6 +178,7 @@ function AppFrameInner({
       } as React.CSSProperties}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={!detailsOpen || undefined}
+      data-details-open={detailsOpen || undefined}
       data-dragging={dragging || undefined}
     >
       {renderSlot('shell.mobile_trigger', {
@@ -211,7 +212,7 @@ function AppFrameInner({
             the shell's own pending rendering. The conversation
             is session-maybe; the strict details entry naturally renders
             empty while no session is current. */}
-        <CenterColumn>{renderSlot('conversation', {})}</CenterColumn>
+        <CenterColumn>{renderSlot('conversation', { detailsOpen })}</CenterColumn>
         <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
