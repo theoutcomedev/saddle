@@ -357,6 +357,12 @@ export function FilesPane({
   const [isDragOverDropZone, setIsDragOverDropZone] = useState(false)
   const dragDepthRef = useRef(0)
 
+  // Folder dropdown state for move prompt
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false)
+  const [folderSubdirs, setFolderSubdirs] = useState<WorkspaceFileEntry[]>([])
+  const [loadingFolders, setLoadingFolders] = useState(false)
+  const folderDropdownRef = useRef<HTMLDivElement | null>(null)
+
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const folderInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -365,6 +371,7 @@ export function FilesPane({
   const [originalText, setOriginalText] = useState('')
   const [editText, setEditText] = useState('')
   const [previewMode, setPreviewMode] = useState(true)
+  const [wordWrap, setWordWrap] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveBanner, setSaveBanner] = useState<string | null>(null)
 
@@ -372,6 +379,163 @@ export function FilesPane({
   const editorRef = useRef<HTMLTextAreaElement | null>(null)
 
   const isDirty = useMemo(() => selectedFile !== null && editText !== originalText, [selectedFile, editText, originalText])
+
+  // Close folder dropdown when clicking outside
+  useEffect(() => {
+    if (!showFolderDropdown) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (folderDropdownRef.current && !folderDropdownRef.current.contains(e.target as Node)) {
+        setShowFolderDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showFolderDropdown])
+
+  // Fetch subdirectories for destination folder
+  const loadFolderSubdirs = useCallback(async (targetPath: string) => {
+    if (!targetPath) return
+    setLoadingFolders(true)
+    try {
+      const res = await listFiles(targetPath)
+      if (res && Array.isArray(res.entries)) {
+        setFolderSubdirs(res.entries.filter(e => e.isDir))
+      } else {
+        setFolderSubdirs([])
+      }
+    } catch {
+      setFolderSubdirs([])
+    } finally {
+      setLoadingFolders(false)
+    }
+  }, [listFiles])
+
+  // When move prompt opens or prompt input changes, query subdirectories
+  useEffect(() => {
+    if (promptMode === 'move-selected' || promptMode === 'move-single') {
+      const target = promptInputText.trim() || dir
+      if (target.startsWith('/')) {
+        void loadFolderSubdirs(target)
+      }
+    }
+  }, [promptMode, promptInputText, dir, loadFolderSubdirs])
+
+  const handleSelectDestFolder = (targetPath: string) => {
+    setPromptInputText(targetPath)
+    void loadFolderSubdirs(targetPath)
+  }
+
+  const renderDestinationSelector = () => {
+    const currentTarget = promptInputText.trim() || dir
+    const parent = parentPath(currentTarget)
+    const hasParent = parent !== currentTarget && currentTarget !== '/'
+    const filteredSubdirs = folderSubdirs.filter((f) => {
+      if (selectedPaths.has(f.path)) return false
+      if (promptMode === 'move-single' && promptTarget === f.path) return false
+      return true
+    })
+
+    return (
+      <div className={css.moveInputContainer} ref={folderDropdownRef}>
+        <div className={css.moveInputWrapper}>
+          <IconFolderClose16 size={13} className={css.moveFolderIcon} />
+          <input
+            type="text"
+            className={css.moveInput}
+            placeholder="Select or type destination path…"
+            autoFocus
+            value={promptInputText}
+            onChange={(e) => {
+              setPromptInputText(e.target.value)
+              setShowFolderDropdown(true)
+            }}
+            onFocus={() => setShowFolderDropdown(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void executePrompt()
+              if (e.key === 'Escape') {
+                if (showFolderDropdown) setShowFolderDropdown(false)
+                else setPromptMode(null)
+              }
+            }}
+          />
+          <button
+            type="button"
+            className={css.folderToggleBtn}
+            onClick={() => setShowFolderDropdown(prev => !prev)}
+            title="Browse destination folders"
+          >
+            <span style={{ fontSize: 9 }}>▼</span>
+          </button>
+        </div>
+
+        {showFolderDropdown && (
+          <div className={css.folderDropdown}>
+            <div className={css.folderDropdownHeader}>
+              <span>Available Destinations</span>
+              {loadingFolders && <span>Loading…</span>}
+            </div>
+
+            {/* Navigate up to parent folder */}
+            {hasParent && (
+              <button
+                type="button"
+                className={`${css.folderDropdownItem} ${css.folderDropdownParent}`}
+                onClick={() => handleSelectDestFolder(parent)}
+                title={parent}
+              >
+                <span className={css.folderDropdownIcon}>⬆</span>
+                <span className={css.folderDropdownName}>.. (Up to {parent.split('/').pop() || '/'})</span>
+              </button>
+            )}
+
+            {/* Workspace root option if different */}
+            {cwd && cwd !== currentTarget && (
+              <button
+                type="button"
+                className={css.folderDropdownItem}
+                onClick={() => handleSelectDestFolder(cwd)}
+                title={cwd}
+              >
+                <span className={css.folderDropdownIcon}>🏠</span>
+                <span className={css.folderDropdownName}>Workspace Root ({cwd.split('/').pop() || cwd})</span>
+              </button>
+            )}
+
+            {/* Current viewing directory if different */}
+            {dir !== currentTarget && (
+              <button
+                type="button"
+                className={css.folderDropdownItem}
+                onClick={() => handleSelectDestFolder(dir)}
+                title={dir}
+              >
+                <span className={css.folderDropdownIcon}>📂</span>
+                <span className={css.folderDropdownName}>Current Folder ({dir.split('/').pop() || dir})</span>
+              </button>
+            )}
+
+            {/* Subfolders listing */}
+            {filteredSubdirs.length > 0 ? (
+              filteredSubdirs.map(f => (
+                <button
+                  type="button"
+                  key={f.path}
+                  className={css.folderDropdownItem}
+                  onClick={() => handleSelectDestFolder(f.path)}
+                  title={f.path}
+                >
+                  <span className={css.folderDropdownIcon}>📁</span>
+                  <span className={css.folderDropdownName}>{f.name}</span>
+                </button>
+              ))
+            ) : !loadingFolders ? (
+              <div className={css.folderDropdownEmpty}>No subfolders in this location</div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // Load directory entries
   const load = useCallback((path: string) => {
@@ -528,33 +692,37 @@ export function FilesPane({
         setPromptMode(null)
         load(dir)
       } else if (promptMode === 'move-selected') {
-        const destDir = promptInputText.trim().replace(/\/+$/, '')
-        if (!destDir) return
+        const rawDest = promptInputText.trim()
+        if (!rawDest) return
+        const destDir = rawDest === '/' ? '/' : rawDest.replace(/\/+$/, '')
         if (renamePath && selectedPaths.size > 0) {
           for (const srcPath of selectedPaths) {
             const fileName = srcPath.split('/').filter(Boolean).pop() || ''
             if (fileName) {
-              const target = `${destDir}/${fileName}`
+              const target = destDir === '/' ? `/${fileName}` : `${destDir}/${fileName}`
               await renamePath(srcPath, target)
             }
           }
         }
         setSelectedPaths(new Set())
+        setShowFolderDropdown(false)
         setPromptMode(null)
         load(dir)
       } else if (promptMode === 'move-single' && promptTarget) {
-        const destDir = promptInputText.trim().replace(/\/+$/, '')
-        if (!destDir) return
+        const rawDest = promptInputText.trim()
+        if (!rawDest) return
+        const destDir = rawDest === '/' ? '/' : rawDest.replace(/\/+$/, '')
         if (renamePath) {
           const fileName = promptTarget.split('/').filter(Boolean).pop() || ''
           if (fileName) {
-            const target = `${destDir}/${fileName}`
+            const target = destDir === '/' ? `/${fileName}` : `${destDir}/${fileName}`
             await renamePath(promptTarget, target)
           }
         }
         if (selectedFile === promptTarget) {
           setSelectedFile(null)
         }
+        setShowFolderDropdown(false)
         setPromptMode(null)
         load(dir)
       } else if (promptMode === 'delete-selected') {
@@ -918,6 +1086,19 @@ export function FilesPane({
 
               <button
                 type="button"
+                className={`${css.ghost} ${wordWrap ? css.wrapBtnActive : ''}`}
+                title={wordWrap ? 'Disable text wrapping' : 'Enable text wrapping'}
+                onClick={() => setWordWrap(!wordWrap)}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 4h10" />
+                  <path d="M3 8h7a2.5 2.5 0 0 1 0 5H8" />
+                  <path d="M10 11.5L8 13.5l2 2" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
                 className={`${css.btn} ${css.btnPrimary}`}
                 disabled={isSaving || !isDirty}
                 onClick={() => void handleSave()}
@@ -954,15 +1135,17 @@ export function FilesPane({
           {/* Delete prompt while in file view */}
           {promptMode === 'delete-single' && (
             <div className={css.promptBar}>
-              <span style={{ fontSize: 12, color: '#ef4444' }}>
+              <span className={css.promptLabel} style={{ color: '#ef4444' }}>
                 Permanently delete <b>{selectedFile.split('/').pop()}</b>?
               </span>
-              <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
-                Yes, Delete
-              </button>
-              <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
-                Cancel
-              </button>
+              <div className={css.promptActions}>
+                <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
+                  Yes, Delete
+                </button>
+                <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 
@@ -981,14 +1164,14 @@ export function FilesPane({
                   sandbox="allow-scripts"
                 />
               ) : (
-                <div style={{ padding: '16px 20px', overflowY: 'auto', height: '100%', userSelect: 'text' }}>
+                <div style={{ padding: '16px 20px', overflowY: 'auto', height: '100%', userSelect: 'text', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   <MarkdownText text={editText} />
                 </div>
               )
             ) : (
               <textarea
                 ref={editorRef}
-                className={css.codeTextarea}
+                className={`${css.codeTextarea} ${!wordWrap ? css.codeTextareaNoWrap : ''}`}
                 value={editText}
                 disabled={loading}
                 onChange={e => setEditText(e.target.value)}
@@ -1090,6 +1273,7 @@ export function FilesPane({
                     onClick={() => {
                       setPromptMode('move-selected')
                       setPromptInputText(dir)
+                      setShowFolderDropdown(true)
                     }}
                     title={`Move ${selectedPaths.size} item(s)`}
                   >
@@ -1111,11 +1295,12 @@ export function FilesPane({
                   </button>
                   <button
                     type="button"
-                    className={css.ghost}
+                    className={css.clearBtn}
                     onClick={() => setSelectedPaths(new Set())}
                     title="Clear selection"
                   >
-                    Clear
+                    <span className={css.clearTextFull}>Clear</span>
+                    <span className={css.clearTextShort}>✕</span>
                   </button>
                 </>
               ) : (
@@ -1188,7 +1373,7 @@ export function FilesPane({
               )}
             </div>
 
-            <div className={css.actionGroup}>
+            <div className={`${css.actionGroup} ${css.actionGroupRight}`}>
               <input
                 type="text"
                 className={css.searchInput}
@@ -1274,7 +1459,7 @@ export function FilesPane({
             <div className={css.promptBar}>
               {promptMode === 'new-file' && (
                 <>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>New File:</span>
+                  <span className={css.promptLabel}>New File:</span>
                   <input
                     type="text"
                     className={css.promptInput}
@@ -1287,14 +1472,19 @@ export function FilesPane({
                       if (e.key === 'Escape') setPromptMode(null)
                     }}
                   />
-                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
-                    Create
-                  </button>
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                      Create
+                    </button>
+                    <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
               {promptMode === 'new-folder' && (
                 <>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>New Folder:</span>
+                  <span className={css.promptLabel}>New Folder:</span>
                   <input
                     type="text"
                     className={css.promptInput}
@@ -1307,14 +1497,19 @@ export function FilesPane({
                       if (e.key === 'Escape') setPromptMode(null)
                     }}
                   />
-                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
-                    Create
-                  </button>
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                      Create
+                    </button>
+                    <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
               {promptMode === 'rename' && (
                 <>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>Rename:</span>
+                  <span className={css.promptLabel}>Rename:</span>
                   <input
                     type="text"
                     className={css.promptInput}
@@ -1326,74 +1521,88 @@ export function FilesPane({
                       if (e.key === 'Escape') setPromptMode(null)
                     }}
                   />
-                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
-                    Rename
-                  </button>
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                      Rename
+                    </button>
+                    <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
               {promptMode === 'move-selected' && (
                 <>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>Move {selectedPaths.size} item(s) to:</span>
-                  <input
-                    type="text"
-                    className={css.promptInput}
-                    placeholder="Destination folder path (e.g. /root or /host)"
-                    autoFocus
-                    value={promptInputText}
-                    onChange={e => setPromptInputText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void executePrompt()
-                      if (e.key === 'Escape') setPromptMode(null)
-                    }}
-                  />
-                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
-                    Move
-                  </button>
+                  <span className={css.promptLabel}>Move {selectedPaths.size} item(s) to:</span>
+                  {renderDestinationSelector()}
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                      Move
+                    </button>
+                    <button
+                      type="button"
+                      className={css.btn}
+                      onClick={() => {
+                        setPromptMode(null)
+                        setShowFolderDropdown(false)
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
               {promptMode === 'move-single' && (
                 <>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>Move <b>{promptTarget?.split('/').pop()}</b> to:</span>
-                  <input
-                    type="text"
-                    className={css.promptInput}
-                    placeholder="Destination folder path (e.g. /root or /host)"
-                    autoFocus
-                    value={promptInputText}
-                    onChange={e => setPromptInputText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void executePrompt()
-                      if (e.key === 'Escape') setPromptMode(null)
-                    }}
-                  />
-                  <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
-                    Move
-                  </button>
+                  <span className={css.promptLabel}>Move <b>{promptTarget?.split('/').pop()}</b> to:</span>
+                  {renderDestinationSelector()}
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnPrimary}`} onClick={() => void executePrompt()}>
+                      Move
+                    </button>
+                    <button
+                      type="button"
+                      className={css.btn}
+                      onClick={() => {
+                        setPromptMode(null)
+                        setShowFolderDropdown(false)
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
               {promptMode === 'delete-selected' && (
                 <>
-                  <span style={{ color: '#ef4444', fontWeight: 500, fontSize: 12 }}>
+                  <span className={css.promptLabel} style={{ color: '#ef4444' }}>
                     Permanently delete {selectedPaths.size} selected items?
                   </span>
-                  <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
-                    Yes, Delete All
-                  </button>
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
+                      Yes, Delete All
+                    </button>
+                    <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
               {promptMode === 'delete-single' && (
                 <>
-                  <span style={{ color: '#ef4444', fontWeight: 500, fontSize: 12 }}>
+                  <span className={css.promptLabel} style={{ color: '#ef4444' }}>
                     Permanently delete <b>{promptTarget?.split('/').pop()}</b>?
                   </span>
-                  <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
-                    Yes, Delete
-                  </button>
+                  <div className={css.promptActions}>
+                    <button type="button" className={`${css.btn} ${css.btnDanger}`} onClick={() => void executePrompt()}>
+                      Yes, Delete
+                    </button>
+                    <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
+                      Cancel
+                    </button>
+                  </div>
                 </>
               )}
-              <button type="button" className={css.btn} onClick={() => setPromptMode(null)}>
-                Cancel
-              </button>
             </div>
           )}
 
@@ -1518,6 +1727,7 @@ export function FilesPane({
                                   setPromptMode('move-single')
                                   setPromptTarget(entry.path)
                                   setPromptInputText(dir)
+                                  setShowFolderDropdown(true)
                                 } else if (id === 'rename') {
                                   setPromptMode('rename')
                                   setPromptTarget(entry.path)

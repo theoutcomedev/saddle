@@ -228,6 +228,8 @@
   border-bottom: 1px solid var(--dsw-alias-border-l2);
   background: var(--dsw-alias-bg-subtle, rgba(0, 0, 0, 0.02));
   font-size: 12px;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .actionGroup {
@@ -235,6 +237,12 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex-shrink: 0;
+}
+
+.actionGroupRight {
+  margin-left: auto;
+  flex-shrink: 1;
 }
 
 .searchInput {
@@ -295,6 +303,39 @@
   display: none;
 }
 
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.clearBtn:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-border-l2);
+}
+
+.clearTextFull {
+  display: inline;
+}
+
+.clearTextShort {
+  display: none;
+}
+
 /* Mobile viewport fallback: always show short text on small screens (< 768px) */
 @media (max-width: 768px) {
   .btnTextFull {
@@ -314,7 +355,7 @@
 
 @media (max-width: 480px) {
   .actionBar {
-    padding: 6px 6px;
+    padding: 6px 10px;
     gap: 4px;
   }
   .actionGroup {
@@ -330,7 +371,7 @@
 }
 
 /* When workbench pane is narrow via container queries */
-@container filespane (max-width: 460px) {
+@container filespane (max-width: 620px) {
   .btnTextFull {
     display: none;
   }
@@ -342,30 +383,80 @@
   }
   .searchInput {
     width: 90px;
+    max-width: 100px;
   }
 }
 
-@container filespane (max-width: 380px) {
-  .btnTextFull {
-    display: none;
-  }
-  .btnTextShort {
-    display: inline;
+@container filespane (max-width: 460px) {
+  .actionBar {
+    padding: 5px 10px;
+    gap: 4px;
   }
   .actionGroup {
     gap: 3px;
   }
+  .btn {
+    padding: 0 6px;
+    gap: 3px;
+    font-size: 11px;
+  }
   .searchInput {
-    width: 70px;
+    width: 65px;
+    min-width: 40px;
+    padding: 0 5px;
+  }
+  .clearTextFull {
+    display: none;
+  }
+  .clearTextShort {
+    display: inline;
+  }
+  .selectionPill {
+    padding: 2px 5px;
   }
 }
 
-@container filespane (max-width: 320px) {
+@container filespane (max-width: 380px) {
+  .actionBar {
+    padding: 4px 10px;
+    gap: 2px;
+  }
+  .actionGroup {
+    gap: 2px;
+  }
+  .btn {
+    padding: 0 4px;
+    gap: 2px;
+    font-size: 11px;
+    height: 24px;
+  }
   .searchInput {
     width: 50px;
+    min-width: 35px;
+    height: 24px;
+    font-size: 10px;
+    padding: 0 4px;
+  }
+  .ghost {
+    width: 24px;
+    height: 24px;
+  }
+  .clearBtn {
+    height: 24px;
+    padding: 0 4px;
+  }
+}
+
+@container filespane (max-width: 340px) {
+  .btnTextShort {
+    display: none;
   }
   .btn {
     padding: 0 5px;
+  }
+  .searchInput {
+    width: 45px;
+    min-width: 30px;
   }
 }
 
@@ -564,12 +655,15 @@
 /* --- Inline Modals & Prompts --- */
 .promptBar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   padding: 8px 10px;
   background: var(--dsw-alias-bg-hover, rgba(0, 0, 0, 0.06));
   border-bottom: 1px solid var(--dsw-alias-border-l2);
   animation: slideDown 0.15s ease;
+  box-sizing: border-box;
+  position: relative;
 }
 
 @keyframes slideDown {
@@ -583,8 +677,17 @@
   }
 }
 
+.promptLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .promptInput {
-  flex: 1;
+  flex: 1 1 140px;
+  min-width: 80px;
   height: 28px;
   padding: 0 8px;
   border-radius: 6px;
@@ -593,10 +696,191 @@
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .promptInput:focus {
   border-color: #3b82f6;
+}
+
+.promptActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Move Destination Selector & Dropdown */
+.moveInputContainer {
+  position: relative;
+  flex: 1 1 180px;
+  min-width: 120px;
+}
+
+.moveInputWrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.moveFolderIcon {
+  position: absolute;
+  left: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.moveInput {
+  width: 100%;
+  height: 28px;
+  padding: 0 24px 0 28px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.moveInput:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.folderToggleBtn {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  bottom: 3px;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.folderToggleBtn:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.folderDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--dsw-alias-bg-base);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+  z-index: 60;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  box-sizing: border-box;
+}
+
+.folderDropdownHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+.folderDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folderDropdownItem:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(59, 130, 246, 0.08));
+  color: #2563eb;
+}
+
+.folderDropdownParent {
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 500;
+}
+
+.folderDropdownIcon {
+  font-size: 13px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.folderDropdownName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folderDropdownEmpty {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+  font-style: italic;
+}
+
+@container filespane (max-width: 420px) {
+  .promptBar {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .promptLabel {
+    order: 1;
+    width: 100%;
+    font-size: 11px;
+  }
+  .promptInput,
+  .moveInputContainer {
+    order: 2;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 100%;
+  }
+  .promptActions {
+    order: 3;
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: auto;
+  }
 }
 
 /* --- Editor & Viewer Header --- */
@@ -675,9 +959,22 @@
   line-height: 1.6;
   resize: none;
   outline: none;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
   overflow: auto;
   tab-size: 2;
+}
+
+.codeTextareaNoWrap {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.wrapBtnActive {
+  color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.08) !important;
 }
 
 .editorFooter {
