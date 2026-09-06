@@ -208,6 +208,8 @@
 .searchInput {
   height: 26px;
   width: 140px;
+  min-width: 50px;
+  flex: 1 1 auto;
   padding: 0 8px;
   border-radius: 6px;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -216,10 +218,10 @@
   font-size: 11px;
   outline: none;
   transition: width 0.2s ease;
+  box-sizing: border-box;
 }
 
 .searchInput:focus {
-  width: 180px;
   border-color: var(--dsw-alias-interactive-border-focus, #3b82f6);
 }
 
@@ -261,8 +263,42 @@
   display: none;
 }
 
-/* When workbench pane is narrow, shorten buttons and labels */
-@container filespane (max-width: 380px) {
+/* Mobile viewport fallback: always show short text on small screens (< 768px) */
+@media (max-width: 768px) {
+  .btnTextFull {
+    display: none !important;
+  }
+  .btnTextShort {
+    display: inline !important;
+  }
+  .actionGroup {
+    gap: 4px !important;
+  }
+  .searchInput {
+    width: 80px;
+    max-width: 110px;
+  }
+}
+
+@media (max-width: 480px) {
+  .actionBar {
+    padding: 6px 6px;
+    gap: 4px;
+  }
+  .actionGroup {
+    gap: 3px !important;
+  }
+  .searchInput {
+    width: 65px;
+    padding: 0 6px;
+  }
+  .btn {
+    padding: 0 6px;
+  }
+}
+
+/* When workbench pane is narrow via container queries */
+@container filespane (max-width: 460px) {
   .btnTextFull {
     display: none;
   }
@@ -273,16 +309,31 @@
     gap: 4px;
   }
   .searchInput {
-    width: 75px;
-  }
-  .searchInput:focus {
-    width: 110px;
+    width: 90px;
   }
 }
 
-@container filespane (max-width: 300px) {
+@container filespane (max-width: 380px) {
+  .btnTextFull {
+    display: none;
+  }
+  .btnTextShort {
+    display: inline;
+  }
+  .actionGroup {
+    gap: 3px;
+  }
   .searchInput {
-    width: 55px;
+    width: 70px;
+  }
+}
+
+@container filespane (max-width: 320px) {
+  .searchInput {
+    width: 50px;
+  }
+  .btn {
+    padding: 0 5px;
   }
 }
 

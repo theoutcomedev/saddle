@@ -98,7 +98,9 @@ function NotepadApp({ appStore, onClose }: { appStore: AppStoreRemote; onClose: 
         <div className={css.npActions}>
           <span className={css.npStatus}>{status}</span>
           <Button variant="primary" size="sm" onClick={save}>Save</Button>
-          <Button variant="outline" size="sm" icon={<IconCloseOutline16 size={12} />} onClick={handleClose}>Close</Button>
+          <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
+            <IconCloseOutline16 size={16} />
+          </button>
         </div>
       </div>
       <textarea
