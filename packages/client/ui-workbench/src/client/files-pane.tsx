@@ -422,7 +422,6 @@ export function FilesPane({
   const [originalText, setOriginalText] = useState('')
   const [editText, setEditText] = useState('')
   const [previewMode, setPreviewMode] = useState(true)
-  const [wordWrap, setWordWrap] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [saveBanner, setSaveBanner] = useState<string | null>(null)
 
@@ -1108,19 +1107,24 @@ export function FilesPane({
             <div className={css.fileMeta}>
               <button
                 type="button"
-                className={css.btn}
+                className={`${css.btn} ${css.btnBack}`}
                 onClick={() => setSelectedFile(null)}
                 title="Return to folder listing"
               >
-                ← Back
+                <span className={css.btnTextFull}>← Back</span>
+                <span className={css.btnTextShort}>←</span>
               </button>
               <span className={css.fileName} title={selectedFile}>
                 {selectedFile.split('/').pop()}
               </span>
               {isDirty ? (
-                <span className={css.dirtyBadge}>● Unsaved</span>
+                <span className={css.dirtyBadge} title="Unsaved changes">
+                  ●<span className={css.dirtyBadgeLabel}> Unsaved</span>
+                </span>
               ) : saveBanner ? (
-                <span className={css.savedBadge}>✓ {saveBanner}</span>
+                <span className={css.savedBadge} title={saveBanner}>
+                  ✓<span className={css.savedBadgeLabel}> {saveBanner}</span>
+                </span>
               ) : null}
             </div>
 
@@ -1133,19 +1137,6 @@ export function FilesPane({
                 onClick={() => setPreviewMode(!previewMode)}
               >
                 {previewMode ? <IconCodeOutline16 size={14} /> : <IconEyeOutline16 size={14} />}
-              </button>
-
-              <button
-                type="button"
-                className={`${css.ghost} ${wordWrap ? css.wrapBtnActive : ''}`}
-                title={wordWrap ? 'Disable text wrapping' : 'Enable text wrapping'}
-                onClick={() => setWordWrap(!wordWrap)}
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 4h10" />
-                  <path d="M3 8h7a2.5 2.5 0 0 1 0 5H8" />
-                  <path d="M10 11.5L8 13.5l2 2" />
-                </svg>
               </button>
 
               <button
@@ -1222,7 +1213,7 @@ export function FilesPane({
             ) : (
               <textarea
                 ref={editorRef}
-                className={`${css.codeTextarea} ${!wordWrap ? css.codeTextareaNoWrap : ''}`}
+                className={css.codeTextarea}
                 value={editText}
                 disabled={loading}
                 onChange={e => setEditText(e.target.value)}

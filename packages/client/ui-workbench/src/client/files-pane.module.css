@@ -949,14 +949,16 @@
   background: var(--dsw-alias-bg-base);
   min-height: 40px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .fileMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .fileName {
@@ -965,6 +967,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+}
+
+.btnBack {
+  padding: 0 8px;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .dirtyBadge {
@@ -974,6 +983,13 @@
   font-size: 11px;
   color: #f59e0b;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dirtyBadgeLabel,
+.savedBadgeLabel {
+  display: inline;
 }
 
 .savedBadge {
@@ -983,12 +999,67 @@
   font-size: 11px;
   color: #10b981;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .editorActions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+@container filespane (max-width: 440px) {
+  .fileName {
+    display: none;
+  }
+}
+
+@container filespane (max-width: 380px) {
+  .editorBar {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+  .fileMeta {
+    gap: 4px;
+  }
+  .btnBack {
+    padding: 0 6px;
+    height: 24px;
+  }
+  .dirtyBadgeLabel,
+  .savedBadgeLabel {
+    display: none;
+  }
+  .editorActions {
+    gap: 3px;
+  }
+  .editorActions .btn {
+    height: 24px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+  .editorActions .ghost {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@container filespane (max-width: 320px) {
+  .btnBack .btnTextFull {
+    display: none;
+  }
+  .btnBack .btnTextShort {
+    display: inline;
+  }
+  .editorBar {
+    padding: 4px 6px;
+    gap: 3px;
+  }
+  .editorActions {
+    gap: 2px;
+  }
 }
 
 /* --- Editor Area --- */
@@ -1019,17 +1090,6 @@
   overflow-wrap: break-word;
   overflow: auto;
   tab-size: 2;
-}
-
-.codeTextareaNoWrap {
-  white-space: pre !important;
-  word-break: normal !important;
-  overflow-wrap: normal !important;
-}
-
-.wrapBtnActive {
-  color: #2563eb !important;
-  background: rgba(37, 99, 235, 0.08) !important;
 }
 
 .editorFooter {
