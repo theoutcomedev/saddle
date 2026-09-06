@@ -48,6 +48,31 @@ function AppIcon({ size = 16, className }: { size?: number; className: string | 
   )
 }
 
+/** Crisp, pixel-perfect dock icon (split-pane with right half filled) */
+function IconDock({ size = 16, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={{ display: 'block', ...style }}
+      aria-hidden="true"
+    >
+      <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M8 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H8V1.5Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function NotepadApp({
   appStore,
   mode = 'fullscreen',
@@ -170,7 +195,7 @@ export function NotepadApp({
             aria-label="Dock in Workbench"
             onClick={handleDock}
           >
-            <span className={css.dockGlyph}>◨</span>
+            <IconDock size={16} />
           </button>
           <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
             <IconCloseOutline16 size={16} />
@@ -280,7 +305,8 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                         onClose()
                       }}
                     >
-                      <span>◨ Dock</span>
+                      <IconDock size={14} style={{ marginRight: 5 }} />
+                      <span>Dock</span>
                     </Button>
                     <Button
                       variant="primary"
