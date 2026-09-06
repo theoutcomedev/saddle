@@ -170,7 +170,7 @@ export function NotepadApp({
             aria-label="Dock in Workbench"
             onClick={handleDock}
           >
-            <span>◨</span>
+            <span className={css.dockGlyph}>◨</span>
           </button>
           <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
             <IconCloseOutline16 size={16} />

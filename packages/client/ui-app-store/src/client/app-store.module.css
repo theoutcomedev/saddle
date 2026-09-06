@@ -137,6 +137,15 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.dockGlyph {
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-0.5px);
+}
+
 .toolbar {
   padding: 16px 24px 0;
 }
