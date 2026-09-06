@@ -3410,8 +3410,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         try {
           await mkdir(dirname(target), { recursive: true })
           const content = request.payload.content
-          await writeFile(target, content, 'utf8')
-          const bytesWritten = Buffer.byteLength(content, 'utf8')
+          const encoding: BufferEncoding = request.payload.encoding === 'base64' ? 'base64' : 'utf8'
+          await writeFile(target, Buffer.from(content, encoding))
+          const bytesWritten = Buffer.byteLength(content, encoding)
           return ok(request, { path: target, bytesWritten })
         } catch (error: unknown) {
           if (signal?.aborted) return err(request, { code: 'cancelled', message: 'file write was aborted', details: {} })

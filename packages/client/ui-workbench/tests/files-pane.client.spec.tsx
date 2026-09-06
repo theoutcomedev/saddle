@@ -102,4 +102,54 @@ describe('FilesPane', () => {
 
     document.body.removeChild(subrow)
   })
+
+  it('handles dropped files with progress tracking and refreshes directory', async () => {
+    const listFiles = vi.fn().mockResolvedValue({
+      path: '/workspace/my-project',
+      entries: [],
+      truncated: false,
+    })
+    const readFile = vi.fn()
+    const openPath = vi.fn()
+    const writeFile = vi.fn().mockResolvedValue({ path: '/workspace/my-project/test.txt', bytesWritten: 12 })
+
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile,
+      openPath,
+      writeFile,
+    } as unknown as FilesPaneProps
+
+    const view = render(<FilesPane {...props} />)
+
+    const file = new File(['hello world!'], 'test.txt', { type: 'text/plain' })
+    const dropTarget = view.container.querySelector('[class*="dropTarget"]')
+    expect(dropTarget).toBeDefined()
+
+    if (dropTarget) {
+      fireEvent.dragEnter(dropTarget, {
+        dataTransfer: { types: ['Files'] },
+      })
+      expect(view.getByText(/Drop files or folders to upload/i)).toBeDefined()
+
+      await act(async () => {
+        fireEvent.drop(dropTarget, {
+          dataTransfer: {
+            types: ['Files'],
+            files: [file],
+            items: [],
+          },
+        })
+      })
+
+      expect(writeFile).toHaveBeenCalledWith(
+        '/workspace/my-project/test.txt',
+        'hello world!',
+        'utf8',
+      )
+      expect(listFiles).toHaveBeenCalledWith('/workspace/my-project', expect.any(AbortSignal))
+    }
+  })
 })

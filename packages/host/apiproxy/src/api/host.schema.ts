@@ -106,6 +106,7 @@ export const hostReadFileValueSchema = z.object({
 export const hostWriteFileRequestSchema = z.object({
   path: z.string(),
   content: z.string(),
+  encoding: z.enum(['utf8', 'base64']).optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'host.writeFile'>>>
 
 /** host.writeFile response value. */

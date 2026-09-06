@@ -150,7 +150,7 @@ export interface HostApi {
    * Write a text file for the Workbench File editor. Absolute paths only.
    */
   writeFile(
-    request: RpcRequest<{ path: string; content: string }>,
+    request: RpcRequest<{ path: string; content: string; encoding?: 'utf8' | 'base64' }>,
     signal?: AbortSignal,
   ): Promise<RpcResponse<{ path: string; bytesWritten: number }>>
 

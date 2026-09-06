@@ -66,7 +66,7 @@ export function apply(ctx: ClientContext): void {
       inject: () => ({
         listFiles: (path: string, signal?: AbortSignal) => ctx.workspaces.listFiles(path, signal),
         readFile: (path: string, signal?: AbortSignal) => ctx.workspaces.readFile(path, signal),
-        writeFile: (path: string, content: string) => ctx.workspaces.writeFile(path, content),
+        writeFile: (path: string, content: string, encoding?: 'utf8' | 'base64') => ctx.workspaces.writeFile(path, content, encoding),
         deletePaths: (paths: string[]) => ctx.workspaces.deletePaths(paths),
         createFile: (path: string, content?: string) => ctx.workspaces.createFile(path, content),
         renamePath: (oldPath: string, newPath: string) => ctx.workspaces.renamePath(oldPath, newPath),

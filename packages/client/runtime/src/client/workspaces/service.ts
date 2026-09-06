@@ -253,8 +253,9 @@ export class WorkspaceRuntime implements IWorkspaces {
   /**
    * Write a UTF-8 text file from the Workbench File editor.
    */
-  async writeFile(path: string, content: string): Promise<{ path: string; bytesWritten: number }> {
-    const response = await this.api.host.writeFile({ path, content })
+  async writeFile(path: string, content: string, encoding?: 'utf8' | 'base64'): Promise<{ path: string; bytesWritten: number }> {
+    const payload = encoding !== undefined ? { path, content, encoding } : { path, content }
+    const response = await this.api.host.writeFile(payload)
     if (!response.result.ok) throw new DirectoryBrowseError(response.result.error)
     return response.result.value
   }

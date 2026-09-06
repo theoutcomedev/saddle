@@ -33,12 +33,18 @@ export function ComposerAttachments({
       if (dataTransfer === null || !dataTransfer.types.includes('Files')) return null
       return dataTransfer
     }
+    const isWorkbench = (target: EventTarget | null): boolean => {
+      if (!target || !(target instanceof HTMLElement)) return false
+      return Boolean(target.closest('[data-slot="workbench"], [class*="workbench"], [class*="files-pane"], [class*="filesPane"]'))
+    }
     const reset = (): void => {
       dragDepth.current = 0
       setDragActive(false)
     }
     const onDragEnter = (event: globalThis.DragEvent): void => {
       if (fileTransfer(event) === null) return
+      // If the drag is entering over workbench, do not activate chat drop overlay
+      if (isWorkbench(event.target)) return
       event.preventDefault()
       dragDepth.current += 1
       setDragActive(true)
@@ -46,8 +52,16 @@ export function ComposerAttachments({
     const onDragOver = (event: globalThis.DragEvent): void => {
       const dataTransfer = fileTransfer(event)
       if (dataTransfer === null) return
+      if (isWorkbench(event.target)) {
+        // Drag is currently over workbench — hide chat drop overlay
+        if (dragActive) setDragActive(false)
+        return
+      }
       event.preventDefault()
       dataTransfer.dropEffect = canAcceptDrop ? 'copy' : 'none'
+      if (!dragActive && dragDepth.current > 0 && canAcceptDrop) {
+        setDragActive(true)
+      }
     }
     const onDragLeave = (event: globalThis.DragEvent): void => {
       if (fileTransfer(event) === null) return
@@ -58,12 +72,12 @@ export function ComposerAttachments({
       if ((event.target === document.documentElement || event.target === document.body) && leftViewport) reset()
     }
     const onDrop = (event: globalThis.DragEvent): void => {
+      // Always reset drag overlay state on any drop
+      reset()
       const dataTransfer = fileTransfer(event)
       if (dataTransfer === null) return
-      reset()
       // If the drop target is inside workbench, let workbench handle file/folder uploads
-      const target = event.target as HTMLElement | null
-      if (target && target.closest('[data-slot="workbench"], [class*="workbench"], [class*="files-pane"]')) {
+      if (isWorkbench(event.target)) {
         return
       }
       // If all dropped files are non-images (or folders), do not trigger the chat image intake
@@ -78,16 +92,19 @@ export function ComposerAttachments({
     document.addEventListener('dragenter', onDragEnter)
     document.addEventListener('dragover', onDragOver)
     document.addEventListener('dragleave', onDragLeave)
-    document.addEventListener('drop', onDrop)
+    // Capture phase ensures drop overlay resets even if child stops propagation
+    document.addEventListener('drop', onDrop, true)
     window.addEventListener('dragend', reset)
+    window.addEventListener('blur', reset)
     return () => {
       document.removeEventListener('dragenter', onDragEnter)
       document.removeEventListener('dragover', onDragOver)
       document.removeEventListener('dragleave', onDragLeave)
-      document.removeEventListener('drop', onDrop)
+      document.removeEventListener('drop', onDrop, true)
       window.removeEventListener('dragend', reset)
+      window.removeEventListener('blur', reset)
     }
-  }, [canAcceptDrop, onAddImages])
+  }, [canAcceptDrop, onAddImages, dragActive])
 
   const railItems = useMemo<ComposerRailItem[]>(() => attachments.map(attachment => ({
     id: attachment.id,

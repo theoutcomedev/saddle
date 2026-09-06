@@ -50,8 +50,8 @@ export interface IWorkspaces {
   listFiles(path: string, signal?: AbortSignal): Promise<DirectoryFileListing>
   /** Read a UTF-8 text file for the Workbench File pane. */
   readFile(path: string, signal?: AbortSignal): Promise<FileText>
-  /** Write a UTF-8 text file from the Workbench File editor. */
-  writeFile(path: string, content: string): Promise<{ path: string; bytesWritten: number }>
+  /** Write a file from the Workbench File editor or upload handler. */
+  writeFile(path: string, content: string, encoding?: 'utf8' | 'base64'): Promise<{ path: string; bytesWritten: number }>
   /** Delete one or more files or directories recursively. */
   deletePaths(paths: string[]): Promise<{ deleted: string[] }>
   /** Create an empty file or write initial content. */

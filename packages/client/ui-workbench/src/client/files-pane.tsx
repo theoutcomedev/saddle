@@ -44,12 +44,54 @@ export interface FilesPaneInjected {
     truncated: boolean
   }>
   readFile: (path: string, signal?: AbortSignal) => Promise<{ path: string; text: string }>
-  writeFile?: (path: string, content: string) => Promise<{ path: string; bytesWritten: number }>
+  writeFile?: (path: string, content: string, encoding?: 'utf8' | 'base64') => Promise<{ path: string; bytesWritten: number }>
   deletePaths?: (paths: string[]) => Promise<{ deleted: string[] }>
   createFile?: (path: string, content?: string) => Promise<{ path: string }>
   renamePath?: (oldPath: string, newPath: string) => Promise<{ path: string }>
   createDirectory?: (path: string, name: string) => Promise<string>
   openPath: (path: string) => Promise<void>
+}
+
+/** Real-time progress tracking state for batch file and folder uploads. */
+export interface UploadProgress {
+  status: 'scanning' | 'uploading' | 'completed' | 'error'
+  totalCount: number
+  completedCount: number
+  currentFileName: string
+  error?: string
+}
+
+const TEXT_EXTS = new Set([
+  'txt', 'md', 'markdown', 'json', 'js', 'mjs', 'cjs', 'ts', 'mts', 'cts', 'tsx', 'jsx',
+  'css', 'scss', 'sass', 'less', 'html', 'htm', 'svg', 'xml', 'yaml', 'yml', 'toml',
+  'ini', 'conf', 'config', 'env', 'sh', 'bash', 'zsh', 'py', 'rs', 'go', 'c', 'h',
+  'cpp', 'hpp', 'java', 'sql', 'graphql', 'prisma', 'dockerfile', 'gitignore',
+  'gitattributes', 'editorconfig', 'lock', 'csv', 'tsv', 'log', 'map',
+])
+
+function isTextFile(file: File): boolean {
+  if (file.type.startsWith('text/')) return true
+  if (file.type === 'application/json' || file.type === 'application/javascript' || file.type === 'application/typescript' || file.type === 'application/xml') return true
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  return TEXT_EXTS.has(ext)
+}
+
+async function readFilePayload(file: File): Promise<{ content: string; encoding: 'utf8' | 'base64' }> {
+  if (isTextFile(file)) {
+    const text = await file.text()
+    return { content: text, encoding: 'utf8' }
+  }
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const len = bytes.byteLength
+  const chunkSize = 8192
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len))
+    binary += String.fromCharCode(...chunk)
+  }
+  const content = btoa(binary)
+  return { content, encoding: 'base64' }
 }
 
 /** Full files-pane props: owner params, runtime share, locale, inject face. */
@@ -311,7 +353,7 @@ export function FilesPane({
   const [promptMode, setPromptMode] = useState<PromptMode | null>(null)
   const [promptTarget, setPromptTarget] = useState<string | null>(null)
   const [promptInputText, setPromptInputText] = useState('')
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const [isDragOverDropZone, setIsDragOverDropZone] = useState(false)
   const dragDepthRef = useRef(0)
 
@@ -588,6 +630,12 @@ export function FilesPane({
   const uploadFiles = async (source: FileList | File[] | DataTransferItemList) => {
     if (!writeFile) return
     setError(null)
+    setUploadProgress({
+      status: 'scanning',
+      totalCount: 0,
+      completedCount: 0,
+      currentFileName: 'Scanning folder contents…',
+    })
     try {
       const collected: Array<{ path: string; file: File }> = []
       const baseDir = dir.replace(/\/+$/, '')
@@ -614,20 +662,52 @@ export function FilesPane({
         }
       }
 
-      if (collected.length === 0) return
-      setUploadStatus(`Uploading ${collected.length} item(s)…`)
-
-      for (const { path: targetPath, file } of collected) {
-        const text = await file.text()
-        await writeFile(targetPath, text)
+      if (collected.length === 0) {
+        setUploadProgress(null)
+        return
       }
 
-      setUploadStatus(`Uploaded ${collected.length} item(s)!`)
-      setTimeout(() => setUploadStatus(null), 2500)
+      const firstItem = collected[0]
+      setUploadProgress({
+        status: 'uploading',
+        totalCount: collected.length,
+        completedCount: 0,
+        currentFileName: firstItem?.file.name ?? '',
+      })
+
+      for (let i = 0; i < collected.length; i++) {
+        const item = collected[i]
+        if (!item) continue
+        const { path: targetPath, file } = item
+        setUploadProgress({
+          status: 'uploading',
+          totalCount: collected.length,
+          completedCount: i,
+          currentFileName: file.name,
+        })
+        const { content, encoding } = await readFilePayload(file)
+        await writeFile(targetPath, content, encoding)
+      }
+
+      setUploadProgress({
+        status: 'completed',
+        totalCount: collected.length,
+        completedCount: collected.length,
+        currentFileName: '',
+      })
+      // Immediately reload directory listing to show uploaded items
       load(dir)
+      setTimeout(() => setUploadProgress(null), 3500)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err))
-      setUploadStatus(null)
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg)
+      setUploadProgress({
+        status: 'error',
+        totalCount: 0,
+        completedCount: 0,
+        currentFileName: '',
+        error: msg,
+      })
     }
   }
 
@@ -941,7 +1021,50 @@ export function FilesPane({
         </div>
       ) : (
         /* --- DIRECTORY EXPLORER VIEW --- */
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div
+          className={css.dropTarget}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, position: 'relative' }}
+          onDragEnter={(e) => {
+            if (e.dataTransfer.types.includes('Files')) {
+              e.preventDefault()
+              dragDepthRef.current += 1
+              setIsDragOverDropZone(true)
+            }
+          }}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes('Files')) {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'copy'
+              if (!isDragOverDropZone) setIsDragOverDropZone(true)
+            }
+          }}
+          onDragLeave={(e) => {
+            if (e.dataTransfer.types.includes('Files')) {
+              e.preventDefault()
+              dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+              if (dragDepthRef.current === 0) setIsDragOverDropZone(false)
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault()
+            dragDepthRef.current = 0
+            setIsDragOverDropZone(false)
+            if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+              void uploadFiles(e.dataTransfer.items)
+            } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              void uploadFiles(e.dataTransfer.files)
+            }
+          }}
+        >
+          {isDragOverDropZone && (
+            <div className={css.dropOverlay}>
+              <IconUpload size={28} />
+              <div className={css.dropTitle}>Drop files or folders to upload</div>
+              <div className={css.dropSubtitle}>
+                Uploading into <b>{dir === '/' ? '/ (root)' : dir.split('/').filter(Boolean).pop()}</b>
+              </div>
+            </div>
+          )}
           {/* Actions & Multi-select Toolbar */}
           <div className={css.actionBar}>
             <div className={css.actionGroup}>
@@ -1082,11 +1205,65 @@ export function FilesPane({
             </div>
           </div>
 
-          {/* Upload Status Banner */}
-          {uploadStatus && (
-            <div className={css.uploadStatusBanner}>
-              <IconUpload size={13} />
-              <span>{uploadStatus}</span>
+          {/* Upload Progress Banner */}
+          {uploadProgress && (
+            <div className={`${css.uploadBanner} ${uploadProgress.status === 'completed' ? css.uploadBannerSuccess : uploadProgress.status === 'error' ? css.uploadBannerError : ''}`}>
+              <div className={css.uploadBannerMain}>
+                <div className={css.uploadBannerIcon}>
+                  {uploadProgress.status === 'completed' ? (
+                    <IconCheckOutline16 size={14} className={css.successIcon} />
+                  ) : uploadProgress.status === 'error' ? (
+                    <IconCloseOutline16 size={14} className={css.errorIcon} />
+                  ) : (
+                    <span className={css.spinner} />
+                  )}
+                </div>
+                <div className={css.uploadBannerInfo}>
+                  <div className={css.uploadBannerTitle}>
+                    {uploadProgress.status === 'scanning' && <span>Scanning files and folders…</span>}
+                    {uploadProgress.status === 'uploading' && (
+                      <>
+                        <span>
+                          Uploading {uploadProgress.completedCount + 1} of {uploadProgress.totalCount}:{' '}
+                          <b>{uploadProgress.currentFileName}</b>
+                        </span>
+                        <span className={css.uploadBannerPercent}>
+                          {Math.round((uploadProgress.completedCount / Math.max(uploadProgress.totalCount, 1)) * 100)}%
+                        </span>
+                      </>
+                    )}
+                    {uploadProgress.status === 'completed' && (
+                      <span>
+                        ✓ Uploaded {uploadProgress.totalCount} item{uploadProgress.totalCount === 1 ? '' : 's'} successfully
+                      </span>
+                    )}
+                    {uploadProgress.status === 'error' && (
+                      <span>Upload failed: {uploadProgress.error}</span>
+                    )}
+                  </div>
+                  {uploadProgress.status === 'uploading' && (
+                    <div className={css.progressBar}>
+                      <div
+                        className={css.progressFill}
+                        style={{
+                          width: `${Math.max(5, Math.round((uploadProgress.completedCount / Math.max(uploadProgress.totalCount, 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {(uploadProgress.status === 'completed' || uploadProgress.status === 'error') && (
+                  <button
+                    type="button"
+                    className={css.ghost}
+                    onClick={() => setUploadProgress(null)}
+                    style={{ padding: 2, marginLeft: 'auto' }}
+                    title="Dismiss"
+                  >
+                    <IconCloseOutline16 size={12} />
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -1219,46 +1396,7 @@ export function FilesPane({
           )}
 
           {/* Directory Files Table */}
-          <div
-            className={`${css.body} ${css.dropTarget}`}
-            onDragEnter={(e) => {
-              if (e.dataTransfer.types.includes('Files')) {
-                e.preventDefault()
-                dragDepthRef.current += 1
-                setIsDragOverDropZone(true)
-              }
-            }}
-            onDragOver={(e) => {
-              if (e.dataTransfer.types.includes('Files')) {
-                e.preventDefault()
-                e.dataTransfer.dropEffect = 'copy'
-              }
-            }}
-            onDragLeave={(e) => {
-              if (e.dataTransfer.types.includes('Files')) {
-                e.preventDefault()
-                dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
-                if (dragDepthRef.current === 0) setIsDragOverDropZone(false)
-              }
-            }}
-            onDrop={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              dragDepthRef.current = 0
-              setIsDragOverDropZone(false)
-              if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-                void uploadFiles(e.dataTransfer.items)
-              } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                void uploadFiles(e.dataTransfer.files)
-              }
-            }}
-          >
-            {isDragOverDropZone && (
-              <div className={css.dropOverlay}>
-                <IconUpload size={24} />
-                <span>Drop files or folders here to upload to {dir === '/' ? '/ (root)' : dir.split('/').pop()}</span>
-              </div>
-            )}
+          <div className={css.body}>
             {filteredEntries.length === 0 ? (
               <div className={css.emptyDir}>
                 {loading ? 'Scanning directory…' : 'This folder is empty'}
