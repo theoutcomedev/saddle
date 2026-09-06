@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
+import { IconWorkbenchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConversationSlotProps, InputZone } from '../contract/slots.ts'
 import { HeroGlow, HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.tsx'
@@ -14,7 +15,7 @@ export type ConversationRootProps = ConversationSlotProps
 
 export function ConversationRoot({
   sessionId, useSession, useSessions, useWorkspaces, useInput, useComposerBlock,
-  renderSlot, renderSlotChain, selectWorkspace, t,
+  renderSlot, renderSlotChain, selectWorkspace, toggleWorkbench, t,
 }: ConversationRootProps) {
   const openState = useSession(s => s.openState)
   const composerPhase = useSession(s => s.composerPhase)
@@ -185,6 +186,19 @@ export function ConversationRoot({
 
   return (
     <div className={css.root} data-phase={phase}>
+      {hero && toggleWorkbench !== undefined && (
+        <div className={css.heroHeader}>
+          <button
+            type="button"
+            className={css.workbenchToggle}
+            aria-label="Toggle workbench"
+            title="Toggle workbench"
+            onClick={() => { toggleWorkbench() }}
+          >
+            <IconWorkbenchOutline16 className={css.workbenchIcon} size={16} />
+          </button>
+        </div>
+      )}
       {renderSlot('conversation.session.header', {})}
       <div className={css.scrollBody} data-conversation-scroll="">
         {renderSlot('conversation.session', {})}

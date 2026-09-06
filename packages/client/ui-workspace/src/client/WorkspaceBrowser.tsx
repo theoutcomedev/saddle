@@ -245,6 +245,8 @@ type SessionTreeProps = Pick<
   onSessionArchive: (sessionId: SessionNode['id']) => void
   /** Request permanent deletion of a session (row menu action; shows the delete dialog). */
   onSessionDelete: (sessionId: SessionNode['id']) => void
+  /** Export and download a session log archive. */
+  exportSession?: ((sessionId: SessionNode['id']) => void) | undefined
   /** Session order behavior: fixed after edits, or additionally promoted by user activity. */
   orderBy: SessionOrderBy
 }
@@ -252,7 +254,7 @@ type SessionTreeProps = Pick<
 /** The scrolling session tree; unmounting drops the sessions subscription and expand-all state. */
 function SessionTree({
   useSessions, startSession, open, forkSession, workspaces, archivedSessionIds,
-  onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive, onSessionDelete,
+  onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive, onSessionDelete, exportSession,
   insertWorkspaceBefore, insertSessionBefore, orderBy,
   groupExpansion, setGroupExpanded,
   sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
@@ -522,6 +524,7 @@ function SessionTree({
                     onFork={forkSession}
                     onArchive={onSessionArchive}
                     onDelete={onSessionDelete}
+                    onExport={exportSession}
                     drag={dragProps}
                     t={t}
                   />
@@ -550,7 +553,7 @@ function SessionTree({
 
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
-  useSessions, open, forkSession, onSessionRename, onSessionArchive, onSessionDelete, archivedSessionIds,
+  useSessions, open, forkSession, onSessionRename, onSessionArchive, onSessionDelete, exportSession, archivedSessionIds,
   orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, t,
 }: Pick<
   SessionTreeProps,
@@ -560,6 +563,7 @@ function FlatList({
   | 'onSessionRename'
   | 'onSessionArchive'
   | 'onSessionDelete'
+  | 'exportSession'
   | 'archivedSessionIds'
   | 'orderBy'
   | 'sessionOrderByAccount'
@@ -640,6 +644,7 @@ function FlatList({
               onFork={forkSession}
               onArchive={onSessionArchive}
               onDelete={onSessionDelete}
+              onExport={exportSession}
               flat
               drag={{
                 start: () => {
@@ -762,6 +767,7 @@ export function WorkspaceBrowser({
   insertWorkspaceBefore,
   archiveSession,
   deleteSession,
+  exportSession,
   insertSessionBefore,
   createWorkspace,
   searchSessions,
@@ -1194,6 +1200,7 @@ export function WorkspaceBrowser({
               <FlatList
                 useSessions={useSessions} open={open} forkSession={forkSession}
                 onSessionRename={onSessionRename} onSessionArchive={onSessionArchive} onSessionDelete={onSessionDelete}
+                exportSession={exportSession}
                 archivedSessionIds={archivedSessionIds}
                 orderBy={orderBy}
                 sessionOrderByAccount={sessionOrderByAccount}
@@ -1209,6 +1216,7 @@ export function WorkspaceBrowser({
                 onSessionRename={onSessionRename}
                 onSessionArchive={onSessionArchive}
                 onSessionDelete={onSessionDelete}
+                exportSession={exportSession}
                 forkSession={forkSession}
                 workspaces={workspaces}
                 groupExpansion={groupExpansion}

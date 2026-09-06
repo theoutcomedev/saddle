@@ -99,6 +99,18 @@ export function apply(ctx: ClientContext): void {
     },
     archiveSession: async (sessionId) => { await ctx.workspaces.archiveSession(sessionId) },
     deleteSession: async (sessionId) => { await ctx.workspaces.deleteSession(sessionId) },
+    exportSession: (sessionId) => {
+      const origin = (globalThis as { location?: { origin?: string } }).location?.origin
+      const base = origin !== undefined && origin !== 'null' ? origin : 'http://dsh.internal'
+      const url = new URL('/api/session.export', base)
+      url.searchParams.set('sessionId', sessionId)
+      url.searchParams.set('includeDescendants', 'true')
+      const filename = `dsh-session-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.zip`
+      const anchor = document.createElement('a')
+      anchor.href = url.toString()
+      anchor.download = filename
+      anchor.click()
+    },
     insertSessionBefore: async (workspaceId, sessionId, beforeSessionId) => {
       await ctx.workspaces.insertSessionBefore(workspaceId, sessionId, beforeSessionId)
     },

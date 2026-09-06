@@ -136,6 +136,10 @@ export type WorkspaceBrowserInjected = {
    */
   deleteSession: (sessionId: SessionId) => Promise<void>
   /**
+   * Export and download the Session log archive for a Session.
+   */
+  exportSession?: (sessionId: SessionId) => void
+  /**
    * Reorder a session inside its Workspace account (DOM-insertBefore
    * semantics: omitted anchor appends to the end). The view refreshes from
    * the Host response/changed frame; failures leave the order unchanged.
