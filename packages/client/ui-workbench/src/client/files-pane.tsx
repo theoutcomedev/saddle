@@ -1295,14 +1295,6 @@ export function FilesPane({
           {/* Actions & Multi-select Toolbar */}
           <div className={css.actionBar}>
             <div className={css.actionGroup}>
-              <input
-                type="checkbox"
-                className={css.checkbox}
-                checked={filteredEntries.length > 0 && selectedPaths.size === filteredEntries.length}
-                onChange={toggleSelectAll}
-                title="Select all"
-              />
-
               {selectedPaths.size > 0 ? (
                 <>
                   <span className={css.selectionPill} title={`${selectedPaths.size} selected`}>
@@ -1659,7 +1651,16 @@ export function FilesPane({
               <table className={css.table}>
                 <thead>
                   <tr>
-                    <th style={{ width: 30, paddingLeft: 10, paddingRight: 0 }}></th>
+                    <th style={{ width: 30, paddingLeft: 10, paddingRight: 0, verticalAlign: 'middle' }}>
+                      <input
+                        type="checkbox"
+                        className={css.checkbox}
+                        checked={filteredEntries.length > 0 && selectedPaths.size === filteredEntries.length}
+                        onChange={toggleSelectAll}
+                        disabled={filteredEntries.length === 0}
+                        title={selectedPaths.size === filteredEntries.length ? 'Deselect all' : 'Select all'}
+                      />
+                    </th>
                     <th>Name</th>
                     <th style={{ width: 55, textAlign: 'right', paddingRight: 4 }}>Size</th>
                     <th style={{ width: 34, textAlign: 'right', paddingRight: 8 }}></th>
@@ -1691,7 +1692,7 @@ export function FilesPane({
                           else openFile(entry.path)
                         }}
                       >
-                        <td style={{ paddingLeft: 10, paddingRight: 0 }}>
+                        <td style={{ paddingLeft: 10, paddingRight: 0, verticalAlign: 'middle' }}>
                           <input
                             type="checkbox"
                             className={css.checkbox}
