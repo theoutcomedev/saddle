@@ -136,14 +136,18 @@ function IconHardDrive({ size = 12, className }: IconProps) {
   )
 }
 
-/** Crisp, minimalist star SVG icon for pinned presets */
-function IconStar({ size = 11, className }: IconProps) {
+/** Crisp, minimalist star SVG icon for pinned presets and favorites */
+function IconStar({ size = 15, filled = true, className }: IconProps & { filled?: boolean }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 16 16"
-      fill="currentColor"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={filled ? 0.6 : 1.3}
+      strokeLinejoin="round"
+      strokeLinecap="round"
       className={className}
       aria-hidden
     >
@@ -771,8 +775,9 @@ export function FilesPane({
           title={isCurrentDirPinned ? 'Unpin this folder from presets' : 'Pin this folder to presets'}
           onClick={togglePinCurrentDir}
           style={isCurrentDirPinned ? { color: 'var(--dsw-alias-interactive-primary, #3b82f6)' } : undefined}
+          aria-label={isCurrentDirPinned ? 'Unpin this folder' : 'Pin this folder'}
         >
-          {isCurrentDirPinned ? '★' : '☆'}
+          <IconStar size={15} filled={isCurrentDirPinned} />
         </button>
 
         <button
