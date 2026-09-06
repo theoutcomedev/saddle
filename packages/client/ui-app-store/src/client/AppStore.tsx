@@ -48,15 +48,6 @@ function AppIcon({ size = 16, className }: { size?: number; className: string | 
   )
 }
 
-function DockIcon({ size = 16, className }: { size?: number; className?: string | undefined }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" />
-      <line x1="10" y1="2" x2="10" y2="14" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
-  )
-}
-
 export function NotepadApp({
   appStore,
   mode = 'fullscreen',
@@ -179,7 +170,7 @@ export function NotepadApp({
             aria-label="Dock in Workbench"
             onClick={handleDock}
           >
-            <DockIcon size={16} />
+            <span>◨</span>
           </button>
           <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
             <IconCloseOutline16 size={16} />
