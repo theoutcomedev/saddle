@@ -1407,7 +1407,7 @@ export function FilesPane({
               <table className={css.table}>
                 <thead>
                   <tr>
-                    <th style={{ width: 28, paddingLeft: 8, paddingRight: 0 }}></th>
+                    <th style={{ width: 30, paddingLeft: 10, paddingRight: 0 }}></th>
                     <th>Name</th>
                     <th style={{ width: 55, textAlign: 'right', paddingRight: 4 }}>Size</th>
                     <th style={{ width: 34, textAlign: 'right', paddingRight: 8 }}></th>
@@ -1439,7 +1439,7 @@ export function FilesPane({
                           else openFile(entry.path)
                         }}
                       >
-                        <td style={{ paddingLeft: 8, paddingRight: 0 }}>
+                        <td style={{ paddingLeft: 10, paddingRight: 0 }}>
                           <input
                             type="checkbox"
                             className={css.checkbox}
