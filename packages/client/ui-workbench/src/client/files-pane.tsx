@@ -243,6 +243,41 @@ function IconUpload({ size = 13, className }: IconProps) {
   )
 }
 
+/** Crisp eye-off icon for hidden files visibility toggle */
+function IconEyeOffOutline16({ size = 14, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M2 2L14 14"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 3.3C6.98 3.17 7.48 3.1 8 3.1C11.5 3.1 14 5.5 15 8C14.53 9.17 13.68 10.24 12.56 11.02M9.62 12.64C9.1 12.81 8.56 12.9 8 12.9C4.5 12.9 2 10.5 1 8C1.56 6.6 2.65 5.33 4.02 4.48"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.65 6.65C6.24 7.03 6 7.48 6 8C6 9.1 6.9 10 8 10C8.52 10 8.97 9.76 9.35 9.35"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export function FilesPane({
   params,
   sessionId,
@@ -269,6 +304,22 @@ export function FilesPane({
   const [pathInput, setPathInput] = useState(dir)
   const [showHidden, setShowHidden] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Pane width tracking for responsive adaptations
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const [isNarrow, setIsNarrow] = useState(false)
+
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsNarrow(entry.contentRect.width < 460)
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Target DOM element in Workbench header row 2
   const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
@@ -946,7 +997,7 @@ export function FilesPane({
   )
 
   return (
-    <div className={css.root}>
+    <div ref={rootRef} className={css.root}>
       {/* Renders in Workbench header row 2 (aligned with Chat/Trajectory tabs) or fallback inline */}
       {subrowEl ? createPortal(presetsContent, subrowEl) : presetsContent}
 
@@ -1307,7 +1358,7 @@ export function FilesPane({
                 <>
                   <button
                     type="button"
-                    className={css.btn}
+                    className={`${css.btn} ${css.btnCreate}`}
                     onClick={() => {
                       setPromptMode('new-file')
                       setPromptInputText('')
@@ -1320,7 +1371,7 @@ export function FilesPane({
                   </button>
                   <button
                     type="button"
-                    className={css.btn}
+                    className={`${css.btn} ${css.btnCreate}`}
                     onClick={() => {
                       setPromptMode('new-folder')
                       setPromptInputText('')
@@ -1377,17 +1428,18 @@ export function FilesPane({
               <input
                 type="text"
                 className={css.searchInput}
-                placeholder="Filter files…"
+                placeholder={isNarrow ? 'Filter' : 'Filter files…'}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
               <button
                 type="button"
                 className={`${css.ghost} ${showHidden ? css.presetChipActive : ''}`}
-                title={showHidden ? 'Hide dotfiles' : 'Show hidden dotfiles'}
+                title={showHidden ? 'Hide hidden files (.dotfiles)' : 'Show hidden files (.dotfiles)'}
+                aria-label={showHidden ? 'Hide hidden files' : 'Show hidden files'}
                 onClick={() => setShowHidden(!showHidden)}
               >
-                .{showHidden ? '✓' : ''}
+                {showHidden ? <IconEyeOutline16 size={14} /> : <IconEyeOffOutline16 size={14} />}
               </button>
             </div>
           </div>
