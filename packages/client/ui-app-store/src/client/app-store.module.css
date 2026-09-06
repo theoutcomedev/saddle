@@ -54,7 +54,7 @@
 .mask {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,11 +288,13 @@
 .npRoot {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-primary);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .npRootDocked {
@@ -304,6 +306,45 @@
   min-height: 0;
   background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-primary);
+}
+
+.npDockedToolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
+  gap: 8px;
+}
+
+.npToolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.npTaDocked {
+  flex: 1;
+  width: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 16px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.npTaDocked::placeholder {
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .dockBtn {

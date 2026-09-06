@@ -198,6 +198,15 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     return () => window.removeEventListener('workbench:open-app', onCustomOpenApp)
   }, [openDetails, openPane])
 
+  // Custom event listener for programmatic workbench drawer closing
+  useEffect(() => {
+    const onCustomClose = (): void => {
+      closeDetails()
+    }
+    window.addEventListener('workbench:close-details', onCustomClose)
+    return () => window.removeEventListener('workbench:close-details', onCustomClose)
+  }, [closeDetails])
+
   // URL auto-open: clicking any http(s) link anywhere opens it in the Browser
   // pane instead of navigating away. Delegated at document level so agent-
   // surfaced URLs in the conversation open here by default.

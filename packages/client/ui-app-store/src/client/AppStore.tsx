@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { Button, IconCloseOutline16, IconFullscreenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
@@ -104,15 +105,16 @@ export function NotepadApp({
   const handleDock = () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current)
     void appStore.save(text)
+    onClose?.()
     window.dispatchEvent(new CustomEvent('workbench:open-app', {
       detail: { appId: 'notepad', title: 'Notepad', icon: '📝' },
     }))
-    onClose?.()
   }
 
   const handleFullscreen = () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current)
     void appStore.save(text)
+    window.dispatchEvent(new CustomEvent('workbench:close-details'))
     if (onFullscreen) {
       onFullscreen()
     } else {
@@ -124,14 +126,15 @@ export function NotepadApp({
 
   const isDocked = mode === 'docked'
 
-  return (
-    <div className={isDocked ? css.npRootDocked : css.npRoot}>
-      <div className={css.npHeader}>
-        <h2 className={css.npTitle}>Notepad</h2>
-        <div className={css.npActions}>
-          <span className={css.npStatus}>{status}</span>
-          <Button variant="primary" size="sm" onClick={save}>Save</Button>
-          {isDocked ? (
+  if (isDocked) {
+    return (
+      <div className={css.npRootDocked}>
+        <div className={css.npDockedToolbar}>
+          <div className={css.npToolbarLeft}>
+            <span className={css.npStatus}>{status || 'Autosave on'}</span>
+          </div>
+          <div className={css.npActions}>
+            <Button variant="primary" size="sm" onClick={save}>Save</Button>
             <button
               type="button"
               className={css.dockBtn}
@@ -142,23 +145,39 @@ export function NotepadApp({
               <IconFullscreenOutline16 size={14} />
               <span>Fullscreen</span>
             </button>
-          ) : (
-            <button
-              type="button"
-              className={css.dockBtn}
-              title="Dock in Workbench"
-              aria-label="Dock in Workbench"
-              onClick={handleDock}
-            >
-              <span>◨</span>
-              <span>Dock in Workbench</span>
-            </button>
-          )}
-          {!isDocked && (
-            <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
-              <IconCloseOutline16 size={16} />
-            </button>
-          )}
+          </div>
+        </div>
+        <textarea
+          className={css.npTaDocked}
+          value={text}
+          autoFocus
+          placeholder="Type here — I can read what you write. It autosaves as you go."
+          onChange={onChange}
+        />
+      </div>
+    )
+  }
+
+  const fullscreenElement = (
+    <div className={css.npRoot}>
+      <div className={css.npHeader}>
+        <h2 className={css.npTitle}>Notepad</h2>
+        <div className={css.npActions}>
+          <span className={css.npStatus}>{status}</span>
+          <Button variant="primary" size="sm" onClick={save}>Save</Button>
+          <button
+            type="button"
+            className={css.dockBtn}
+            title="Dock in Workbench"
+            aria-label="Dock in Workbench"
+            onClick={handleDock}
+          >
+            <span>◨</span>
+            <span>Dock in Workbench</span>
+          </button>
+          <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
+            <IconCloseOutline16 size={16} />
+          </button>
         </div>
       </div>
       <textarea
@@ -170,6 +189,10 @@ export function NotepadApp({
       />
     </div>
   )
+
+  return typeof document !== 'undefined'
+    ? createPortal(fullscreenElement, document.body)
+    : fullscreenElement
 }
 
 function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: string) => void }) {
@@ -196,7 +219,7 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
     return true
   })
 
-  return (
+  const modalElement = (
     <div className={css.mask} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby="my-apps-title">
         <div className={css.header}>
@@ -267,7 +290,10 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                       variant="primary"
                       size="sm"
                       title="Open in Fullscreen"
-                      onClick={() => onOpen(app.id)}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('workbench:close-details'))
+                        onOpen(app.id)
+                      }}
                     >
                       <span>⛶ Fullscreen</span>
                     </Button>
@@ -280,6 +306,10 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalElement, document.body)
+    : modalElement
 }
 
 /** Hosts an application inside the Workbench App Pane slot. */
@@ -297,6 +327,7 @@ export function WorkbenchAppHost({
         appStore={appStore}
         mode="docked"
         onFullscreen={() => {
+          window.dispatchEvent(new CustomEvent('workbench:close-details'))
           window.dispatchEvent(new CustomEvent('saddle:open-fullscreen-app', { detail: { appId: 'notepad' } }))
         }}
       />
@@ -317,6 +348,7 @@ export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore:
     const onOpenFullscreen = (event: Event) => {
       const custom = event as CustomEvent<{ appId: string }>
       if (custom.detail?.appId) {
+        window.dispatchEvent(new CustomEvent('workbench:close-details'))
         setActiveApp(custom.detail.appId)
         setOpen(true)
       }
