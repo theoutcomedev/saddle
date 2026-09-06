@@ -114,7 +114,7 @@
 
 .close,
 .iconBtn {
-  /* Reset iOS default button chrome; circle geometry matches Settings. */
+  /* Reset iOS default button chrome; square geometry matches Workbench actions. */
   -webkit-appearance: none;
   appearance: none;
   display: inline-flex;
@@ -124,7 +124,7 @@
   height: 28px;
   padding: 0;
   border: none;
-  border-radius: 28px;
+  border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
@@ -321,7 +321,7 @@
   justify-content: space-between;
   height: 38px;
   min-height: 38px;
-  padding: 0 14px;
+  padding: 0 10px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
   background: var(--dsw-alias-bg-base);
   gap: 8px;

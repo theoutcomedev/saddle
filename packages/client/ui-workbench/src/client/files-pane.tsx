@@ -826,9 +826,11 @@ export function FilesPane({
                 {idx > 0 && <span className={css.crumbSep}>/</span>}
                 <button
                   type="button"
-                  className={`${css.crumb} ${idx === breadcrumbs.length - 1 ? css.crumbActive : ''}`}
+                  className={idx === 0 && crumb.name === '..'
+                    ? css.crumbRoot
+                    : `${css.crumb} ${idx === breadcrumbs.length - 1 ? css.crumbActive : ''}`}
                   onClick={() => load(crumb.path)}
-                  title={crumb.path}
+                  title={idx === 0 && crumb.name === '..' ? 'Jump to parent / root folder' : crumb.path}
                 >
                   {crumb.name}
                 </button>
