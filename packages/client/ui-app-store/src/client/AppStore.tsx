@@ -155,10 +155,9 @@ export function NotepadApp({
     return (
       <div className={css.npRootDocked}>
         <div className={css.npDockedToolbar}>
-          <div className={css.npToolbarLeft}>
-            <span className={css.npStatus}>{status || 'Autosave on'}</span>
-          </div>
+          <div className={css.npToolbarLeft} />
           <div className={css.npActions}>
+            {status && <span className={css.npStatus}>{status}</span>}
             <Button variant="primary" size="sm" onClick={save}>Save</Button>
             <button
               type="button"
