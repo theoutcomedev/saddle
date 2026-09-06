@@ -41,6 +41,7 @@ export function apply(ctx: ClientContext): void {
       'workbench.pane.jobs': { kind: 'single', scope: 'session' },
       'workbench.pane.browser': { kind: 'single', scope: 'session' },
       'workbench.pane.files': { kind: 'single', scope: 'session' },
+      'workbench.pane.app': { kind: 'single', scope: 'session' },
     },
     inject: (): { closeDetails: () => void; openDetails: () => void } => ({
       closeDetails: () => { ctx.layout.closeDetails() },

@@ -90,6 +90,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'workbench.pane.files': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
     /**
+     * The Workbench application pane: generic slot hosting metamorphic apps (Notepad, etc).
+     */
+    'workbench.pane.app': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    /**
      * Frame-wide floating layer, above every column and outside their scroll
      * containers. Deliberately generic and unowned by any feature: a badge, a
      * toast stack or a status pill all belong here, and entries order among

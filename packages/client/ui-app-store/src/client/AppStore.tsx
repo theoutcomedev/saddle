@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { Button, IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutline16, IconFullscreenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
 
@@ -47,7 +47,17 @@ function AppIcon({ size = 16, className }: { size?: number; className: string | 
   )
 }
 
-function NotepadApp({ appStore, onClose }: { appStore: AppStoreRemote; onClose: () => void }) {
+export function NotepadApp({
+  appStore,
+  mode = 'fullscreen',
+  onClose,
+  onFullscreen,
+}: {
+  appStore: AppStoreRemote
+  mode?: 'fullscreen' | 'docked'
+  onClose?: () => void
+  onFullscreen?: () => void
+}) {
   const [text, setText] = useState('')
   const [status, setStatus] = useState('')
   const timerRef = useRef<number | null>(null)
@@ -88,19 +98,67 @@ function NotepadApp({ appStore, onClose }: { appStore: AppStoreRemote; onClose: 
   const handleClose = () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current)
     void appStore.save(text)
-    onClose()
+    onClose?.()
   }
 
+  const handleDock = () => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current)
+    void appStore.save(text)
+    window.dispatchEvent(new CustomEvent('workbench:open-app', {
+      detail: { appId: 'notepad', title: 'Notepad', icon: '📝' },
+    }))
+    onClose?.()
+  }
+
+  const handleFullscreen = () => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current)
+    void appStore.save(text)
+    if (onFullscreen) {
+      onFullscreen()
+    } else {
+      window.dispatchEvent(new CustomEvent('saddle:open-fullscreen-app', {
+        detail: { appId: 'notepad' },
+      }))
+    }
+  }
+
+  const isDocked = mode === 'docked'
+
   return (
-    <div className={css.npRoot}>
+    <div className={isDocked ? css.npRootDocked : css.npRoot}>
       <div className={css.npHeader}>
         <h2 className={css.npTitle}>Notepad</h2>
         <div className={css.npActions}>
           <span className={css.npStatus}>{status}</span>
           <Button variant="primary" size="sm" onClick={save}>Save</Button>
-          <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
-            <IconCloseOutline16 size={16} />
-          </button>
+          {isDocked ? (
+            <button
+              type="button"
+              className={css.dockBtn}
+              title="Expand to Fullscreen"
+              aria-label="Expand to Fullscreen"
+              onClick={handleFullscreen}
+            >
+              <IconFullscreenOutline16 size={14} />
+              <span>Fullscreen</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={css.dockBtn}
+              title="Dock in Workbench"
+              aria-label="Dock in Workbench"
+              onClick={handleDock}
+            >
+              <span>◨</span>
+              <span>Dock in Workbench</span>
+            </button>
+          )}
+          {!isDocked && (
+            <button type="button" className={css.close} aria-label="Close" title="Close" onClick={handleClose}>
+              <IconCloseOutline16 size={16} />
+            </button>
+          )}
         </div>
       </div>
       <textarea
@@ -192,7 +250,27 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                     ))}
                   </div>
                   <div className={css.cardFoot}>
-                    <Button variant="primary" size="sm" onClick={() => onOpen(app.id)}>Open</Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      title="Dock into Workbench"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('workbench:open-app', {
+                          detail: { appId: app.id, title: app.name, icon: app.icon },
+                        }))
+                        onClose()
+                      }}
+                    >
+                      <span>◨ Dock</span>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      title="Open in Fullscreen"
+                      onClick={() => onOpen(app.id)}
+                    >
+                      <span>⛶ Fullscreen</span>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -204,15 +282,54 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
   )
 }
 
+/** Hosts an application inside the Workbench App Pane slot. */
+export function WorkbenchAppHost({
+  appStore,
+  params,
+}: {
+  appStore: AppStoreRemote
+  params?: Record<string, unknown> | undefined
+}) {
+  const appId = (params?.appId as string) || 'notepad'
+  if (appId === 'notepad') {
+    return (
+      <NotepadApp
+        appStore={appStore}
+        mode="docked"
+        onFullscreen={() => {
+          window.dispatchEvent(new CustomEvent('saddle:open-fullscreen-app', { detail: { appId: 'notepad' } }))
+        }}
+      />
+    )
+  }
+  return (
+    <div style={{ padding: 24, textAlign: 'center', color: 'var(--dsw-alias-label-secondary)' }}>
+      App not found: {appId}
+    </div>
+  )
+}
+
 export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore: AppStoreRemote }) {
   const [open, setOpen] = useState(false)
   const [activeApp, setActiveApp] = useState<string | null>(null)
+
+  useEffect(() => {
+    const onOpenFullscreen = (event: Event) => {
+      const custom = event as CustomEvent<{ appId: string }>
+      if (custom.detail?.appId) {
+        setActiveApp(custom.detail.appId)
+        setOpen(true)
+      }
+    }
+    window.addEventListener('saddle:open-fullscreen-app', onOpenFullscreen)
+    return () => window.removeEventListener('saddle:open-fullscreen-app', onOpenFullscreen)
+  }, [])
 
   const closeAll = () => { setActiveApp(null); setOpen(false) }
 
   const renderActiveApp = (id: string) => {
     switch (id) {
-      case 'notepad': return <NotepadApp appStore={appStore} onClose={closeAll} />
+      case 'notepad': return <NotepadApp appStore={appStore} mode="fullscreen" onClose={closeAll} />
       default: return null
     }
   }

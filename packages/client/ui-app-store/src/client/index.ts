@@ -6,12 +6,13 @@
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
-import { AppsEntry } from './AppStore.tsx'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import { AppsEntry, WorkbenchAppHost } from './AppStore.tsx'
 
 /** Services required by the sidebar registration and the appStore Remote. */
 export const inject = ['slots', 'remote', 'remote.appStore']
 
-/** Register the "Apps" action beside Settings at the sidebar foot. */
+/** Register the "Apps" action beside Settings at the sidebar foot and the Workbench App slot. */
 export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
@@ -19,4 +20,9 @@ export function apply(ctx: ClientContext): void {
     order: 10,
     inject: () => ({ appStore: ctx.remote.appStore }),
   }, AppsEntry))
+
+  ctx.slots.inject('workbench.pane.app', () => ctx.slots.register({
+    name: 'workbench.pane.app',
+    inject: () => ({ appStore: ctx.remote.appStore }),
+  }, WorkbenchAppHost))
 }

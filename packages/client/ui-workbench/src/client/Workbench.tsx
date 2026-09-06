@@ -25,7 +25,7 @@ export interface WorkbenchInjected {
 /** Full workbench props: runtime share, declared pane slots, locale, inject face. */
 export type WorkbenchProps =
   PropsRuntime<'details'>
-  & PropsRenderSlots<'workbench.pane.details' | 'workbench.pane.jobs' | 'workbench.pane.browser' | 'workbench.pane.files'>
+  & PropsRenderSlots<'workbench.pane.details' | 'workbench.pane.jobs' | 'workbench.pane.browser' | 'workbench.pane.files' | 'workbench.pane.app'>
   & PropsLocale<typeof NS>
   & WorkbenchInjected
 
@@ -37,25 +37,33 @@ interface OpenTab {
 }
 
 /** Pane kinds the workbench can host, in the order the add menu lists them. */
-const AVAILABLE_PANES: readonly WorkbenchPaneKind[] = ['details', 'jobs', 'browser', 'files']
+const AVAILABLE_PANES: readonly WorkbenchPaneKind[] = ['details', 'jobs', 'browser', 'files', 'app']
 
 /** The pane label for a kind, from the workbench locale namespace. */
-function paneLabel(kind: WorkbenchPaneKind, t: WorkbenchProps['t']): string {
+function paneLabel(kind: WorkbenchPaneKind, t: WorkbenchProps['t'], tab?: OpenTab): string {
   switch (kind) {
     case 'details': return t('workbench.pane.details')
     case 'jobs': return t('workbench.pane.jobs')
     case 'browser': return t('workbench.pane.browser')
     case 'files': return t('workbench.pane.files')
+    case 'app': {
+      if (tab?.params?.appTitle) {
+        const icon = tab.params.appIcon ? `${tab.params.appIcon} ` : '📝 '
+        return `${icon}${tab.params.appTitle}`
+      }
+      return `📝 ${t('workbench.pane.app')}`
+    }
   }
 }
 
 /** The pane slot key a kind renders under. */
-function paneSlot(kind: WorkbenchPaneKind): 'workbench.pane.details' | 'workbench.pane.jobs' | 'workbench.pane.browser' | 'workbench.pane.files' {
+function paneSlot(kind: WorkbenchPaneKind): 'workbench.pane.details' | 'workbench.pane.jobs' | 'workbench.pane.browser' | 'workbench.pane.files' | 'workbench.pane.app' {
   switch (kind) {
     case 'details': return 'workbench.pane.details'
     case 'jobs': return 'workbench.pane.jobs'
     case 'browser': return 'workbench.pane.browser'
     case 'files': return 'workbench.pane.files'
+    case 'app': return 'workbench.pane.app'
   }
 }
 
@@ -173,6 +181,23 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     return () => window.removeEventListener('workbench:open-file', onCustomOpen)
   }, [openDetails, openPane])
 
+  // Custom event listener for programmatic app opening (Notepad, etc.)
+  useEffect(() => {
+    const onCustomOpenApp = (event: Event): void => {
+      const custom = event as CustomEvent<{ appId: string; title?: string; icon?: string }>
+      if (custom.detail?.appId) {
+        openPane('app', {
+          appId: custom.detail.appId,
+          appTitle: custom.detail.title ?? 'Notepad',
+          appIcon: custom.detail.icon ?? '📝',
+        })
+        openDetails()
+      }
+    }
+    window.addEventListener('workbench:open-app', onCustomOpenApp)
+    return () => window.removeEventListener('workbench:open-app', onCustomOpenApp)
+  }, [openDetails, openPane])
+
   // URL auto-open: clicking any http(s) link anywhere opens it in the Browser
   // pane instead of navigating away. Delegated at document level so agent-
   // surfaced URLs in the conversation open here by default.
@@ -245,7 +270,7 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
                     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveId(tab.id) }
                   }}
                 >
-                  <span className={css.tabLabel}>{paneLabel(tab.kind, t)}</span>
+                  <span className={css.tabLabel}>{paneLabel(tab.kind, t, tab)}</span>
                   <button
                     type="button"
                     className={css.tabClose}
