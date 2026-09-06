@@ -70,7 +70,13 @@
     border-top-right-radius: 16px;
     overflow: hidden;
   }
+  .frame[data-details-collapsed] .detailsCol {
+    display: none !important;
+    pointer-events: none !important;
+    transform: translateY(100%) !important;
+  }
   .frame:not([data-details-collapsed]) .detailsCol {
+    display: block !important;
     transform: translateY(0);
   }
   .frame:not([data-details-collapsed]) .detailsCol:has([class*="rootFullscreen"]),
@@ -219,7 +225,7 @@
     border: none;
     outline: none;
     box-shadow: none;
-    z-index: 10;
+    z-index: 60;
     align-items: center;
     justify-content: center;
     cursor: pointer;

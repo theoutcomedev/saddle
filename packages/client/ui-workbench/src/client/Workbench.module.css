@@ -9,7 +9,8 @@
 .strip {
   position: relative;
   flex: none;
-  height: 75px;
+  height: calc(75px + var(--safe-top, 0px));
+  min-height: calc(75px + var(--safe-top, 0px));
   box-sizing: border-box;
   padding: calc(12px + var(--safe-top, 0px)) 16px 0 16px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
@@ -255,23 +256,4 @@
 
 :global([data-details-collapsed]) .rootFullscreen {
   display: none !important;
-}
-
-.stripGlobalClose {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: transparent;
-  border: none;
-  color: var(--dsw-alias-text-p2);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.stripGlobalClose:hover {
-  background: var(--dsw-alias-button-floating-hover);
-  color: var(--dsw-alias-text-p1);
 }
