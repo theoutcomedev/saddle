@@ -1263,9 +1263,9 @@ export function FilesPane({
 
               {selectedPaths.size > 0 ? (
                 <>
-                  <span className={css.selectionPill}>
-                    <span className={css.btnTextFull}>{selectedPaths.size} selected</span>
-                    <span className={css.btnTextShort}>{selectedPaths.size}</span>
+                  <span className={css.selectionPill} title={`${selectedPaths.size} selected`}>
+                    <span className={css.selectionCount}>{selectedPaths.size}</span>
+                    <span className={css.selectionLabel}> selected</span>
                   </span>
                   <button
                     type="button"

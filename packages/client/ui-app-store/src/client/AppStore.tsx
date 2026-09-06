@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Button, IconCloseOutline16, IconFullscreenOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconCloseOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
 
@@ -49,7 +49,7 @@ function AppIcon({ size = 16, className }: { size?: number; className: string | 
 }
 
 /** Crisp, pixel-perfect dock icon (split-pane with right half filled) */
-function IconDock({ size = 16, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+function IconDock({ size = 14, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
   return (
     <svg
       width={size}
@@ -58,15 +58,36 @@ function IconDock({ size = 16, className, style }: { size?: number; className?: 
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      style={{ display: 'block', ...style }}
+      style={{ display: 'block', flexShrink: 0, ...style }}
       aria-hidden="true"
     >
       <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.3" />
       <path
-        d="M8 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H8V1.5Z"
+        d="M8.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H8.5V1.5Z"
         fill="currentColor"
+      />
+    </svg>
+  )
+}
+
+/** Crisp, pixel-perfect 4-corners fullscreen expand icon optically matched to IconDock */
+function IconFullscreen({ size = 14, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={{ display: 'block', flexShrink: 0, ...style }}
+      aria-hidden="true"
+    >
+      <path
+        d="M1.5 5.5V3.5C1.5 2.4 2.4 1.5 3.5 1.5H5.5M10.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V5.5M14.5 10.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H10.5M5.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V10.5"
         stroke="currentColor"
         strokeWidth="1.3"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
@@ -166,7 +187,7 @@ export function NotepadApp({
               aria-label="Fullscreen"
               onClick={handleFullscreen}
             >
-              <IconFullscreenOutline16 size={16} />
+              <IconFullscreen size={16} />
             </button>
           </div>
         </div>
@@ -301,6 +322,8 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                     <Button
                       variant="outline"
                       size="sm"
+                      className={css.cardActionBtn}
+                      icon={<IconDock size={14} />}
                       title="Dock into Workbench"
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('workbench:open-app', {
@@ -309,19 +332,20 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                         onClose()
                       }}
                     >
-                      <IconDock size={14} style={{ marginRight: 5 }} />
-                      <span>Dock</span>
+                      Dock
                     </Button>
                     <Button
                       variant="primary"
                       size="sm"
+                      className={css.cardActionBtn}
+                      icon={<IconFullscreen size={14} />}
                       title="Open in Fullscreen"
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('workbench:close-details'))
                         onOpen(app.id)
                       }}
                     >
-                      <span>⛶ Fullscreen</span>
+                      Fullscreen
                     </Button>
                   </div>
                 </div>

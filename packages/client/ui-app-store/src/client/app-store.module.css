@@ -291,6 +291,13 @@
   padding-top: 8px;
 }
 
+.cardActionBtn {
+  font-weight: 500;
+  font-size: 12px;
+  gap: 5px;
+  padding: 0 11px;
+}
+
 .npRoot {
   position: fixed;
   inset: 0;
