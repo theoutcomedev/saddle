@@ -8,7 +8,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { useEffect } from 'react'
 import type {
   AssistantMessageNode, CommandNode, CompactionSummaryNode, ConversationNode, ConversationSnapshot,
-  ModelRetryNode, RunningToolCall, SessionId, SessionListState, ToolCallBlock, ToolResultNode, TurnErrorNode,
+  ModelRetryNode, RewindCollisionsResult, RunningToolCall, SessionId, SessionListState, ToolCallBlock, ToolResultNode, TurnErrorNode,
   TurnMaxTokensNode, UserMessageNode, WorkspaceListState,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
@@ -167,7 +167,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
   const chat = createChatStore().create()
   const rewindAt = vi.fn((seq: number) => { chat.actions.requestRewind(seq) })
   const performRewind = vi.fn()
-  const rewindCollisions = vi.fn<(seq: number) => Promise<{ sessionId: SessionId; files: string[] }[]>>(async () => [])
+  const rewindCollisions = vi.fn<(seq: number) => Promise<RewindCollisionsResult>>(async () => ({ collisions: [], revertedFiles: [] }))
   const t = makeTranslate(zh, commonZh)
   const toolOwners: Array<{
     callId: string
@@ -548,9 +548,10 @@ describe('ChatView', () => {
     const h = makeHarness({ nodes: [assistant(1, 'working')] })
     // The preflight reports that another session mutated one of the files
     // this rewind would restore.
-    h.rewindCollisions.mockResolvedValue([
-      { sessionId: 's-other' as SessionId, files: ['src/a.txt'] },
-    ])
+    h.rewindCollisions.mockResolvedValue({
+      collisions: [{ sessionId: 's-other' as SessionId, files: ['src/a.txt'] }],
+      revertedFiles: [{ path: 'src/a.txt', additions: 3, deletions: 1 }],
+    })
     const view = render(<h.ChatView {...h.props} />)
 
     act(() => {
@@ -560,7 +561,9 @@ describe('ChatView', () => {
     expect(await screen.findByText('这些文件也在其他会话中被修改过，回退将覆盖那些修改：')).toBeTruthy()
     // The unknown session title falls back to its id.
     expect(screen.getByText('s-other')).toBeTruthy()
-    expect(screen.getByText('src/a.txt')).toBeTruthy()
+    expect(screen.getAllByText('src/a.txt').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('+3')).toBeTruthy()
+    expect(screen.getByText('-1')).toBeTruthy()
     expect(h.rewindCollisions).toHaveBeenCalledWith(1)
   })
 

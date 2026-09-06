@@ -1,6 +1,6 @@
 /* Rewind confirmation dialog: description + optional file-revert toggle. */
 .modal {
-  max-width: 440px;
+  max-width: 480px;
 }
 
 .content {
@@ -84,4 +84,85 @@
   line-height: 16px;
   color: var(--dsw-alias-label-secondary);
   overflow-wrap: anywhere;
+}
+
+.filesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filesSectionTitle {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.fileList {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-surface-layer-1, rgba(0, 0, 0, 0.02));
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  min-width: 0;
+  transition: background-color 0.15s ease;
+}
+
+.fileRow:hover {
+  background: var(--dsw-alias-fill-hover, rgba(0, 0, 0, 0.04));
+}
+
+.fileIcon {
+  font-size: 13px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.filePath {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--dsw-font-mono, monospace);
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.fileStats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-family: var(--dsw-font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.additions {
+  color: var(--dsw-alias-state-success, #10b981);
+}
+
+.deletions {
+  color: var(--dsw-alias-status-danger, #ef4444);
+}
+
+.neutralDiff {
+  color: var(--dsw-alias-label-tertiary);
 }

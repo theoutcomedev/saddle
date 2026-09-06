@@ -1623,6 +1623,102 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     }
   }
 
+  /**
+   * Preview files that will be reverted by a rewind at boundarySeq, along with
+   * line addition/deletion diff stats.
+   */
+  async function previewRevertedFilesAfter(
+    source: SessionReadState,
+    boundarySeq: number,
+  ): Promise<{ path: string; additions: number; deletions: number }[]> {
+    const cwd = source.header.cwd
+    if (cwd === undefined) return []
+    const root = resolve(cwd)
+    const calls = new Map<string, { name: string; args: Record<string, unknown> }>()
+    const fileReverts = new Map<string, { relPath: string; before: string | null }>()
+
+    for (const event of source.events) {
+      if (event.type === 'tool/call') {
+        try {
+          calls.set(event.data.callId, { name: event.data.name, args: JSON.parse(event.data.arguments) as Record<string, unknown> })
+        } catch {
+          // Malformed call arguments cannot anchor a revert; skip the call.
+        }
+      } else if (event.type === 'tool/result' && event.seq > boundarySeq) {
+        const meta = event.data.meta as { path?: unknown; before?: unknown } | null | undefined
+        const before = typeof meta?.before === 'string' || meta?.before === null ? meta.before : undefined
+        if (before === undefined) continue
+
+        let filePath = typeof meta?.path === 'string' && meta.path.length > 0 ? meta.path : undefined
+        if (filePath === undefined) {
+          const callId = event.data.message.content[0]?.toolCallId
+          const call = callId !== undefined ? calls.get(callId) : undefined
+          if (call !== undefined && (call.name === 'write' || call.name === 'edit')) {
+            const raw = call.args.file_path ?? call.args.path ?? call.args.targetFile
+            if (typeof raw === 'string' && raw.length > 0) filePath = raw
+          }
+        }
+        if (filePath === undefined) continue
+
+        const target = resolve(root, filePath)
+        if (!target.startsWith(root + '/') && target !== root) continue
+
+        if (!fileReverts.has(target)) {
+          const relPath = target.startsWith(root + '/') ? target.slice(root.length + 1) : filePath
+          fileReverts.set(target, { relPath, before })
+        }
+      }
+    }
+
+    const summaries: { path: string; additions: number; deletions: number }[] = []
+    for (const [target, { relPath, before }] of fileReverts) {
+      let current: string | null = null
+      try {
+        current = await readFile(target, 'utf8')
+      } catch {
+        current = null
+      }
+
+      if (before === null && current === null) {
+        continue
+      }
+      if (before === null && current !== null) {
+        const lines = current.length > 0 ? current.split('\n').length : 0
+        summaries.push({ path: relPath, additions: 0, deletions: lines })
+      } else if (before !== null && current === null) {
+        const lines = before.length > 0 ? before.split('\n').length : 0
+        summaries.push({ path: relPath, additions: lines, deletions: 0 })
+      } else if (before !== null && current !== null) {
+        if (before === current) {
+          summaries.push({ path: relPath, additions: 0, deletions: 0 })
+        } else {
+          const curLines = current.split('\n')
+          const bfrLines = before.split('\n')
+          const curSet = new Map<string, number>()
+          for (const line of curLines) {
+            curSet.set(line, (curSet.get(line) ?? 0) + 1)
+          }
+          let additions = 0
+          for (const line of bfrLines) {
+            const count = curSet.get(line) ?? 0
+            if (count > 0) {
+              curSet.set(line, count - 1)
+            } else {
+              additions++
+            }
+          }
+          let deletions = 0
+          for (const count of curSet.values()) {
+            deletions += count
+          }
+          summaries.push({ path: relPath, additions, deletions })
+        }
+      }
+    }
+
+    return summaries
+  }
+
   /** Resolve the Workspace inherited by a fork without making ordinary loose lineage grouped. */
   async function forkWorkspace(source: Pick<Session, 'id' | 'header'>): Promise<Workspace | undefined> {
     const workspaces = ctx.workspaceRegistry.list()
@@ -2605,7 +2701,13 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             }
           }
         }
-        return ok(request, { collisions })
+        let revertedFiles: { path: string; additions: number; deletions: number }[] = []
+        try {
+          revertedFiles = await previewRevertedFilesAfter(source, cutState.boundary.seq)
+        } catch {
+          revertedFiles = []
+        }
+        return ok(request, { collisions, revertedFiles })
       },
 
       async rewind(request: RpcRequest<{ sessionId: SessionId; atSeq: number; revertFiles?: boolean }>) {

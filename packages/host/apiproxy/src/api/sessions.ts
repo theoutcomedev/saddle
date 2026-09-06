@@ -368,7 +368,10 @@ export interface SessionsApi {
    * for the rewind confirmation dialog).
    */
   rewindCollisions(request: RpcRequest<{ sessionId: SessionId; atSeq: number }>):
-  Promise<RpcResponse<{ collisions: { sessionId: SessionId; files: string[] }[] }>>
+  Promise<RpcResponse<{
+    collisions: { sessionId: SessionId; files: string[] }[]
+    revertedFiles?: { path: string; additions: number; deletions: number }[]
+  }>>
 
   /**
    * Sends text and temporary image bytes to an ordinary session Agent after durable host admission.

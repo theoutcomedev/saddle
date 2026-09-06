@@ -7,7 +7,7 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   CommandNode, CompactionSummaryNode, ConversationSnapshot, ConversationTurnDataMap,
-  ObservableSnapshot, PendingInteraction, PendingWait, SessionId, ToolCallBlock,
+  ObservableSnapshot, PendingInteraction, PendingWait, RewindCollisionsResult, SessionId, ToolCallBlock,
   TurnLocation, WorkspaceId,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -793,7 +793,7 @@ export interface ChatViewInjected {
    * Read-only preflight for the rewind dialog: which other sessions mutated
    * files that a file-reverting rewind at `seq` would restore.
    */
-  rewindCollisions: (seq: number) => Promise<{ sessionId: SessionId; files: string[] }[]>
+  rewindCollisions: (seq: number) => Promise<RewindCollisionsResult>
   /**
    * Prose file-mention vocabulary for one closing message, from the optional
    * {@link ChatFileMentions} service (resolved lazily per call, so composing

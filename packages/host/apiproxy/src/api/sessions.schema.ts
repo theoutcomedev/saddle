@@ -162,6 +162,11 @@ export const sessionRewindCollisionsValueSchema = z.object({
     sessionId: sessionIdSchema,
     files: z.array(z.string()),
   })),
+  revertedFiles: z.array(z.object({
+    path: z.string(),
+    additions: z.number().int().nonnegative(),
+    deletions: z.number().int().nonnegative(),
+  })).optional(),
 }) satisfies z.ZodType<Wire<ResponseValue<'session.rewindCollisions'>>>
 
 /** session.delete request payload (the session to delete). */

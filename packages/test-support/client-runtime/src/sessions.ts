@@ -4,7 +4,7 @@ import type { AttachmentIdType } from '@deepseek-ai/dsh-attachment'
 import { createScope, scopeOf, SessionProvideChannel } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type {
-  AgentContext, ConversationSnapshot, ISessions, ObservableSnapshot, ProjectionsFace, SessionFace, SessionId,
+  AgentContext, ConversationSnapshot, ISessions, ObservableSnapshot, ProjectionsFace, RewindCollisionsResult, SessionFace, SessionId,
   SessionListState, SessionProvideDescriptor, SessionSearchResultItem, SessionSummary, SnapshotStore,
   SubagentAddress,
 } from '@deepseek-ai/dsh-client-runtime/client'
@@ -517,9 +517,9 @@ export class TestSessions implements ISessions {
    * @param opts - the source session and cut anchor.
    * @returns an empty collision list.
    */
-  async rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<{ sessionId: SessionId; files: string[] }[]> {
+  async rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<RewindCollisionsResult> {
     this.calls.push({ method: 'rewindCollisions', args: [opts] })
-    return []
+    return { collisions: [], revertedFiles: [] }
   }
 
   /**

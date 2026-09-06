@@ -28,7 +28,7 @@ import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/t
 import type { SnapshotStore } from '../contract/store.ts'
 import { createSnapshotStore } from '../contract/store.ts'
 import type { SessionFace } from '../contract/session.ts'
-import type { AgentContext, ISessions } from '../contract/sessions.ts'
+import type { AgentContext, ISessions, RewindCollisionsResult } from '../contract/sessions.ts'
 import { createScope, scopeOf as scopeTagOf } from '../agents/scope.ts'
 import type { ConversationRuntime } from './conversation-assembler.ts'
 import { SessionManager } from './manager.ts'
@@ -621,10 +621,10 @@ export class SessionRuntime implements ISessions {
    * @returns per-other-session overlapping file paths.
    * @throws when the preflight fails.
    */
-  async rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<{ sessionId: SessionId; files: string[] }[]> {
+  async rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<RewindCollisionsResult> {
     const result = await this.manager.rewindCollisions(opts)
     if (!result.ok) throw new Error(`rewind collision check failed: ${result.error.code}: ${result.error.message}`)
-    return result.value.collisions
+    return result.value
   }
 
   /**

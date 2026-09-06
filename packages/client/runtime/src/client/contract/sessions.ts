@@ -22,7 +22,11 @@ import type { ObservableSnapshot } from './store.ts'
 
 export type { AgentContext } from '../agents/scope.ts'
 
-/** The sessions-service face injected as `ctx.sessions`. */
+export interface RewindCollisionsResult {
+  readonly collisions: readonly { sessionId: SessionId; files: string[] }[]
+  readonly revertedFiles?: readonly { path: string; additions: number; deletions: number }[]
+}
+
 export interface ISessions {
   /** The useSessions standard feed (list rows + current selection; read face — writes stay inside the domain). */
   readonly list: ObservableSnapshot<SessionListState>
@@ -124,7 +128,7 @@ export interface ISessions {
    * @param opts - the source session and cut anchor.
    * @returns per-other-session overlapping file paths.
    */
-  rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<{ sessionId: SessionId; files: string[] }[]>
+  rewindCollisions(opts: { sessionId: SessionId; atSeq: number }): Promise<RewindCollisionsResult>
   /**
    * Register a per-session standard-props provider (hooks become `use<Name>`
    * selector hooks on the render side; props spread verbatim).
