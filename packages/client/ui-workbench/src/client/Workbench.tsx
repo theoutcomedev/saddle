@@ -37,7 +37,7 @@ interface OpenTab {
 }
 
 /** Pane kinds the workbench can host, in the order the add menu lists them. */
-const AVAILABLE_PANES: readonly WorkbenchPaneKind[] = ['details', 'jobs', 'browser', 'files', 'app']
+const AVAILABLE_PANES: readonly WorkbenchPaneKind[] = ['files', 'browser', 'jobs', 'app']
 
 /** The pane label for a kind, from the workbench locale namespace. */
 function paneLabel(kind: WorkbenchPaneKind, t: WorkbenchProps['t'], tab?: OpenTab): string {
@@ -67,8 +67,7 @@ function paneSlot(kind: WorkbenchPaneKind): 'workbench.pane.details' | 'workbenc
 }
 
 /**
- * Remove a non-base tab by id. The Details base tab is never removed, so the
- * column always keeps one pane and therefore its own close affordance.
+ * Remove a tab by id.
  */
 function dropTab(tabs: readonly OpenTab[], id: string): OpenTab[] {
   return tabs.filter(tab => tab.id !== id)
@@ -86,8 +85,8 @@ function renderPane(tab: OpenTab | undefined, renderSlot: WorkbenchProps['render
  * @returns the workbench element.
  */
 export function Workbench({ renderSlot, t, openDetails, closeDetails }: WorkbenchProps) {
-  const [tabs, setTabs] = useState<OpenTab[]>(() => [{ id: 'details', kind: 'details' }])
-  const [activeId, setActiveId] = useState('details')
+  const [tabs, setTabs] = useState<OpenTab[]>(() => [{ id: 'files', kind: 'files' }])
+  const [activeId, setActiveId] = useState('files')
   const [addOpen, setAddOpen] = useState(false)
   const [fullscreen, setFullscreen] = useState(() => {
     try {
@@ -301,7 +300,7 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
                         setTabs(next)
                         if (next.length === 0) {
                           handleClose()
-                          setTabs([{ id: 'details', kind: 'details' }])
+                          setTabs([{ id: 'files', kind: 'files' }])
                         } else if (activeId === tab.id && next[0] !== undefined) {
                           setActiveId(next[0].id)
                         }
