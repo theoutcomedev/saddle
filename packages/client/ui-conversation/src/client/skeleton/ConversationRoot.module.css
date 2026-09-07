@@ -34,7 +34,7 @@
   min-height: calc(75px + var(--safe-top, 0px));
   box-sizing: border-box;
   /* Base padding + safe area top for notch/Dynamic Island in iOS PWA */
-  padding: calc(12px + var(--safe-top, 0px)) 12px 0 20px;
+  padding: calc(12px + var(--safe-top, 0px)) 6px 0 20px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 
@@ -369,7 +369,7 @@
 @media (max-width: 768px) {
   .header {
     padding-left: 60px !important;
-    padding-right: 12px !important;
+    padding-right: 6px !important;
   }
 }
 
@@ -420,7 +420,7 @@
 .heroHeader {
   position: absolute;
   top: calc(12px + var(--safe-top, 0px));
-  right: 12px;
+  right: 6px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -429,7 +429,7 @@
 @container (max-width: 768px) {
   .heroHeader {
     top: calc(12px + var(--safe-top, 0px));
-    right: 12px;
+    right: 6px;
   }
   .workbenchToggle {
     width: 40px;
@@ -440,7 +440,7 @@
 @media (max-width: 768px) {
   .heroHeader {
     top: calc(12px + var(--safe-top, 0px));
-    right: 12px;
+    right: 6px;
   }
   .workbenchToggle {
     width: 40px;
