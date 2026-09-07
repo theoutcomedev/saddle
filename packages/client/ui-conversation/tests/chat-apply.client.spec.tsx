@@ -38,7 +38,7 @@ async function bench() {
   await runtime.root.declare({
     'conversation': { kind: 'single', scope: 'session-maybe' },
     'details': { kind: 'single', scope: 'session-maybe' },
-    'workbench.pane.details': { kind: 'single', scope: 'session-maybe' },
+    'workbench.pane.details': { kind: 'single', scope: 'session' },
     'settings.general.item': { kind: 'list', scope: 'root' },
   }, (_p: { renderSlot?: unknown }) => null)
 

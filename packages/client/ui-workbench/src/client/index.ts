@@ -37,7 +37,7 @@ export function apply(ctx: ClientContext): void {
     name: 'details',
     locale: NS,
     children: {
-      'workbench.pane.details': { kind: 'single', scope: 'session-maybe' },
+      'workbench.pane.details': { kind: 'single', scope: 'session' },
       'workbench.pane.jobs': { kind: 'single', scope: 'session-maybe' },
       'workbench.pane.browser': { kind: 'single', scope: 'session-maybe' },
       'workbench.pane.files': { kind: 'single', scope: 'session-maybe' },

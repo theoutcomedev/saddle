@@ -76,7 +76,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * (ui-conversation's Details panel) can name the key without a cross-package
      * dependency cycle.
      */
-    'workbench.pane.details': { kind: 'single'; scope: 'session-maybe'; owner: WorkbenchPaneOwnerProps }
+    'workbench.pane.details': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
     /**
      * The session background-job pane over the jobsBySession mirror.
      */
