@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { IconWorkbenchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconEllipsisVerticalOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConversationSlotProps, InputZone } from '../contract/slots.ts'
 import { HeroGlow, HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.tsx'
@@ -195,7 +195,7 @@ export function ConversationRoot({
             title="Toggle workbench"
             onClick={() => { toggleWorkbench() }}
           >
-            <IconWorkbenchOutline16 className={css.workbenchIcon} size={22} />
+            <IconEllipsisVerticalOutline16 className={css.workbenchIcon} size={24} />
           </button>
         </div>
       )}

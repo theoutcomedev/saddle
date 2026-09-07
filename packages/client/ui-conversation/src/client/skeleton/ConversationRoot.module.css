@@ -407,8 +407,8 @@
 
 .workbenchIcon {
   display: flex;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 /* Hide workbench button when workbench is currently open */
