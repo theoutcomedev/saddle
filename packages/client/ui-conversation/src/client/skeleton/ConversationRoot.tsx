@@ -186,16 +186,18 @@ export function ConversationRoot({
 
   return (
     <div className={css.root} data-phase={phase}>
-      {toggleWorkbench !== undefined && !detailsOpen && (
-        <button
-          type="button"
-          className={css.workbenchToggle}
-          aria-label="Toggle workbench"
-          title="Toggle workbench"
-          onClick={() => { toggleWorkbench() }}
-        >
-          <IconEllipsisVerticalOutline16 className={css.workbenchIcon} size={24} />
-        </button>
+      {hero && toggleWorkbench !== undefined && !detailsOpen && (
+        <div className={css.heroHeader}>
+          <button
+            type="button"
+            className={css.workbenchToggle}
+            aria-label="Toggle workbench"
+            title="Toggle workbench"
+            onClick={() => { toggleWorkbench() }}
+          >
+            <IconEllipsisVerticalOutline16 className={css.workbenchIcon} size={24} />
+          </button>
+        </div>
       )}
       {renderSlot('conversation.session.header', { detailsOpen })}
       <div className={css.scrollBody} data-conversation-scroll="">

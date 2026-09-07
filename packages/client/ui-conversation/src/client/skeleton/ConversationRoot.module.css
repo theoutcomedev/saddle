@@ -384,26 +384,19 @@
 }
 
 .workbenchToggle {
-  display: flex;
-  position: absolute;
-  top: calc(12px + var(--safe-top, 0px));
-  right: 12px;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  outline: none;
-  box-shadow: none;
-  z-index: 60;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
   color: var(--dsw-alias-text-p1);
+  cursor: pointer;
   padding: 0;
-  margin: 0;
-  box-sizing: border-box;
   transition: background 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
   flex-shrink: 0;
 }
 
@@ -422,4 +415,35 @@
 :global([data-details-open]) .workbenchToggle,
 :global([data-workbench-open]) .workbenchToggle {
   display: none !important;
+}
+
+.heroHeader {
+  position: absolute;
+  top: calc(12px + var(--safe-top, 0px));
+  right: 6px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+}
+
+@container (max-width: 768px) {
+  .heroHeader {
+    top: calc(12px + var(--safe-top, 0px));
+    right: 2px;
+  }
+  .workbenchToggle {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroHeader {
+    top: calc(12px + var(--safe-top, 0px));
+    right: 2px;
+  }
+  .workbenchToggle {
+    width: 40px;
+    height: 40px;
+  }
 }

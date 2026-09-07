@@ -7,6 +7,7 @@ import type {
   ConversationSessionHeaderSlotProps, ConversationSessionSlotProps,
 } from '../contract/slots.ts'
 import type { ViewTab } from '../contract/views.ts'
+import { IconEllipsisVerticalOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './ConversationRoot.module.css'
 
 /** Full props composed from the strict session body contract. */
@@ -65,7 +66,7 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  */
 export function ConversationSessionHeader({
   sessionId, useSession, useSessions, useStore, actions,
-  renderSlot, views, open, t,
+  renderSlot, views, open, toggleWorkbench, detailsOpen, t,
 }: ConversationSessionHeaderProps) {
   useSyncExternalStore(views.subscribe, views.version)
   const tabs = views.list()
@@ -74,7 +75,7 @@ export function ConversationSessionHeader({
   const ancestry = useSessions(s => deriveAncestry(s, sessionId), equalBreadcrumbs)
   const composerPhase = useSession(s => s.composerPhase)
   const blank = useSession(s => s.blank)
-  const hideChrome = (blank && composerPhase === 'blank') || (tabs.length <= 1 && ancestry.length <= 1)
+  const hideChrome = blank && composerPhase === 'blank'
 
   return (
     <header
@@ -140,6 +141,17 @@ export function ConversationSessionHeader({
             </div>
             <div className={css.headerUtilities}>
               {renderSlot('conversation.session.header.utilities', {})}
+              {toggleWorkbench !== undefined && !detailsOpen && (
+                <button
+                  type="button"
+                  className={css.workbenchToggle}
+                  aria-label="Toggle workbench"
+                  title="Toggle workbench"
+                  onClick={() => { toggleWorkbench() }}
+                >
+                  <IconEllipsisVerticalOutline16 className={css.workbenchIcon} size={24} />
+                </button>
+              )}
             </div>
           </div>
           {tabs.length > 1 && (
