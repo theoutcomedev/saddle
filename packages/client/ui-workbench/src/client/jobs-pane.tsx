@@ -15,7 +15,7 @@ export type JobsPaneProps = PropsRuntime<'workbench.pane.jobs'> & PropsLocale<ty
 const NO_JOBS: readonly JobView[] = []
 
 export function JobsPane({ sessionId, useSessions }: JobsPaneProps) {
-  const jobs = useSessions(state => state.jobsBySession[sessionId]) ?? NO_JOBS
+  const jobs = useSessions(state => (sessionId ? state.jobsBySession[sessionId] : undefined)) ?? NO_JOBS
   if (jobs.length === 0) {
     return <div className={css.empty}>No background jobs.</div>
   }

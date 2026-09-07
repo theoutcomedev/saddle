@@ -37,11 +37,11 @@ export function apply(ctx: ClientContext): void {
     name: 'details',
     locale: NS,
     children: {
-      'workbench.pane.details': { kind: 'single', scope: 'session' },
-      'workbench.pane.jobs': { kind: 'single', scope: 'session' },
-      'workbench.pane.browser': { kind: 'single', scope: 'session' },
-      'workbench.pane.files': { kind: 'single', scope: 'session' },
-      'workbench.pane.app': { kind: 'single', scope: 'session' },
+      'workbench.pane.details': { kind: 'single', scope: 'session-maybe' },
+      'workbench.pane.jobs': { kind: 'single', scope: 'session-maybe' },
+      'workbench.pane.browser': { kind: 'single', scope: 'session-maybe' },
+      'workbench.pane.files': { kind: 'single', scope: 'session-maybe' },
+      'workbench.pane.app': { kind: 'single', scope: 'session-maybe' },
     },
     inject: (): { closeDetails: () => void; openDetails: () => void } => ({
       closeDetails: () => { ctx.layout.closeDetails() },

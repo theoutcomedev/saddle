@@ -2863,11 +2863,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           })
         }
         const handle = liveHandles.get(sessionId)
-        let disposedByHandle = false
         if (handle !== undefined) {
           try {
             await handle.dispose()
-            disposedByHandle = true
           } catch (error: unknown) {
             return err(request, {
               code: 'internal',
@@ -2877,6 +2875,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           }
           liveHandles.delete(sessionId)
         }
+        const liveAgent = ctx.agents.get(sessionId)
+        if (liveAgent !== undefined) {
+          try {
+            liveAgent.cancel({ kind: 'disposed' })
+            await liveAgent.ctx.fiber.dispose()
+          } catch {}
+        }
+        try {
+          ctx.sessions.detach(sessionId)
+        } catch {}
         try {
           await ctx.workspaceRegistry.removeSession(sessionId)
         } catch (error: unknown) {
@@ -2898,9 +2906,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             })
           }
         }
-        if (!disposedByHandle) {
-          broadcastHost({ type: 'host/session-removed', sessionId })
-        }
+        broadcastHost({ type: 'host/session-removed', sessionId })
         return ok(request, { deleted: true })
       },
 

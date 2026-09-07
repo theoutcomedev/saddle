@@ -1057,6 +1057,18 @@ export class SessionStore extends Service {
   }
 
   /**
+   * Detach and remove a live session from the store by id, emitting session/disposed.
+   * A no-op if the session is not in the store.
+   * @param id - the session id to detach.
+   */
+  detach(id: SessionId): void {
+    const entry = this.store.get(id)
+    if (entry !== undefined) {
+      entry.detach()
+    }
+  }
+
+  /**
    * All live sessions, in creation order.
    * @returns a fresh array; mutating it does not affect the store.
    */

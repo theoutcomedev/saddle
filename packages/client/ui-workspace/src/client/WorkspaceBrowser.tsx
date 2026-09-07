@@ -1006,7 +1006,13 @@ export function WorkspaceBrowser({
     setSessionDeleteError(null)
     deleteSession(sessionDeleteTarget.sessionId).then(() => {
       setSessionDeleting(false)
+      const targetId = sessionDeleteTarget.sessionId
       setSessionDeleteTarget(null)
+      for (const [key, order] of Object.entries(sessionOrderByAccount)) {
+        if (order?.includes(targetId)) {
+          actions.setSessionOrder(key, order.filter(id => id !== targetId))
+        }
+      }
     }).catch((reason: unknown) => {
       setSessionDeleting(false)
       setSessionDeleteError(reason instanceof Error ? reason.message : String(reason))

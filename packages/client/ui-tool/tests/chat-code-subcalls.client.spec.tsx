@@ -175,7 +175,7 @@ async function bench(snapshot: ConversationSnapshot) {
     name: 'root',
     children: {
       'conversation': { kind: 'single', scope: 'session-maybe' },
-      'details': { kind: 'single', scope: 'session' },
+      'details': { kind: 'single', scope: 'session-maybe' },
     },
   }, AppRoot)
 

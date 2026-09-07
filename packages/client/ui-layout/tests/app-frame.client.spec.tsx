@@ -26,13 +26,6 @@ const selectedSession = { current: 's-test' as SessionId | undefined }
 const selectedSessionBlank = { current: false }
 const baselinesReady = { current: true }
 
-// Render-prop contract stub fed through the standard seat prop (the renderer
-// injects the real one in production): session mode runs children(id), empty
-// mode runs the empty branch — the frame must work against exactly this
-// shape. Typed as the seat's own component type so the branded sessionId
-// parameter stays contract-checked.
-const SessionProviderStub: AppFrameProps['SessionProvider'] = ({ children, empty }) =>
-  selectedSession.current === undefined ? <>{empty?.() ?? null}</> : <>{children(selectedSession.current)}</>
 
 
 /** Observer stub: captures the callback so tests can fire resizes manually. */
@@ -87,7 +80,6 @@ function mountFrame() {
       renderSlot={renderSlot}
       useSessions={useSessions}
       useWorkspaces={((sel: (s: WorkspaceListState) => unknown) => sel(workspaceState)) as never}
-      SessionProvider={SessionProviderStub}
     />
   )
   const utils = render(element())

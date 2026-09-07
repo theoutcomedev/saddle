@@ -292,7 +292,9 @@ export function FilesPane({
   openPath,
   t,
 }: FilesPaneProps) {
-  const cwd = useSessions(list => list.byId[sessionId]?.cwd)
+  const sessionCwd = useSessions(list => sessionId ? list.byId[sessionId]?.cwd : undefined)
+  const fallbackCwd = useSessions(list => Object.values(list.byId).find(s => s?.cwd)?.cwd)
+  const cwd = sessionCwd ?? fallbackCwd ?? '/'
   const initialPath = typeof params?.path === 'string' ? params.path : ''
   const [dir, setDir] = useState(initialPath === '' ? (cwd ?? '/') : parentPath(initialPath))
   const [entries, setEntries] = useState<WorkspaceFileEntry[]>([])

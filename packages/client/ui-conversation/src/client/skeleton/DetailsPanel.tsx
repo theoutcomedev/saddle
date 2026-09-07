@@ -65,9 +65,7 @@ function rawResultText(block: ToolCallBlock): string {
 
 export function DetailsPanel({ useSession, useSessions, sessionId, useStore, renderSlot, t }: DetailsPanelProps) {
   const selection = useStore(s => s.selection)
-  // Session workspace root: an omitted or relative terminal cwd resolves
-  // against it, which the pure presenter cannot see.
-  const sessionCwd = useSessions(list => list.byId[sessionId]?.cwd)
+  const sessionCwd = useSessions(list => sessionId ? list.byId[sessionId]?.cwd : undefined)
   const callId = selection?.callId
   // materialFor builds a fresh wrapper; shallowEqual short-circuits on its
   // stable members (result node reference rides the snapshot's structural sharing).
@@ -80,7 +78,7 @@ export function DetailsPanel({ useSession, useSessions, sessionId, useStore, ren
       <div className={css.body}>
         {selection === null || callId === undefined
           ? <div className={css.empty}>{t('details.empty')}</div>
-          : material === null
+          : (material === null || material === undefined)
             ? <div className={css.empty}>{t('details.notInWindow')}</div>
             : (
               <>

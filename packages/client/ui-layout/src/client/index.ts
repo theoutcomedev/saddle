@@ -69,30 +69,30 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * No owner props: the framework injects the session id and hooks for the
      * `session` scope, and `ctx.layout` owns whether the column is open.
      */
-    'details': { kind: 'single'; scope: 'session'; owner: DetailsOwnerProps }
+    'details': { kind: 'single'; scope: 'session-maybe'; owner: DetailsOwnerProps }
     /**
      * A session-scoped Workbench pane (one tab in the details dock). Declared
      * here so both the Workbench occupant (ui-workbench) and a re-homed pane
      * (ui-conversation's Details panel) can name the key without a cross-package
      * dependency cycle.
      */
-    'workbench.pane.details': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    'workbench.pane.details': { kind: 'single'; scope: 'session-maybe'; owner: WorkbenchPaneOwnerProps }
     /**
      * The session background-job pane over the jobsBySession mirror.
      */
-    'workbench.pane.jobs': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    'workbench.pane.jobs': { kind: 'single'; scope: 'session-maybe'; owner: WorkbenchPaneOwnerProps }
     /**
      * The Workbench browser/preview pane: a URL bar plus an embedded webview.
      */
-    'workbench.pane.browser': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    'workbench.pane.browser': { kind: 'single'; scope: 'session-maybe'; owner: WorkbenchPaneOwnerProps }
     /**
      * The Workbench files pane: an explorer (directory list) plus a file viewer.
      */
-    'workbench.pane.files': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    'workbench.pane.files': { kind: 'single'; scope: 'session-maybe'; owner: WorkbenchPaneOwnerProps }
     /**
      * The Workbench application pane: generic slot hosting metamorphic apps (Notepad, etc).
      */
-    'workbench.pane.app': { kind: 'single'; scope: 'session'; owner: WorkbenchPaneOwnerProps }
+    'workbench.pane.app': { kind: 'single'; scope: 'session-maybe'; owner: WorkbenchPaneOwnerProps }
     /**
      * Frame-wide floating layer, above every column and outside their scroll
      * containers. Deliberately generic and unowned by any feature: a badge, a
@@ -167,7 +167,7 @@ export function apply(ctx: ClientContext): void {
       children: {
         'sidebar': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
-        'details': { kind: 'single', scope: 'session' },
+        'details': { kind: 'single', scope: 'session-maybe' },
         'shell.overlay': { kind: 'list', scope: 'root' },
         'shell.mobile_trigger': { kind: 'single', scope: 'root' },
       },
