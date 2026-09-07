@@ -369,7 +369,7 @@
 @media (max-width: 768px) {
   .header {
     padding-left: 60px !important;
-    padding-right: 12px !important;
+    padding-right: 2px !important;
   }
 }
 
@@ -378,7 +378,7 @@
     display: none !important;
   }
   .headerUtilities {
-    margin-left: 4px !important;
+    margin-left: auto !important;
     gap: 4px !important;
   }
 }
@@ -420,7 +420,7 @@
 .heroHeader {
   position: absolute;
   top: calc(12px + var(--safe-top, 0px));
-  right: 12px;
+  right: 6px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -429,7 +429,7 @@
 @container (max-width: 768px) {
   .heroHeader {
     top: calc(12px + var(--safe-top, 0px));
-    right: 12px;
+    right: 2px;
   }
   .workbenchToggle {
     width: 40px;
@@ -440,7 +440,7 @@
 @media (max-width: 768px) {
   .heroHeader {
     top: calc(12px + var(--safe-top, 0px));
-    right: 12px;
+    right: 2px;
   }
   .workbenchToggle {
     width: 40px;
