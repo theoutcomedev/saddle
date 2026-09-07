@@ -135,9 +135,10 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
 
   const openPane = useCallback((kind: WorkbenchPaneKind, params?: Record<string, unknown>): void => {
     const id = kind
+    const nextParams = params !== undefined ? { ...params, _ts: Date.now() } : undefined
     setTabs(current => current.some(tab => tab.id === id)
-      ? current.map(tab => tab.id === id && params !== undefined ? { ...tab, params } : tab)
-      : [...current, { id, kind, ...(params === undefined ? {} : { params }) }])
+      ? current.map(tab => tab.id === id ? { ...tab, params: { ...tab.params, ...nextParams } } : tab)
+      : [...current, { id, kind, ...(nextParams === undefined ? {} : { params: nextParams }) }])
     setActiveId(id)
     setAddOpen(false)
   }, [])

@@ -195,7 +195,7 @@ export function ConversationRoot({
             title="Toggle workbench"
             onClick={() => { toggleWorkbench() }}
           >
-            <IconWorkbenchOutline16 className={css.workbenchIcon} size={16} />
+            <IconWorkbenchOutline16 className={css.workbenchIcon} size={22} />
           </button>
         </div>
       )}

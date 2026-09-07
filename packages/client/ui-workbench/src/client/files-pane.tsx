@@ -620,6 +620,11 @@ export function FilesPane({
     abortRef.current = controller
 
     setSelectedFile(path)
+    const p = parentPath(path)
+    if (p) {
+      setDir(p)
+      setPathInput(p)
+    }
     setOriginalText('')
     setEditText('')
     setSaveBanner(null)
@@ -673,9 +678,48 @@ export function FilesPane({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedFile, handleSave])
 
+  const targetPath = typeof params?.path === 'string' ? params.path : ''
+  const targetTs = (params as Record<string, unknown> | undefined)?._ts
+
   useEffect(() => {
-    if (initialPath !== '') openFile(initialPath)
-    else load(dir)
+    if (targetPath !== '') {
+      if (targetPath === '.' || targetPath === './') {
+        setSelectedFile(null)
+        load(cwd ?? '/')
+      } else {
+        const resolved = (targetPath.startsWith('/') || /^[a-zA-Z]:/.test(targetPath))
+          ? targetPath
+          : (cwd ? `${cwd.replace(/\/+$/, '')}/${targetPath.replace(/^\/+/, '')}` : targetPath)
+        openFile(resolved)
+      }
+    }
+  }, [targetPath, targetTs, cwd, openFile, load])
+
+  // Custom event listener for programmatic file opening from chat / tools
+  useEffect(() => {
+    const handleOpenFile = (event: Event) => {
+      const custom = event as CustomEvent<{ path: string }>
+      if (custom.detail?.path) {
+        const p = custom.detail.path
+        if (p === '.' || p === './') {
+          setSelectedFile(null)
+          load(cwd ?? '/')
+        } else {
+          const resolved = (p.startsWith('/') || /^[a-zA-Z]:/.test(p))
+            ? p
+            : (cwd ? `${cwd.replace(/\/+$/, '')}/${p.replace(/^\/+/, '')}` : p)
+          openFile(resolved)
+        }
+      }
+    }
+    window.addEventListener('workbench:open-file', handleOpenFile)
+    return () => window.removeEventListener('workbench:open-file', handleOpenFile)
+  }, [cwd, openFile, load])
+
+  useEffect(() => {
+    if (initialPath === '') {
+      load(dir)
+    }
   }, [])
 
   // Multi-select toggle
@@ -1108,7 +1152,10 @@ export function FilesPane({
               <button
                 type="button"
                 className={`${css.btn} ${css.btnBack}`}
-                onClick={() => setSelectedFile(null)}
+                onClick={() => {
+                  setSelectedFile(null)
+                  load(dir)
+                }}
                 title="Return to folder listing"
               >
                 ← Back
