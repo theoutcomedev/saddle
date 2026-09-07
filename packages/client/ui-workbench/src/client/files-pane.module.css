@@ -1047,12 +1047,6 @@
 }
 
 @container filespane (max-width: 320px) {
-  .btnBack .btnTextFull {
-    display: none;
-  }
-  .btnBack .btnTextShort {
-    display: inline;
-  }
   .editorBar {
     padding: 4px 6px;
     gap: 3px;

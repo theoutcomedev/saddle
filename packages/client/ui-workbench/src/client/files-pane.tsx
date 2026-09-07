@@ -1111,8 +1111,7 @@ export function FilesPane({
                 onClick={() => setSelectedFile(null)}
                 title="Return to folder listing"
               >
-                <span className={css.btnTextFull}>← Back</span>
-                <span className={css.btnTextShort}>←</span>
+                ← Back
               </button>
               <span className={css.fileName} title={selectedFile}>
                 {selectedFile.split('/').pop()}
