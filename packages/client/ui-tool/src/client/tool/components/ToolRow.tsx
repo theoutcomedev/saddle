@@ -17,7 +17,7 @@
 // independent); an error row's collapsed summary is the failure's first line in
 // the error color.
 
-import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   CodeBlock, DiffBlock, DisclosureRow, IconInspectOutline12, ReadBlock, SearchBlock, StateDot, TerminalBlock, WebBlock,
@@ -159,6 +159,18 @@ export function ToolRow({
   const card = terminalBody ?? diffBody ?? readBody ?? searchBody ?? webBody
   const expandable = body !== null || outputText !== null || card !== null
   const open = expanded && expandable
+
+  // Automatically open the Workbench browser pane when browser_navigate runs
+  useEffect(() => {
+    if (toolName === 'browser_navigate' && body && typeof window !== 'undefined') {
+      try {
+        const parsed = JSON.parse(body) as { url?: string }
+        if (parsed.url) {
+          window.dispatchEvent(new CustomEvent('workbench:open-browser', { detail: { url: parsed.url } }))
+        }
+      } catch {}
+    }
+  }, [toolName, body])
   // The run-state label AT needs: the StateDot and the running sweep are both
   // aria-hidden / colour-only, so a stopped or running row is otherwise silent.
   const status = stateStatus(state, t)

@@ -83,7 +83,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     } as const,
     render: (_args: unknown, value: unknown): ContentBlock[] => {
       const val = value as { result: string; viewerUrl: string }
-      return [{ type: 'text' as const, text: `${val.result}\n\n[browser-viewer]: ${val.viewerUrl}` }]
+      return [{ type: 'text' as const, text: val.result }]
     },
   }
 
