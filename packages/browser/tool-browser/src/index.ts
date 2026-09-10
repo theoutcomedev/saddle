@@ -28,8 +28,26 @@ function resolveBaseUrl(config: Config, credentialUrl?: string): string {
     ?? 'http://steel:3000'
 }
 
+function resolveViewerUrl(rawDebugUrl?: string): string {
+  if (process.env.STEEL_PUBLIC_VIEWER_URL) {
+    return process.env.STEEL_PUBLIC_VIEWER_URL
+  }
+  const hostIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP
+  const serverIp = (!hostIp || hostIp === 'auto') ? '91.99.165.95' : hostIp
+  const fallback = `http://steel.${serverIp}.sslip.io/v1/sessions/debug?interactive=true`
+
+  if (!rawDebugUrl) return fallback
+  if (rawDebugUrl.includes('0.0.0.0') || rawDebugUrl.includes('127.0.0.1') || rawDebugUrl.includes('steel:') || rawDebugUrl.includes('saddle-steel:') || /^https?:\/\/172\./.test(rawDebugUrl)) {
+    return fallback
+  }
+  return rawDebugUrl.includes('?') ? `${rawDebugUrl}&interactive=true` : `${rawDebugUrl}?interactive=true`
+}
+
 async function ensureSession(ctx: Context, config: Config): Promise<{ steel: SteelSession; cdp: CdpSession; viewerUrl: string }> {
-  if (steelSession && cdpSession) return { steel: steelSession, cdp: cdpSession, viewerUrl: steelSession.viewerUrl }
+  if (steelSession && cdpSession) {
+    const publicViewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
+    return { steel: steelSession, cdp: cdpSession, viewerUrl: publicViewerUrl }
+  }
 
   const key = credentialKey('connections', 'steel-browser')
   const cred = await ctx.credentials.readRecord(key).catch(() => null)
@@ -57,7 +75,8 @@ async function ensureSession(ctx: Context, config: Config): Promise<{ steel: Ste
     throw new Error(`Steel browser not configured or reachable. Add STEEL_BROWSER_URL env var or configure steel-browser in Settings → Connections. Detail: ${error}`)
   }
 
-  return { steel: steelSession, cdp: cdpSession, viewerUrl: steelSession.viewerUrl }
+  const publicViewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
+  return { steel: steelSession, cdp: cdpSession, viewerUrl: publicViewerUrl }
 }
 
 export function apply(ctx: Context, config: Config = {}): void {

@@ -19,6 +19,8 @@ export interface WorkbenchPaneParams {
   path?: string | undefined
   /** Initial URL for the browser pane. */
   url?: string | undefined
+  /** Live streaming viewer URL for agent browser sessions. */
+  streamUrl?: string | undefined
   /** Application ID for an app pane (e.g. 'notepad'). */
   appId?: string | undefined
   /** Display title for an app pane (e.g. 'Notepad'). */

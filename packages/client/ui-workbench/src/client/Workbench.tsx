@@ -213,9 +213,12 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
   // Custom event listener for programmatic browser opening from browser tools
   useEffect(() => {
     const onOpenBrowser = (event: Event): void => {
-      const custom = event as CustomEvent<{ url: string }>
-      if (custom.detail?.url) {
-        openPane('browser', { url: custom.detail.url })
+      const custom = event as CustomEvent<{ url?: string; streamUrl?: string }>
+      if (custom.detail?.url || custom.detail?.streamUrl) {
+        openPane('browser', {
+          url: custom.detail.url,
+          streamUrl: custom.detail.streamUrl,
+        })
         openDetails()
       }
     }

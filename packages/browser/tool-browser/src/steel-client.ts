@@ -2,6 +2,7 @@ export interface SteelSession {
   id: string
   websocketUrl: string
   viewerUrl: string
+  debugUrl: string
 }
 
 export class SteelClient {
@@ -22,11 +23,19 @@ export class SteelClient {
       body: JSON.stringify(body),
     })
     if (!res.ok) throw new Error(`Steel: createSession failed ${res.status}: ${await res.text()}`)
-    const data = await res.json() as { id: string; sessionViewerUrl?: string; cdpUrl?: string }
+    const data = await res.json() as {
+      id: string
+      sessionViewerUrl?: string
+      cdpUrl?: string
+      debugUrl?: string
+      websocketUrl?: string
+    }
+    const rawDebugUrl = data.debugUrl ?? `${this.baseUrl}/v1/sessions/debug`
     return {
       id: data.id,
       websocketUrl: data.cdpUrl ?? `${this.baseUrl.replace(/^http/, 'ws')}/v1/sessions/${data.id}/cdp`,
-      viewerUrl: data.sessionViewerUrl ?? `${this.baseUrl}/v1/sessions/${data.id}/viewer`,
+      viewerUrl: data.sessionViewerUrl ?? rawDebugUrl,
+      debugUrl: rawDebugUrl,
     }
   }
 

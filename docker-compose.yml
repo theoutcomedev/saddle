@@ -34,7 +34,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-auto}
       - HOST_PUBLIC_IP=${HOST_PUBLIC_IP:-auto}
-      - STEEL_BROWSER_URL=${STEEL_BROWSER_URL:-}
+      - STEEL_BROWSER_URL=${STEEL_BROWSER_URL:-http://saddle-steel:3000}
       # BYOK and billing protection flags
       - ENFORCE_BILLING_GATE=true
       - MAX_CONCURRENT_JOBS_BYOK=2
@@ -97,16 +97,18 @@ services:
   steel:
     container_name: saddle-steel
     image: ghcr.io/steel-dev/steel-browser-api:latest
-    profiles:
-      - browser
     environment:
       - STEEL_API_KEY=${STEEL_API_KEY:-}
       - TWO_CAPTCHA_API_KEY=${TWO_CAPTCHA_API_KEY:-}
+      - DOMAIN=steel.${HOST_PUBLIC_IP:-91.99.165.95}.sslip.io
     networks:
       - saddle-network
     restart: unless-stopped
     labels:
-      - "traefik.enable=false"
+      - "traefik.enable=true"
+      - "traefik.http.routers.steel.rule=Host(`steel.${HOST_PUBLIC_IP:-91.99.165.95}.sslip.io`) || Host(`steel.91.99.165.95.sslip.io`)"
+      - "traefik.http.routers.steel.entrypoints=web"
+      - "traefik.http.services.steel.loadbalancer.server.port=3000"
 
 networks:
   saddle-network:

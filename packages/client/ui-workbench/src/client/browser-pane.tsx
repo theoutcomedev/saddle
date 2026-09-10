@@ -27,19 +27,25 @@ function toHref(raw: string): string | null {
 
 /** Render the browser pane. */
 export function BrowserPane({ params, t }: BrowserPaneProps) {
-  const initial = typeof params?.url === 'string' ? params.url : ''
-  const [value, setValue] = useState(initial)
-  const [href, setHref] = useState<string | null>(initial === '' ? null : toHref(initial))
+  const initialUrl = typeof params?.url === 'string' ? params.url : ''
+  const initialStream = typeof params?.streamUrl === 'string' ? params.streamUrl : null
+  const [value, setValue] = useState(initialUrl || initialStream || '')
+  const [href, setHref] = useState<string | null>(initialStream ?? (initialUrl === '' ? null : toHref(initialUrl)))
   const [error, setError] = useState(false)
 
-  // Follow a new owner-supplied URL (a clicked link) without remounting.
+  // Follow a new owner-supplied URL or streamUrl without remounting.
   useEffect(() => {
-    if (typeof params?.url !== 'string') return
-    const next = toHref(params.url)
-    setValue(params.url)
-    setHref(next)
-    setError(false)
-  }, [params?.url])
+    if (typeof params?.streamUrl === 'string') {
+      setValue(typeof params?.url === 'string' ? params.url : params.streamUrl)
+      setHref(params.streamUrl)
+      setError(false)
+    } else if (typeof params?.url === 'string') {
+      const next = toHref(params.url)
+      setValue(params.url)
+      setHref(next)
+      setError(false)
+    }
+  }, [params?.url, params?.streamUrl])
 
   const submit = (event: FormEvent): void => {
     event.preventDefault()
@@ -68,8 +74,11 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
           className={css.open}
           aria-label={t('workbench.browser.open')}
           title={t('workbench.browser.open')}
-          disabled={href === null}
-          onClick={() => { if (href !== null) window.open(href, '_blank', 'noopener') }}
+          disabled={href === null && value === ''}
+          onClick={() => {
+            const target = (value ? toHref(value) : null) ?? href
+            if (target !== null) window.open(target, '_blank', 'noopener')
+          }}
         >
           <IconLinkOutline16 size={14} />
         </button>
@@ -77,7 +86,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
       <div className={css.frameWrap}>
         {href === null
           ? <div className={css.blank}>{t('workbench.browser.blank')}</div>
-          : <iframe className={css.frame} title={href} src={href} sandbox="allow-scripts allow-same-origin allow-forms" />}
+          : <iframe className={css.frame} title={value || href} src={href} sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups" />}
       </div>
       {error && <div className={css.error}>Invalid URL</div>}
     </div>

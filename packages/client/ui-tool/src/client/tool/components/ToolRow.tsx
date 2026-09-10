@@ -160,14 +160,31 @@ export function ToolRow({
   const expandable = body !== null || outputText !== null || card !== null
   const open = expanded && expandable
 
-  // Automatically open the Workbench browser pane when browser_navigate runs
+  // Automatically open the Workbench browser pane with live stream when browser tools run
   useEffect(() => {
-    if (toolName === 'browser_navigate' && body && typeof window !== 'undefined') {
+    if (toolName.startsWith('browser_') && toolName !== 'browser_session_end' && typeof window !== 'undefined') {
       try {
-        const parsed = JSON.parse(body) as { url?: string }
-        if (parsed.url) {
-          window.dispatchEvent(new CustomEvent('workbench:open-browser', { detail: { url: parsed.url } }))
+        let url: string | undefined
+        if (body) {
+          const parsed = JSON.parse(body) as { url?: string }
+          if (parsed.url) url = parsed.url
         }
+
+        const hostname = window.location.hostname
+        let streamHost = '91.99.165.95'
+        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          const parts = hostname.split('.')
+          if (parts.length >= 4 && parts.slice(-2).join('.') === 'sslip.io') {
+            streamHost = parts.slice(-6, -2).join('.') || '91.99.165.95'
+          } else {
+            streamHost = hostname
+          }
+        }
+        const streamUrl = `http://steel.${streamHost}.sslip.io/v1/sessions/debug?interactive=true`
+
+        window.dispatchEvent(new CustomEvent('workbench:open-browser', {
+          detail: { url, streamUrl },
+        }))
       } catch {}
     }
   }, [toolName, body])

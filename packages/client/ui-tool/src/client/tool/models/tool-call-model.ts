@@ -57,6 +57,13 @@ const TOOL_VARIANTS: Record<string, ToolRowVariant> = {
   cordis_run: 'others',
   cordis_stop: 'others',
   cordis_undefine: 'others',
+  browser_navigate: 'read',
+  browser_screenshot: 'read',
+  browser_click: 'read',
+  browser_type: 'read',
+  browser_scroll: 'read',
+  browser_evaluate: 'code',
+  browser_session_end: 'others',
 }
 
 /** Tool-owned titles that refine a generic row variant without replacing it. */
@@ -67,6 +74,13 @@ const TOOL_TITLES: Record<string, string> = {
   cordis_stop: 'Stop Cordis Plugin',
   cordis_undefine: 'Remove Cordis Plugin',
   pwsh: 'Pwsh',
+  browser_navigate: 'Browser Navigate',
+  browser_screenshot: 'Browser Screenshot',
+  browser_click: 'Browser Click',
+  browser_type: 'Browser Type',
+  browser_scroll: 'Browser Scroll',
+  browser_evaluate: 'Browser Evaluate',
+  browser_session_end: 'End Browser Session',
 }
 
 /**
