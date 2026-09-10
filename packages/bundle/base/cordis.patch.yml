@@ -227,7 +227,7 @@
 
     - id: tool-browser
       name: '@deepseek-ai/dsh-tool-browser'
-      disabled: !!js !process.env.STEEL_BROWSER_URL && !process.env.STEEL_API_KEY
+      disabled: !!js !(process.env.STEEL_BROWSER_URL || process.env.STEEL_API_KEY)
 
     - id: fs-observation-policy
       name: '@deepseek-ai/dsh-fs-observation-policy'
