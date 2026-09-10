@@ -162,7 +162,7 @@ export function ToolRow({
 
   // Automatically open the Workbench browser pane with live stream when browser tools run
   useEffect(() => {
-    if (toolName.startsWith('browser_') && toolName !== 'browser_session_end' && typeof window !== 'undefined') {
+    if (typeof toolName === 'string' && toolName.startsWith('browser_') && toolName !== 'browser_session_end' && typeof window !== 'undefined') {
       try {
         let url: string | undefined
         if (body) {
