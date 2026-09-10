@@ -82,6 +82,13 @@ export const CATALOG: readonly ToolService[] = [
   { id: 'replicate', label: 'Replicate', docsUrl: 'https://replicate.com/docs', getKeyUrl: 'https://replicate.com/account/api-tokens', auth: { method: 'api-key', fields: [
     { id: 'apiToken', label: 'API token' },
   ] } },
+
+  // ── browser automation ──────────────────────────────────────────────────
+  { id: 'steel-browser', label: 'Steel Browser', docsUrl: 'https://docs.steel.dev', getKeyUrl: 'https://app.steel.dev/settings/api-keys', auth: { method: 'api-key', fields: [
+    { id: 'apiKey', label: 'API Key (leave blank for self-hosted)', secret: true },
+    { id: 'url', label: 'API URL (leave blank to use self-hosted Docker service)', secret: false },
+    { id: 'twoCaptchaKey', label: '2Captcha API Key (optional, for hard CAPTCHAs)', secret: true },
+  ] } },
 ]
 
 /** Cordis plugin name. */

@@ -34,6 +34,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-auto}
       - HOST_PUBLIC_IP=${HOST_PUBLIC_IP:-auto}
+      - STEEL_BROWSER_URL=${STEEL_BROWSER_URL:-}
       # BYOK and billing protection flags
       - ENFORCE_BILLING_GATE=true
       - MAX_CONCURRENT_JOBS_BYOK=2
@@ -92,6 +93,20 @@ services:
       - saddle-network
     command: redis-server --appendonly yes
     restart: unless-stopped
+
+  steel:
+    container_name: saddle-steel
+    image: ghcr.io/steel-dev/steel-browser-api:latest
+    profiles:
+      - browser
+    environment:
+      - STEEL_API_KEY=${STEEL_API_KEY:-}
+      - TWO_CAPTCHA_API_KEY=${TWO_CAPTCHA_API_KEY:-}
+    networks:
+      - saddle-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
 
 networks:
   saddle-network:

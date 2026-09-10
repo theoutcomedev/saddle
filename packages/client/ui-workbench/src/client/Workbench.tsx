@@ -210,6 +210,19 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     return () => window.removeEventListener('workbench:open-job', onOpenJob)
   }, [openDetails, openPane])
 
+  // Custom event listener for programmatic browser opening from browser tools
+  useEffect(() => {
+    const onOpenBrowser = (event: Event): void => {
+      const custom = event as CustomEvent<{ url: string }>
+      if (custom.detail?.url) {
+        openPane('browser', { url: custom.detail.url })
+        openDetails()
+      }
+    }
+    window.addEventListener('workbench:open-browser', onOpenBrowser)
+    return () => window.removeEventListener('workbench:open-browser', onOpenBrowser)
+  }, [openDetails, openPane])
+
   // Custom event listener for programmatic workbench drawer closing
   useEffect(() => {
     const onCustomClose = (): void => {

@@ -1,0 +1,88 @@
+import { WebSocket } from 'ws'
+
+export class CdpSession {
+  private ws: WebSocket
+  private seq = 0
+  private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
+  private closed = false
+
+  static async connect(wsUrl: string): Promise<CdpSession> {
+    const session = new CdpSession(wsUrl)
+    await session.ready()
+    return session
+  }
+
+  private constructor(wsUrl: string) {
+    this.ws = new WebSocket(wsUrl)
+    this.ws.on('message', (data) => {
+      const msg = JSON.parse(String(data)) as { id?: number; result?: unknown; error?: { message: string } }
+      if (msg.id === undefined) return
+      const handler = this.pending.get(msg.id)
+      if (!handler) return
+      this.pending.delete(msg.id)
+      if (msg.error) handler.reject(new Error(msg.error.message))
+      else handler.resolve(msg.result ?? {})
+    })
+    this.ws.on('close', () => { this.closed = true })
+  }
+
+  private ready(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.ws.once('open', resolve)
+      this.ws.once('error', reject)
+    })
+  }
+
+  send<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
+    if (this.closed) throw new Error('CDP session is closed')
+    const id = ++this.seq
+    return new Promise<T>((resolve, reject) => {
+      this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
+      this.ws.send(JSON.stringify({ id, method, params: params ?? {} }))
+    })
+  }
+
+  async navigate(url: string): Promise<void> {
+    await this.send('Page.navigate', { url })
+    await this.send('Page.setLifecycleEventsEnabled', { enabled: true })
+    // Wait for page load via a short poll
+    await new Promise<void>(resolve => setTimeout(resolve, 2000))
+  }
+
+  async screenshot(): Promise<string> {
+    const result = await this.send<{ data: string }>('Page.captureScreenshot', { format: 'png', quality: 80 })
+    return result.data // base64 PNG
+  }
+
+  async click(x: number, y: number): Promise<void> {
+    await this.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+    await this.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 })
+  }
+
+  async type(text: string): Promise<void> {
+    for (const char of text) {
+      await this.send('Input.dispatchKeyEvent', { type: 'keyDown', text: char })
+      await this.send('Input.dispatchKeyEvent', { type: 'keyUp', text: char })
+    }
+  }
+
+  async scroll(x: number, y: number, deltaY: number): Promise<void> {
+    await this.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x, y, deltaX: 0, deltaY })
+  }
+
+  async evaluate(script: string): Promise<unknown> {
+    const result = await this.send<{ result: { value?: unknown; description?: string } }>(
+      'Runtime.evaluate', { expression: script, returnByValue: true },
+    )
+    return result.result.value ?? result.result.description
+  }
+
+  close(): void {
+    this.closed = true
+    this.ws.close()
+    for (const { reject } of this.pending.values()) {
+      reject(new Error('CDP session closed'))
+    }
+    this.pending.clear()
+  }
+}
