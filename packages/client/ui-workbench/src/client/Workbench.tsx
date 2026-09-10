@@ -197,6 +197,19 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     return () => window.removeEventListener('workbench:open-app', onCustomOpenApp)
   }, [openDetails, openPane])
 
+  // Custom event listener for job selection from chat job list
+  useEffect(() => {
+    const onOpenJob = (event: Event): void => {
+      const custom = event as CustomEvent<{ jobId: string }>
+      if (custom.detail?.jobId) {
+        openPane('jobs', { jobId: custom.detail.jobId })
+        openDetails()
+      }
+    }
+    window.addEventListener('workbench:open-job', onOpenJob)
+    return () => window.removeEventListener('workbench:open-job', onOpenJob)
+  }, [openDetails, openPane])
+
   // Custom event listener for programmatic workbench drawer closing
   useEffect(() => {
     const onCustomClose = (): void => {

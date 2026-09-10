@@ -161,7 +161,22 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
               const duration = formatDuration(elapsed, t)
               const status = statusLabel(job.status, t)
               return (
-                <li key={job.id} className={live ? css.row : `${css.row} ${css.rowSettled}`}>
+                <li
+                  key={job.id}
+                  className={`${live ? css.row : `${css.row} ${css.rowSettled}`} ${css.rowClickable}`}
+                  role="button"
+                  tabIndex={0}
+                  title="View job details"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('workbench:open-job', { detail: { jobId: job.id } }))
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      window.dispatchEvent(new CustomEvent('workbench:open-job', { detail: { jobId: job.id } }))
+                    }
+                  }}
+                >
                   <StateDot state={dotState(job.status)} className={css.rowDot} />
                   <span className={css.kind}>{job.kind}</span>
                   <span className={css.label} title={job.label}>{job.label}</span>

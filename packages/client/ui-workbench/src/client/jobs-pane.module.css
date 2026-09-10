@@ -46,3 +46,133 @@
   text-align: center;
 }
 
+.rowClickable {
+  cursor: pointer;
+}
+
+.rowClickable:hover {
+  background: var(--dsw-alias-fill-l2);
+}
+
+.rowClickable:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-tertiary);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: var(--dsw-alias-bg-base);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.backBtn:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-fill-l2);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 4px;
+}
+
+.detailKind {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-fill-l2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detailStatus {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.detailLabel {
+  margin: 0;
+  padding: 4px 12px 12px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.detailMeta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  padding: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  margin-bottom: 0;
+}
+
+.detailMetaKey {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.detailMetaVal {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.detailCommand {
+  padding: 12px;
+}
+
+.detailCommandLabel {
+  display: block;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+
+.detailCommandText {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--dsw-alias-fill-l2);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}

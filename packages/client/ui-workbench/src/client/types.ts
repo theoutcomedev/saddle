@@ -25,4 +25,6 @@ export interface WorkbenchPaneParams {
   appTitle?: string | undefined
   /** Display icon for an app pane (e.g. '📝'). */
   appIcon?: string | undefined
+  /** Target job ID to focus in the jobs pane. */
+  jobId?: string | undefined
 }
