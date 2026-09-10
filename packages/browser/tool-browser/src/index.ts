@@ -97,7 +97,8 @@ export function apply(ctx: Context, config: Config = {}): void {
     async execute(args: { url: string }, _exec) {
       const { cdp, viewerUrl } = await ensureSession(ctx, config)
       await cdp.navigate(args.url)
-      return { viewerUrl, result: 'Navigated successfully.' }
+      const title = await cdp.evaluate('document.title').catch(() => '')
+      return { viewerUrl, result: `Navigated to ${args.url}. Page title: "${String(title ?? '')}"` }
     },
   }))
 

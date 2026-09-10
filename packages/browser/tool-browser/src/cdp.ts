@@ -5,10 +5,12 @@ export class CdpSession {
   private seq = 0
   private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
   private closed = false
+  private pageSessionId: string | null = null
 
   static async connect(wsUrl: string): Promise<CdpSession> {
     const session = new CdpSession(wsUrl)
     await session.ready()
+    await session.attachPage()
     return session
   }
 
@@ -33,7 +35,23 @@ export class CdpSession {
     })
   }
 
-  send<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
+  private async attachPage(): Promise<void> {
+    const targetsRes = await this.rawSend<{ targetInfos?: Array<{ targetId: string; type: string }> }>('Target.getTargets')
+    let pageTarget = targetsRes.targetInfos?.find(t => t.type === 'page')
+    if (!pageTarget) {
+      const created = await this.rawSend<{ targetId: string }>('Target.createTarget', { url: 'about:blank' })
+      pageTarget = { targetId: created.targetId, type: 'page' }
+    }
+    const attached = await this.rawSend<{ sessionId: string }>('Target.attachToTarget', {
+      targetId: pageTarget.targetId,
+      flatten: true,
+    })
+    this.pageSessionId = attached.sessionId
+    await this.send('Page.enable')
+    await this.send('Runtime.enable')
+  }
+
+  private rawSend<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
     if (this.closed) throw new Error('CDP session is closed')
     const id = ++this.seq
     return new Promise<T>((resolve, reject) => {
@@ -42,9 +60,21 @@ export class CdpSession {
     })
   }
 
+  send<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
+    if (this.closed) throw new Error('CDP session is closed')
+    const id = ++this.seq
+    const payload: Record<string, unknown> = { id, method, params: params ?? {} }
+    if (this.pageSessionId) {
+      payload.sessionId = this.pageSessionId
+    }
+    return new Promise<T>((resolve, reject) => {
+      this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
+      this.ws.send(JSON.stringify(payload))
+    })
+  }
+
   async navigate(url: string): Promise<void> {
     await this.send('Page.navigate', { url })
-    await this.send('Page.setLifecycleEventsEnabled', { enabled: true })
     // Wait for page load via a short poll
     await new Promise<void>(resolve => setTimeout(resolve, 2000))
   }
