@@ -76,11 +76,10 @@ export function apply(ctx: Context, config: Config = {}): void {
     schema: {
       type: 'object',
       properties: {
-        viewerUrl: { type: 'string' },
-        result: { type: 'string' },
+        viewerUrl: { type: 'string', required: true },
+        result: { type: 'string', required: true },
       },
       additionalProperties: false,
-      required: ['viewerUrl', 'result'],
     } as const,
     render: (_args: unknown, value: unknown): ContentBlock[] => {
       const val = value as { result: string; viewerUrl: string }
