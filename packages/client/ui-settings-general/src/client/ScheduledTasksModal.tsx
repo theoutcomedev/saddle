@@ -72,7 +72,7 @@ function IconHistory({ size = 12 }: { size?: number }) {
 }
 
 export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTasksModalProps) {
-  const { tasks, loading, activeLogs, actionInFlight } = useSnapshot(s => s)
+  const { tasks, activeLogs, actionInFlight } = useSnapshot(s => s)
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list')
 
   // Form states
@@ -86,6 +86,18 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
   const [selectedWorkspacePath, setSelectedWorkspacePath] = useState('')
   const [availableSessions, setAvailableSessions] = useState<Array<{ id: string; title: string; cwd?: string | undefined }>>([])
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Array<{ id: string; title: string; path: string }>>([])
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true)
+    try {
+      await store.refresh(false)
+    } finally {
+      setTimeout(() => {
+        setIsManualRefreshing(false)
+      }, 500)
+    }
+  }
 
   useEffect(() => {
     void store.listSessions().then(items => setAvailableSessions(items))
@@ -191,11 +203,11 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
             <Button
               variant="ghost"
               size="sm"
-              disabled={loading}
-              onClick={() => { void store.refresh() }}
+              disabled={isManualRefreshing}
+              onClick={() => { void handleManualRefresh() }}
               title="Refresh tasks"
             >
-              <IconRefreshOutline16 size={14} className={loading ? css.spin : undefined} />
+              <IconRefreshOutline16 size={14} className={isManualRefreshing ? css.spin : undefined} />
             </Button>
             <button type="button" className={css.close} onClick={onClose} aria-label="Close">
               <IconCloseOutline16 size={14} />

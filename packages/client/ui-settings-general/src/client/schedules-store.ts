@@ -27,11 +27,13 @@ export class ScheduledTasksStore {
 
   constructor(private readonly api: IApiClient) {}
 
-  async refresh(): Promise<void> {
-    this.store.update((state) => {
-      state.loading = true
-      state.error = null
-    })
+  async refresh(silent = false): Promise<void> {
+    if (!silent) {
+      this.store.update((state) => {
+        state.loading = true
+        state.error = null
+      })
+    }
 
     try {
       const response = await this.api.schedules.list({})
@@ -54,14 +56,18 @@ export class ScheduledTasksStore {
         state.loading = false
         state.error = error instanceof Error ? error.message : String(error)
       })
+    } finally {
+      this.store.update((state) => {
+        state.loading = false
+      })
     }
   }
 
   startPolling(intervalMs = 8000): void {
     if (this.timer !== undefined) return
-    void this.refresh()
+    void this.refresh(true)
     this.timer = window.setInterval(() => {
-      void this.refresh()
+      void this.refresh(true)
     }, intervalMs)
   }
 
