@@ -234,6 +234,9 @@
     - id: tool-browser
       name: '@deepseek-ai/dsh-tool-browser'
 
+    - id: tool-mount-app
+      name: '@deepseek-ai/dsh-tool-mount-app'
+
     - id: fs-observation-policy
       name: '@deepseek-ai/dsh-fs-observation-policy'
 

@@ -97,6 +97,10 @@
 - id: tool-goal
   name: '@deepseek-ai/dsh-tool-goal'
 
+# ── metamorphic apps ───────────────────────────────────────────────────────
+- id: tool-mount-app
+  name: '@deepseek-ai/dsh-tool-mount-app'
+
 # ── plan mode ───────────────────────────────────────────────────────────────
 
 # Plan state is per-agent by nature, so an entry-local realm is not a

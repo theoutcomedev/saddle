@@ -279,6 +279,7 @@
     { "path": "./packages/jobs/jobs-local" },
     { "path": "./packages/jobs/tool-jobs" },
     { "path": "./packages/browser/tool-browser" },
+    { "path": "./packages/metamorphic/tool-mount-app" },
     { "path": "./packages/experimental/agent-team" },
     { "path": "./packages/experimental/tool-agent-team" },
     { "path": "./packages/workflow/workflow" },

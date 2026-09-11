@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { Button, IconCloseOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
+import { SandpackMetamorphicCanvas } from './SandpackMetamorphicCanvas.tsx'
 
 /** One installable app in the storefront catalog. */
 export interface AppCatalogEntry {
@@ -34,6 +35,14 @@ const APP_CATALOG: readonly AppCatalogEntry[] = [
     icon: 'notepad',
     tags: ['notes', 'autosave'],
     description: 'A full-screen notepad that autosaves. I can read what you type.',
+  },
+  {
+    id: 'metamorphic',
+    name: 'Metamorphic Studio',
+    category: 'AI Apps',
+    icon: '✨',
+    tags: ['metamorphic', 'sandpack', 'live-apps', 'react'],
+    description: 'Live interactive React & TypeScript canvas powered by isolated Sandpack. Run apps created by Saddle agents.',
   },
 ]
 
@@ -525,6 +534,18 @@ export function WorkbenchAppHost({
       />
     )
   }
+  if (appId === 'metamorphic' || params?.files) {
+    return (
+      <SandpackMetamorphicCanvas
+        title={params?.title ? String(params.title) : 'Metamorphic Studio'}
+        description={params?.description ? String(params.description) : undefined}
+        files={params?.files as Record<string, string> | undefined}
+        dependencies={params?.dependencies as Record<string, string> | undefined}
+        template={params?.template as 'react-ts' | 'react' | 'vanilla' | undefined}
+        entryFile={params?.entryFile ? String(params.entryFile) : undefined}
+      />
+    )
+  }
   return (
     <div style={{ padding: 24, textAlign: 'center', color: 'var(--dsw-alias-label-secondary)' }}>
       App not found: {appId}
@@ -554,6 +575,7 @@ export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore:
   const renderActiveApp = (id: string) => {
     switch (id) {
       case 'notepad': return <NotepadApp appStore={appStore} mode="fullscreen" onClose={closeAll} />
+      case 'metamorphic': return <SandpackMetamorphicCanvas isMaximized onToggleMaximize={closeAll} />
       default: return null
     }
   }

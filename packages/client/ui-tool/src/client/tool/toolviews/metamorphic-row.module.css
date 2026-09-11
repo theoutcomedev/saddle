@@ -1,0 +1,103 @@
+.card {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-surface-secondary);
+  overflow: hidden;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-surface-tertiary);
+  gap: 12px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sparkleIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--dsw-static-amber-500);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-surface-primary);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtn:hover {
+  background: var(--dsw-alias-surface-secondary);
+  border-color: var(--dsw-static-amber-500);
+  color: var(--dsw-static-amber-500);
+}
+
+.actionBtnActive {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--dsw-static-amber-500);
+  color: var(--dsw-static-amber-500);
+}
+
+.previewContainer {
+  height: 380px;
+  width: 100%;
+  position: relative;
+  background: var(--dsw-alias-surface-primary);
+  overflow: hidden;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
