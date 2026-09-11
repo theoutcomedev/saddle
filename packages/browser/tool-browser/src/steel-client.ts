@@ -6,7 +6,13 @@ export interface SteelSession {
 }
 
 export class SteelClient {
-  constructor(private readonly baseUrl: string, private readonly apiKey?: string) {}
+  private readonly baseUrl: string
+  private readonly apiKey?: string
+
+  constructor(baseUrl: string, apiKey?: string) {
+    this.baseUrl = baseUrl
+    this.apiKey = apiKey
+  }
 
   private headers(): Record<string, string> {
     const h: Record<string, string> = { 'Content-Type': 'application/json' }
