@@ -285,6 +285,11 @@
   display: none !important;
 }
 
+:global([data-editor-maximized="true"]) .strip,
+:global([data-browser-maximized="true"]) .strip {
+  display: none !important;
+}
+
 /* Enforce 16px minimum font size on iOS / mobile viewports across ALL inputs,
    textareas, and selects inside Workbench to completely eliminate auto-zoom. */
 @media (max-width: 768px) {

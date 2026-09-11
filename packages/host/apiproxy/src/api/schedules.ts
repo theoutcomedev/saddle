@@ -46,20 +46,20 @@ export interface SchedulesApi {
     prompt: string
     cadenceType: 'cron' | 'interval' | 'once'
     cadenceValue: string
-    targetMode?: 'new-session' | 'current-session'
-    sessionId?: string
-    workspacePath?: string
+    targetMode?: 'new-session' | 'current-session' | undefined
+    sessionId?: string | undefined
+    workspacePath?: string | undefined
   }>): Promise<RpcResponse<{ task: ScheduledTaskView }>>
 
   /** Update or toggle an existing scheduled task. */
   update(request: RpcRequest<{
     id: string
-    name?: string
-    prompt?: string
-    cadenceType?: 'cron' | 'interval' | 'once'
-    cadenceValue?: string
-    enabled?: boolean
-    targetMode?: 'new-session' | 'current-session'
+    name?: string | undefined
+    prompt?: string | undefined
+    cadenceType?: 'cron' | 'interval' | 'once' | undefined
+    cadenceValue?: string | undefined
+    enabled?: boolean | undefined
+    targetMode?: 'new-session' | 'current-session' | undefined
   }>): Promise<RpcResponse<{ task: ScheduledTaskView }>>
 
   /** Delete a scheduled task. */

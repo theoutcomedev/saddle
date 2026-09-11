@@ -1065,9 +1065,9 @@
 }
 
 .editorMaximized {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 150;
   background: var(--dsw-alias-bg-base);
 }
 

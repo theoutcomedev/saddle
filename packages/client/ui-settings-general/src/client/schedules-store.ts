@@ -72,12 +72,53 @@ export class ScheduledTasksStore {
     }
   }
 
+  async listSessions(): Promise<Array<{ id: string; title: string; cwd?: string | undefined }>> {
+    try {
+      const res = await this.api.sessions.list({})
+      if (res.result.ok) {
+        return res.result.value.items.map((s) => {
+          const vals = s.projections?.values as Record<string, unknown> | undefined
+          const titleVal = vals?.['sessionListMetadata']
+          const title = typeof titleVal === 'string'
+            ? titleVal
+            : String(s.sessionId)
+          return {
+            id: String(s.sessionId),
+            title,
+            cwd: s.cwd !== undefined ? s.cwd : undefined,
+          }
+        })
+      }
+      return []
+    } catch {
+      return []
+    }
+  }
+
+  async listWorkspaces(): Promise<Array<{ id: string; title: string; path: string }>> {
+    try {
+      const res = await this.api.workspace.list({})
+      if (res.result.ok) {
+        return res.result.value.items.map((w: { workspaceId: string; title: string; path: string }) => ({
+          id: String(w.workspaceId),
+          title: w.title,
+          path: w.path,
+        }))
+      }
+      return []
+    } catch {
+      return []
+    }
+  }
+
   async createTask(params: {
     name: string
     prompt: string
     cadenceType: 'cron' | 'interval' | 'once'
     cadenceValue: string
-    targetMode?: 'new-session' | 'current-session'
+    targetMode?: 'new-session' | 'current-session' | undefined
+    sessionId?: string | undefined
+    workspacePath?: string | undefined
   }): Promise<boolean> {
     this.store.update((state) => {
       state.actionInFlight = 'create'

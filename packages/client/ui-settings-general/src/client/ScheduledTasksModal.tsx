@@ -82,6 +82,15 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
   const [intervalValue, setIntervalValue] = useState('30')
   const [cronValue, setCronValue] = useState('0 9 * * *')
   const [targetMode, setTargetMode] = useState<'new-session' | 'current-session'>('new-session')
+  const [selectedSessionId, setSelectedSessionId] = useState('')
+  const [selectedWorkspacePath, setSelectedWorkspacePath] = useState('')
+  const [availableSessions, setAvailableSessions] = useState<Array<{ id: string; title: string; cwd?: string | undefined }>>([])
+  const [availableWorkspaces, setAvailableWorkspaces] = useState<Array<{ id: string; title: string; path: string }>>([])
+
+  useEffect(() => {
+    void store.listSessions().then(items => setAvailableSessions(items))
+    void store.listWorkspaces().then(items => setAvailableWorkspaces(items))
+  }, [store])
 
   useEffect(() => {
     store.startPolling()
@@ -113,11 +122,15 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
       cadenceType,
       cadenceValue,
       targetMode,
+      sessionId: targetMode === 'current-session' && selectedSessionId ? selectedSessionId : undefined,
+      workspacePath: selectedWorkspacePath.trim() || undefined,
     })
 
     if (ok) {
       setName('')
       setPrompt('')
+      setSelectedSessionId('')
+      setSelectedWorkspacePath('')
       setActiveTab('list')
     }
   }
@@ -333,8 +346,63 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                   onChange={e => setTargetMode(e.target.value as 'new-session' | 'current-session')}
                 >
                   <option value="new-session">Create a fresh isolated session per run (Recommended)</option>
-                  <option value="current-session">Continue current workspace session</option>
+                  <option value="current-session">Continue an existing session</option>
                 </select>
+                <span className={css.formHint}>
+                  {targetMode === 'new-session'
+                    ? 'Spawns a clean, isolated session for each execution.'
+                    : 'Dispatches task turns directly into a selected session conversation.'}
+                </span>
+              </div>
+
+              {targetMode === 'current-session' && (
+                <div className={css.formGroup}>
+                  <label className={css.formLabel} htmlFor="session-select">Target Session</label>
+                  <select
+                    id="session-select"
+                    className={css.select}
+                    value={selectedSessionId}
+                    onChange={e => setSelectedSessionId(e.target.value)}
+                  >
+                    <option value="">Latest active session (Auto)</option>
+                    {availableSessions.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.title ? `${s.title} (${s.id.slice(0, 16)}…)` : s.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className={css.formGroup}>
+                <label className={css.formLabel} htmlFor="workspace-path">Target Workspace Directory (Optional)</label>
+                {availableWorkspaces.length > 0 ? (
+                  <select
+                    id="workspace-path"
+                    className={css.select}
+                    value={selectedWorkspacePath}
+                    onChange={e => setSelectedWorkspacePath(e.target.value)}
+                  >
+                    <option value="">Default server directory</option>
+                    {availableWorkspaces.map(w => (
+                      <option key={w.id} value={w.path}>
+                        {w.title} ({w.path})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="workspace-path"
+                    type="text"
+                    className={css.input}
+                    placeholder="e.g. /root/Meridian or /workspace"
+                    value={selectedWorkspacePath}
+                    onChange={e => setSelectedWorkspacePath(e.target.value)}
+                  />
+                )}
+                <span className={css.formHint}>
+                  Working directory where the scheduled task executes commands and inspects files.
+                </span>
               </div>
 
               <div className={css.formActions}>
@@ -467,6 +535,22 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                               ({task.lastStatus})
                             </span>
                           )}
+                        </span>
+                      )}
+                      {task.targetMode === 'current-session' && (
+                        <span className={css.metaItem}>
+                          Target:{' '}
+                          <strong className={css.metaHighlight}>
+                            {task.sessionId ? `Session (${task.sessionId.slice(0, 14)}…)` : 'Latest active session'}
+                          </strong>
+                        </span>
+                      )}
+                      {task.workspacePath && (
+                        <span className={css.metaItem}>
+                          Workspace:{' '}
+                          <strong className={css.metaHighlight}>
+                            {task.workspacePath.split('/').pop() || task.workspacePath}
+                          </strong>
                         </span>
                       )}
                       {task.lastError && (

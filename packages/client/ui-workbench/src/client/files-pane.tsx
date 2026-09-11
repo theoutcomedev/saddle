@@ -384,14 +384,24 @@ export function FilesPane({
 
   useEffect(() => {
     if (!isMaximized) return
+    document.body.setAttribute('data-editor-maximized', 'true')
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsMaximized(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.removeAttribute('data-editor-maximized')
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [isMaximized])
+
+  useEffect(() => {
+    return () => {
+      document.body.removeAttribute('data-editor-maximized')
+    }
+  }, [])
 
   // Custom user-pinned presets (stored in localStorage)
   const [pinnedPresets, setPinnedPresets] = useState<Array<{ name: string; path: string }>>(() => {
@@ -1102,7 +1112,7 @@ export function FilesPane({
   return (
     <div ref={rootRef} className={css.root}>
       {/* Renders in Workbench header row 2 (aligned with Chat/Trajectory tabs) or fallback inline */}
-      {subrowEl ? createPortal(presetsContent, subrowEl) : presetsContent}
+      {!isMaximized && (subrowEl ? createPortal(presetsContent, subrowEl) : presetsContent)}
 
       {/* --- TOP NAVIGATION BAR --- */}
       <div className={css.navBar}>

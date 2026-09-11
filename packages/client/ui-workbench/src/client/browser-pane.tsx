@@ -161,14 +161,24 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
 
   useEffect(() => {
     if (!isMaximized) return
+    document.body.setAttribute('data-browser-maximized', 'true')
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsMaximized(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.removeAttribute('data-browser-maximized')
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [isMaximized])
+
+  useEffect(() => {
+    return () => {
+      document.body.removeAttribute('data-browser-maximized')
+    }
+  }, [])
 
   // Track system theme changes for stream background matching
   useEffect(() => {
@@ -363,7 +373,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
 
   return (
     <div className={`${css.root} ${isMaximized ? css.browserMaximized : ''}`}>
-      {subrowEl ? createPortal(subrowContent, subrowEl) : null}
+      {!isMaximized && subrowEl ? createPortal(subrowContent, subrowEl) : null}
 
       <div className={css.bar}>
         <div className={css.navGroup}>
