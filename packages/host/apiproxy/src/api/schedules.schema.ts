@@ -19,6 +19,7 @@ export const scheduledTaskViewSchema = z.object({
   targetMode: z.enum(['new-session', 'current-session']),
   sessionId: z.string().optional(),
   workspacePath: z.string().optional(),
+  clientTimeZone: z.string().optional(),
   createdAt: z.string(),
   lastRunAt: z.string().optional(),
   lastStatus: z.enum(['success', 'failed', 'running']).optional(),
@@ -55,6 +56,7 @@ export const schedulesCreateRequestSchema = z.object({
   targetMode: z.enum(['new-session', 'current-session']).optional(),
   sessionId: z.string().optional(),
   workspacePath: z.string().optional(),
+  clientTimeZone: z.string().optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'schedules.create'>>>
 
 /** schedules.create response value. */

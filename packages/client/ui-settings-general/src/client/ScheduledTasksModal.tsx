@@ -2,7 +2,7 @@
  * Scheduled Tasks Orchestrator modal: monitor, create, trigger, and manage automated agent tasks.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import clsx from 'clsx'
 import { Button, IconCloseOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ScheduledTasksStore } from './schedules-store.ts'
@@ -87,6 +87,13 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
   const [availableSessions, setAvailableSessions] = useState<Array<{ id: string; title: string; cwd?: string | undefined }>>([])
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Array<{ id: string; title: string; path: string }>>([])
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  const clientTimeZone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    } catch {
+      return 'UTC'
+    }
+  }, [])
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true)
@@ -136,6 +143,7 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
       targetMode,
       sessionId: targetMode === 'current-session' && selectedSessionId ? selectedSessionId : undefined,
       workspacePath: selectedWorkspacePath.trim() || undefined,
+      clientTimeZone,
     })
 
     if (ok) {
@@ -344,8 +352,8 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                   )}
                   <span className={css.formHint}>
                     {cadenceType === 'cron'
-                      ? 'Format: min hour day month dow (UTC)'
-                      : 'Repeats continuously while server is running.'}
+                      ? `Format: min hour day month dow (${clientTimeZone})`
+                      : `Repeats continuously. Server evaluates in ${clientTimeZone}.`}
                   </span>
                 </div>
               </div>
@@ -563,6 +571,11 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                           <strong className={css.metaHighlight}>
                             {task.workspacePath.split('/').pop() || task.workspacePath}
                           </strong>
+                        </span>
+                      )}
+                      {task.clientTimeZone && (
+                        <span className={css.metaItem}>
+                          Zone: <strong className={css.metaHighlight}>{task.clientTimeZone}</strong>
                         </span>
                       )}
                       {task.lastError && (

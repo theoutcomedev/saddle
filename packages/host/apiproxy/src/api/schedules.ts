@@ -18,6 +18,7 @@ export interface ScheduledTaskView {
   targetMode: 'new-session' | 'current-session'
   sessionId?: string | undefined
   workspacePath?: string | undefined
+  clientTimeZone?: string | undefined
   createdAt: string
   lastRunAt?: string | undefined
   lastStatus?: 'success' | 'failed' | 'running' | undefined
@@ -49,6 +50,7 @@ export interface SchedulesApi {
     targetMode?: 'new-session' | 'current-session' | undefined
     sessionId?: string | undefined
     workspacePath?: string | undefined
+    clientTimeZone?: string | undefined
   }>): Promise<RpcResponse<{ task: ScheduledTaskView }>>
 
   /** Update or toggle an existing scheduled task. */

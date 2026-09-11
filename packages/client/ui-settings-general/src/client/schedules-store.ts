@@ -125,6 +125,7 @@ export class ScheduledTasksStore {
     targetMode?: 'new-session' | 'current-session' | undefined
     sessionId?: string | undefined
     workspacePath?: string | undefined
+    clientTimeZone?: string | undefined
   }): Promise<boolean> {
     this.store.update((state) => {
       state.actionInFlight = 'create'

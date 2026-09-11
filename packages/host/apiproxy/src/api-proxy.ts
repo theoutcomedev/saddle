@@ -2271,7 +2271,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     }
   }
 
-  function formatCadenceLabel(cadenceType: 'cron' | 'interval' | 'once', cadenceValue: string): string {
+  function formatCadenceLabel(
+    cadenceType: 'cron' | 'interval' | 'once',
+    cadenceValue: string,
+    clientTimeZone?: string,
+  ): string {
     if (cadenceType === 'interval') {
       const mins = parseInt(cadenceValue, 10) || 30
       if (mins >= 60 && mins % 60 === 0) {
@@ -2283,11 +2287,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     if (cadenceType === 'once') return 'Once'
     if (cadenceType === 'cron') {
       const v = cadenceValue.trim()
-      if (v === '0 0 * * *') return 'Daily at midnight (UTC)'
-      if (v === '0 9 * * *') return 'Daily at 09:00 (UTC)'
+      const tzLabel = clientTimeZone ? ` (${clientTimeZone})` : ' (UTC)'
+      if (v === '0 0 * * *') return `Daily at midnight${tzLabel}`
+      if (v === '0 9 * * *') return `Daily at 09:00${tzLabel}`
       if (v === '*/30 * * * *') return 'Every 30 minutes'
       if (v === '0 * * * *') return 'Every hour'
-      return `Cron: ${v}`
+      return `Cron: ${v}${tzLabel}`
     }
     return cadenceValue
   }
@@ -2310,7 +2315,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     return parseInt(part, 10) === value
   }
 
-  function computeNextRun(cadenceType: 'cron' | 'interval' | 'once', cadenceValue: string, fromTime: number): number | undefined {
+  function computeNextRun(
+    cadenceType: 'cron' | 'interval' | 'once',
+    cadenceValue: string,
+    fromTime: number,
+    clientTimeZone?: string,
+  ): number | undefined {
     if (cadenceType === 'interval') {
       const mins = Math.max(1, parseInt(cadenceValue, 10) || 30)
       return fromTime + mins * 60 * 1000
@@ -2325,14 +2335,53 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       const start = new Date(fromTime + 60_000)
       start.setSeconds(0, 0)
       const maxMinutes = 44_640
+
+      let tzFormatter: Intl.DateTimeFormat | undefined
+      if (clientTimeZone) {
+        try {
+          tzFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: clientTimeZone,
+            minute: 'numeric',
+            hour: 'numeric',
+            hour12: false,
+            day: 'numeric',
+            month: 'numeric',
+            weekday: 'short',
+          })
+        } catch {
+          tzFormatter = undefined
+        }
+      }
+
+      const weekdayMap: Record<string, number> = {
+        Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+      }
+
       for (let i = 0; i < maxMinutes; i++) {
         const current = new Date(start.getTime() + i * 60_000)
+        let minute = current.getUTCMinutes()
+        let hour = current.getUTCHours()
+        let day = current.getUTCDate()
+        let month = current.getUTCMonth() + 1
+        let dow = current.getUTCDay()
+
+        if (tzFormatter) {
+          const partsFormatted = tzFormatter.formatToParts(current)
+          for (const p of partsFormatted) {
+            if (p.type === 'minute') minute = parseInt(p.value, 10)
+            else if (p.type === 'hour') hour = parseInt(p.value, 10) % 24
+            else if (p.type === 'day') day = parseInt(p.value, 10)
+            else if (p.type === 'month') month = parseInt(p.value, 10)
+            else if (p.type === 'weekday') dow = weekdayMap[p.value] ?? dow
+          }
+        }
+
         if (
-          matchesCronPart(current.getUTCMinutes(), minPart) &&
-          matchesCronPart(current.getUTCHours(), hourPart) &&
-          matchesCronPart(current.getUTCDate(), domPart) &&
-          matchesCronPart(current.getUTCMonth() + 1, monthPart) &&
-          matchesCronPart(current.getUTCDay(), dowPart)
+          matchesCronPart(minute, minPart) &&
+          matchesCronPart(hour, hourPart) &&
+          matchesCronPart(day, domPart) &&
+          matchesCronPart(month, monthPart) &&
+          matchesCronPart(dow, dowPart)
         ) {
           return current.getTime()
         }
@@ -2388,6 +2437,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const source: MessageSource = {
           kind: 'user',
           rpcId: RpcId(randomUUID()),
+          ...(task.clientTimeZone ? { clientTimeZone: task.clientTimeZone } : {}),
         }
         const message: UserMessage = createUserMessage({
           content: [{ type: 'text', text: task.prompt }],
@@ -2396,7 +2446,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         turn.agent.followup(message)
       }
 
-      const nextRun = computeNextRun(task.cadenceType, task.cadenceValue, Date.now())
+      const nextRun = computeNextRun(task.cadenceType, task.cadenceValue, Date.now(), task.clientTimeZone)
       runEntry.status = 'success'
       runEntry.finishedAt = new Date().toISOString()
       runEntry.outputSnippet = `Dispatched to session ${targetSessionId}`
@@ -4818,8 +4868,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const p = request.payload
         const id = `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
         const createdAt = new Date().toISOString()
-        const cadenceLabel = formatCadenceLabel(p.cadenceType, p.cadenceValue)
-        const nextRunAt = computeNextRun(p.cadenceType, p.cadenceValue, Date.now())
+        const clientTimeZone = p.clientTimeZone
+        const cadenceLabel = formatCadenceLabel(p.cadenceType, p.cadenceValue, clientTimeZone)
+        const nextRunAt = computeNextRun(p.cadenceType, p.cadenceValue, Date.now(), clientTimeZone)
 
         const task: ScheduledTaskView = {
           id,
@@ -4832,6 +4883,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           targetMode: p.targetMode ?? 'new-session',
           sessionId: p.sessionId,
           workspacePath: p.workspacePath,
+          clientTimeZone,
           createdAt,
           nextRunAt: nextRunAt ? new Date(nextRunAt).toISOString() : undefined,
         }
@@ -4871,7 +4923,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
         let nextRunAt = current.nextRunAt
         if (enabled && (!current.enabled || cadenceChanged || !nextRunAt)) {
-          const computed = computeNextRun(cadenceType, cadenceValue, Date.now())
+          const computed = computeNextRun(cadenceType, cadenceValue, Date.now(), current.clientTimeZone)
           nextRunAt = computed ? new Date(computed).toISOString() : undefined
         } else if (!enabled) {
           nextRunAt = undefined
@@ -4883,11 +4935,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           prompt: (p.prompt ?? current.prompt).trim(),
           cadenceType,
           cadenceValue,
-          cadenceLabel: formatCadenceLabel(cadenceType, cadenceValue),
+          cadenceLabel: formatCadenceLabel(cadenceType, cadenceValue, current.clientTimeZone),
           enabled,
           targetMode: p.targetMode ?? current.targetMode,
           sessionId: current.sessionId,
           workspacePath: current.workspacePath,
+          clientTimeZone: current.clientTimeZone,
           createdAt: current.createdAt,
           lastRunAt: current.lastRunAt,
           lastStatus: current.lastStatus,
