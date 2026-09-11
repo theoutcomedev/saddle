@@ -317,6 +317,11 @@
   align-items: stretch;
 }
 
+.footerActions :global(button) {
+  flex: none;
+  box-sizing: border-box;
+}
+
 .collapsed .footArea {
   align-items: center;
 }
@@ -328,6 +333,15 @@
   align-items: center;
   justify-content: center;
   width: auto;
+}
+
+.collapsed .footerActions :global(button) {
+  width: 36px;
+  height: 36px;
+  margin: 4px 0;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

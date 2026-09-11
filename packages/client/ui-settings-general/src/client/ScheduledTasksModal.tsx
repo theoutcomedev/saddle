@@ -190,45 +190,47 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                   <p className={css.emptyDesc}>No execution runs recorded for this task yet.</p>
                 </div>
               ) : (
-                <table className={css.logsTable}>
-                  <thead>
-                    <tr>
-                      <th>Started At</th>
-                      <th>Status</th>
-                      <th>Finished At</th>
-                      <th>Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeLogs.runs.map(run => (
-                      <tr key={run.id}>
-                        <td>{new Date(run.startedAt).toLocaleString()}</td>
-                        <td>
-                          <span
-                            className={clsx(
-                              css.statusPill,
-                              run.status === 'success' && css.statusActive,
-                              run.status === 'failed' && css.statusPaused,
-                              run.status === 'running' && css.statusRunning,
-                            )}
-                          >
-                            {run.status}
-                          </span>
-                        </td>
-                        <td>{run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString() : '—'}</td>
-                        <td>
-                          {run.error ? (
-                            <span style={{ color: '#ef4444' }}>{run.error}</span>
-                          ) : run.outputSnippet ? (
-                            <span>{run.outputSnippet}</span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
+                <div className={css.logsTableWrapper}>
+                  <table className={css.logsTable}>
+                    <thead>
+                      <tr>
+                        <th>Started At</th>
+                        <th>Status</th>
+                        <th>Finished At</th>
+                        <th>Details</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {activeLogs.runs.map(run => (
+                        <tr key={run.id}>
+                          <td>{new Date(run.startedAt).toLocaleString()}</td>
+                          <td>
+                            <span
+                              className={clsx(
+                                css.statusPill,
+                                run.status === 'success' && css.statusActive,
+                                run.status === 'failed' && css.statusPaused,
+                                run.status === 'running' && css.statusRunning,
+                              )}
+                            >
+                              {run.status}
+                            </span>
+                          </td>
+                          <td>{run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString() : '—'}</td>
+                          <td>
+                            {run.error ? (
+                              <span style={{ color: '#ef4444' }}>{run.error}</span>
+                            ) : run.outputSnippet ? (
+                              <span>{run.outputSnippet}</span>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           ) : activeTab === 'create' ? (

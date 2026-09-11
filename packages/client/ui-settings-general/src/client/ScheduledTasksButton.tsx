@@ -9,13 +9,32 @@ import type { ScheduledTasksStore } from './schedules-store.ts'
 import { ScheduledTasksModal } from './ScheduledTasksModal.tsx'
 import css from './ScheduledTasksButton.module.css'
 
-/** Crisp alarm / calendar-clock glyph for scheduled tasks */
-export function IconScheduleOutline16({ size = 16, className }: { size?: number | undefined; className?: string | undefined }) {
+/** Crisp centered clock / schedule glyph for scheduled tasks */
+export function IconScheduleOutline16({
+  size = 16,
+  className,
+}: {
+  size?: number | undefined
+  className?: string | undefined
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M8 5.5V8.5L10 10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3.2 3.5L4.8 2M12.8 3.5L11.2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M8 4.6V8L10.5 9.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

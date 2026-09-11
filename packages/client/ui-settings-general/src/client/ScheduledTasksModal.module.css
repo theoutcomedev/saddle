@@ -11,8 +11,8 @@
 
 .modal {
   position: relative;
-  width: 840px;
-  height: min(820px, calc(100vh - 48px));
+  width: 800px;
+  height: min(800px, calc(100vh - 48px));
   max-width: calc(100vw - 48px);
   display: flex;
   flex-direction: column;
@@ -31,8 +31,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 58px;
-  padding: 0 16px 0 24px;
+  height: 54px;
+  padding: 12px 14px 12px 24px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
@@ -350,10 +350,17 @@
   justify-content: space-between;
 }
 
+.logsTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .logsTable {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  min-width: 520px;
 }
 
 .logsTable th {
@@ -377,4 +384,100 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .mask {
+    padding: 0;
+  }
+
+  .modal {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+    background: var(--dsw-alias-bg-base);
+  }
+
+  .header {
+    height: auto;
+    flex-wrap: wrap;
+    padding: max(16px, env(safe-area-inset-top)) 16px 12px 16px;
+    gap: 12px;
+  }
+
+  .titleArea {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .headerControls {
+    order: 2;
+  }
+
+  .tabs {
+    width: 100%;
+    order: 3;
+    display: flex;
+    margin-top: 4px;
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+  }
+
+  .content {
+    padding-top: 16px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .cardTop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .cardActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cardMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .form {
+    max-width: 100%;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .formActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Eliminate iOS Safari auto-zoom on input focus */
+  .input,
+  .textarea,
+  .select,
+  .modal input,
+  .modal textarea,
+  .modal select {
+    font-size: 16px !important;
+  }
 }
