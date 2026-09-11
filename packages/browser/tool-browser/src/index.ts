@@ -1,11 +1,14 @@
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { JsonValue } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import { credentialKey } from '@deepseek-ai/dsh-credentials'
 import { SteelClient, type SteelSession } from './steel-client.ts'
 import { CdpSession } from './cdp.ts'
+import { loadProfile, saveProfile, listProfiles } from './profiles.ts'
 
 export const name = 'tool-browser'
 export const inject = ['tools', 'systemPrompt', 'credentials']
@@ -37,13 +40,36 @@ function resolveViewerUrl(rawDebugUrl?: string): string {
   const fallback = `http://steel.${serverIp}.sslip.io/v1/sessions/debug?interactive=true`
 
   if (!rawDebugUrl) return fallback
-  if (rawDebugUrl.includes('0.0.0.0') || rawDebugUrl.includes('127.0.0.1') || rawDebugUrl.includes('steel:') || rawDebugUrl.includes('saddle-steel:') || /^https?:\/\/172\./.test(rawDebugUrl)) {
+  if (rawDebugUrl.includes('0.0.0.0') || rawDebugUrl.includes('127.0.0.1') || rawDebugUrl.includes('steel:')
+    || rawDebugUrl.includes('saddle-steel:') || /^https?:\/\/172\./.test(rawDebugUrl)) {
     return fallback
   }
   return rawDebugUrl.includes('?') ? `${rawDebugUrl}&interactive=true` : `${rawDebugUrl}?interactive=true`
 }
 
-async function ensureSession(ctx: Context, config: Config): Promise<{ steel: SteelSession; cdp: CdpSession; viewerUrl: string }> {
+async function resolveModelAdmitsImages(ctx: Context, exec?: ToolRunContext): Promise<boolean> {
+  try {
+    const routed = exec?.agent?.session.requestHeader()?.config
+    const provider = routed?.provider ?? exec?.agent?.options.provider
+    const model = routed?.model ?? exec?.agent?.options.model
+    const llm = ctx.get('llm') as {
+      resolveModelInfo?: (p: string, m: string, s?: AbortSignal) => Promise<{ inputModalities?: string[] }>
+    } | undefined
+    if (provider && model && typeof llm?.resolveModelInfo === 'function') {
+      const info = await llm.resolveModelInfo(provider, model, exec?.signal)
+      if (Array.isArray(info?.inputModalities) && info.inputModalities.includes('image')) {
+        return true
+      }
+    }
+  } catch {}
+  return false
+}
+
+async function ensureSession(
+  ctx: Context,
+  config: Config,
+  profileName?: string,
+): Promise<{ steel: SteelSession; cdp: CdpSession; viewerUrl: string }> {
   if (steelSession && cdpSession) {
     const publicViewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
     return { steel: steelSession, cdp: cdpSession, viewerUrl: publicViewerUrl }
@@ -65,14 +91,25 @@ async function ensureSession(ctx: Context, config: Config): Promise<{ steel: Ste
     }
   }
 
+  let sessionContext: Record<string, unknown> | undefined
+  if (profileName) {
+    const loaded = await loadProfile(profileName)
+    if (loaded) {
+      sessionContext = loaded
+    }
+  }
+
   const baseUrl = resolveBaseUrl(config, credUrl)
   const client = new SteelClient(baseUrl, apiKey)
 
   try {
-    steelSession = await client.createSession({ ...(twoCaptchaKey ? { twoCaptchaKey } : {}) })
+    steelSession = await client.createSession({
+      ...(twoCaptchaKey ? { twoCaptchaKey } : {}),
+      ...(sessionContext ? { sessionContext } : {}),
+    })
     cdpSession = await CdpSession.connect(steelSession.websocketUrl)
   } catch (error) {
-    throw new Error(`Steel browser not configured or reachable. Add STEEL_BROWSER_URL env var or configure steel-browser in Settings → Connections. Detail: ${error}`)
+    throw new Error(`Steel browser not configured or reachable. Detail: ${error}`)
   }
 
   const publicViewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
@@ -112,10 +149,12 @@ export function apply(ctx: Context, config: Config = {}): void {
     order: 110,
     text: [
       'Browser tools give you a real Chrome browser. Call browser_navigate first to open a page.',
+      'You can pass profile: "name" to browser_navigate to load saved cookies and logins.',
+      'Use browser_save_profile to save your login session and cookies under a profile name for future tasks.',
       'Use browser_get_content to inspect the page and discover form inputs, buttons, and recommended selectors.',
       'Use browser_click with selector (e.g. "#search-btn"), button text, or x,y pixel coordinates.',
       'Use browser_type with selector and text to fill input fields, with optional pressEnter: true.',
-      'Use browser_screenshot after interactions to verify the visual state in the browser pane.',
+      'Use browser_screenshot to capture the visual page state.',
       'Call browser_session_end when completely done browsing to free resources.',
     ].join(' '),
   })
@@ -126,12 +165,26 @@ export function apply(ctx: Context, config: Config = {}): void {
       properties: {
         viewerUrl: { type: 'string', required: true },
         result: { type: 'string', required: true },
+        attachment: { type: 'json' },
+        admitsImages: { type: 'boolean' },
       },
-      additionalProperties: false,
+      additionalProperties: true,
     } as const,
     render: (_args: unknown, value: unknown): ContentBlock[] => {
-      const val = value as { result: string; viewerUrl: string }
-      return [{ type: 'text' as const, text: val.result }]
+      const val = value as {
+        result: string
+        viewerUrl: string
+        attachment?: unknown
+        admitsImages?: boolean
+      }
+      const blocks: ContentBlock[] = [{ type: 'text' as const, text: val.result }]
+      if (val.attachment && val.admitsImages) {
+        blocks.push({
+          type: 'image' as const,
+          attachment: val.attachment as any,
+        })
+      }
+      return blocks
     },
   }
 
@@ -140,13 +193,18 @@ export function apply(ctx: Context, config: Config = {}): void {
     description: 'Navigate the browser to a URL. Returns a success message and viewer URL.',
     parameters: {
       url: { type: 'string', required: true, description: 'The URL to navigate to.' },
+      profile: {
+        type: 'string',
+        description: 'Optional saved profile name (e.g. "default", "github") to resume cookies and authenticated state.',
+      },
     },
     output: outputBase,
-    async execute(args: { url: string }, _exec) {
-      const { cdp, viewerUrl } = await ensureSession(ctx, config)
+    async execute(args: { url: string; profile?: string }, _exec) {
+      const { cdp, viewerUrl } = await ensureSession(ctx, config, args.profile)
       await cdp.navigate(args.url)
       const title = await cdp.evaluate('document.title').catch(() => '')
-      return { viewerUrl, result: `Navigated to ${args.url}. Page title: "${String(title ?? '')}"` }
+      const profileNote = args.profile ? ` with profile "${args.profile}"` : ''
+      return { viewerUrl, result: `Navigated to ${args.url}${profileNote}. Page title: "${String(title ?? '')}"` }
     },
   }))
 
@@ -154,7 +212,10 @@ export function apply(ctx: Context, config: Config = {}): void {
     name: 'browser_get_content',
     description: 'Inspect the current page to extract its title, URL, form inputs (with exact selectors), clickable buttons, links, and headings.',
     parameters: {
-      format: { type: 'string', description: 'Output format: "interactive" (default, structured form inputs and buttons), "text" (clean text only), or "html".' },
+      format: {
+        type: 'string',
+        description: 'Output format: "interactive" (default, structured form inputs and buttons), "text" (clean text only), or "html".',
+      },
     },
     output: outputBase,
     async execute(args: { format?: 'interactive' | 'text' | 'html' }, _exec) {
@@ -166,13 +227,36 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.tools.register(defineTool({
     name: 'browser_screenshot',
-    description: 'Take a screenshot of the current page. Open the browser pane viewer to see it.',
+    description: 'Take a screenshot of the current page. Open the browser pane viewer to see it, or inspect the attached visual image.',
     parameters: {},
     output: outputBase,
-    async execute(_args: unknown, _exec) {
+    async execute(_args: unknown, exec: ToolRunContext) {
       const { cdp, viewerUrl } = await ensureSession(ctx, config)
-      await cdp.screenshot()
-      return { viewerUrl, result: 'Screenshot taken.' }
+      const pngBase64 = await cdp.screenshot()
+      const admitsImages = await resolveModelAdmitsImages(ctx, exec)
+
+      let attachmentRef: unknown = undefined
+      const attachments = ctx.get('attachments') as {
+        saveImages?: (inputs: readonly { data: Buffer; mediaType: string }[]) => Promise<readonly unknown[]>
+      } | undefined
+      if (attachments && typeof attachments.saveImages === 'function') {
+        try {
+          const buffer = Buffer.from(pngBase64, 'base64')
+          const refs = await attachments.saveImages([{ data: buffer, mediaType: 'image/png' }])
+          attachmentRef = refs[0]
+        } catch {
+          // best-effort saving to attachment store
+        }
+      }
+
+      return {
+        viewerUrl,
+        result: attachmentRef && admitsImages
+          ? 'Screenshot captured (visual image attached to this turn).'
+          : 'Screenshot taken. Open the browser pane viewer to see the live page.',
+        attachment: (attachmentRef as JsonValue) ?? null,
+        admitsImages,
+      }
     },
   }))
 
@@ -237,6 +321,58 @@ export function apply(ctx: Context, config: Config = {}): void {
       const { cdp, viewerUrl } = await ensureSession(ctx, config)
       const res = await cdp.evaluate(args.script)
       return { viewerUrl, result: `Evaluated script. Result: ${JSON.stringify(res)}` }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'browser_save_profile',
+    description: 'Save the current browser state (cookies, localStorage, session storage) to a named profile to resume logins in future sessions.',
+    parameters: {
+      name: { type: 'string', required: true, description: 'The profile name (e.g. "default", "github", "twitter").' },
+    },
+    output: outputBase,
+    async execute(args: { name: string }, _exec) {
+      if (!steelSession) {
+        return { viewerUrl: '', result: 'No active browser session to save.' }
+      }
+      const key = credentialKey('connections', 'steel-browser')
+      const cred = await ctx.credentials.readRecord(key).catch(() => null)
+      let apiKey: string | undefined
+      let credUrl: string | undefined
+      if (cred?.kind === 'grant' && cred.payload && typeof cred.payload === 'object') {
+        const payload = cred.payload as { type?: string; values?: { apiKey?: string; url?: string } }
+        if (payload.type === 'api-key' && payload.values) {
+          apiKey = payload.values.apiKey
+          credUrl = payload.values.url
+        }
+      }
+      const baseUrl = resolveBaseUrl(config, credUrl)
+      const client = new SteelClient(baseUrl, apiKey)
+      const context = await client.getSessionContext(steelSession.id)
+      const cleanName = await saveProfile(args.name, context)
+      const viewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
+      return {
+        viewerUrl,
+        result: `Browser session state successfully saved to profile "${cleanName}". Future sessions can use browser_navigate with profile: "${cleanName}" to resume.`,
+      }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'browser_list_profiles',
+    description: 'List all saved browser profile names available for resumption.',
+    parameters: {},
+    output: outputBase,
+    async execute(_args: unknown, _exec) {
+      const profiles = await listProfiles()
+      const viewerUrl = steelSession ? resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl) : ''
+      if (profiles.length === 0) {
+        return { viewerUrl, result: 'No saved browser profiles found.' }
+      }
+      return {
+        viewerUrl,
+        result: `Saved browser profiles (${profiles.length}):\n${profiles.map(p => `- ${p}`).join('\n')}`,
+      }
     },
   }))
 

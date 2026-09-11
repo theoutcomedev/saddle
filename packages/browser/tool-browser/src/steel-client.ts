@@ -7,9 +7,9 @@ export interface SteelSession {
 
 export class SteelClient {
   private readonly baseUrl: string
-  private readonly apiKey?: string
+  private readonly apiKey?: string | undefined
 
-  constructor(baseUrl: string, apiKey?: string) {
+  constructor(baseUrl: string, apiKey?: string | undefined) {
     this.baseUrl = baseUrl
     this.apiKey = apiKey
   }
@@ -20,9 +20,13 @@ export class SteelClient {
     return h
   }
 
-  async createSession(opts?: { twoCaptchaKey?: string }): Promise<SteelSession> {
+  async createSession(opts?: {
+    twoCaptchaKey?: string
+    sessionContext?: Record<string, unknown>
+  }): Promise<SteelSession> {
     const body: Record<string, unknown> = { sessionTimeout: 3600000 }
     if (opts?.twoCaptchaKey) body.solveCaptcha = true // Steel uses this flag
+    if (opts?.sessionContext) body.sessionContext = opts.sessionContext
     const res = await fetch(`${this.baseUrl}/v1/sessions`, {
       method: 'POST',
       headers: this.headers(),
@@ -44,6 +48,15 @@ export class SteelClient {
       viewerUrl: data.sessionViewerUrl ?? rawDebugUrl,
       debugUrl: rawDebugUrl,
     }
+  }
+
+  async getSessionContext(sessionId: string): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/v1/sessions/${sessionId}/context`, {
+      method: 'GET',
+      headers: this.headers(),
+    })
+    if (!res.ok) throw new Error(`Steel: getSessionContext failed ${res.status}: ${await res.text()}`)
+    return (await res.json()) as Record<string, unknown>
   }
 
   async releaseSession(sessionId: string): Promise<void> {
