@@ -25,6 +25,10 @@ export const zh = {
   'workbench.browser.reload': '刷新',
   'workbench.browser.takeover': '接管控制',
   'workbench.browser.viewOnly': '只读观察',
+  'workbench.browser.newTab': '新建标签页',
+  'workbench.browser.frameBlockedTitle': '此网页限制在面板中直接嵌入',
+  'workbench.browser.frameBlockedDesc': '该站点设置了安全头（X-Frame-Options 或 Content-Security-Policy），阻止在 iframe 中展示。',
+  'workbench.browser.openNewTab': '在新标签页打开',
 } as const
 
 /** English dictionary, key-identical to the Chinese source of truth. */
@@ -49,6 +53,10 @@ export const en: Record<WorkbenchKey, string> = {
   'workbench.browser.reload': 'Reload',
   'workbench.browser.takeover': 'Takeover',
   'workbench.browser.viewOnly': 'View only',
+  'workbench.browser.newTab': 'New Tab',
+  'workbench.browser.frameBlockedTitle': 'Site does not allow in-frame display',
+  'workbench.browser.frameBlockedDesc': 'This website sent security headers (X-Frame-Options or CSP frame-ancestors) preventing embedded viewing.',
+  'workbench.browser.openNewTab': 'Open in new tab',
 }
 
 /** Key domain of the `workbench` namespace (zh is the source of truth). */

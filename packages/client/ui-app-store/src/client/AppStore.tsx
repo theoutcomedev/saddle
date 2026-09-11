@@ -105,16 +105,52 @@ export function NotepadApp({
   onClose?: () => void
   onFullscreen?: () => void
 }) {
-  const [text, setText] = useState('')
+  interface NoteItem {
+    id: string
+    title: string
+    content: string
+  }
+
+  const [notes, setNotes] = useState<NoteItem[]>([
+    { id: 'note-1', title: 'Note 1', content: '' },
+  ])
+  const [activeNoteId, setActiveNoteId] = useState<string>('note-1')
   const [status, setStatus] = useState('')
   const timerRef = useRef<number | null>(null)
 
+  // Subrow element target (#workbench-strip-subrow)
+  const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
+    return typeof document !== 'undefined' ? document.getElementById('workbench-strip-subrow') : null
+  })
+
+  useEffect(() => {
+    if (!subrowEl && typeof document !== 'undefined') {
+      const el = document.getElementById('workbench-strip-subrow')
+      if (el) setSubrowEl(el)
+    }
+  }, [subrowEl])
+
+  // Load initial content from appStore on mount
   useEffect(() => {
     let alive = true
     void appStore.load().then((res) => {
       if (!alive) return
-      if (res.ok && res.value) setText(res.value.content)
-      else setStatus('Load failed')
+      if (res.ok && res.value) {
+        const content = res.value.content || ''
+        // Try parsing JSON if stored as multi-note, else treat as single note content
+        try {
+          const parsed = JSON.parse(content)
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
+            setNotes(parsed)
+            setActiveNoteId(parsed[0].id)
+            return
+          }
+        } catch {}
+        setNotes([{ id: 'note-1', title: 'Note 1', content }])
+        setActiveNoteId('note-1')
+      } else {
+        setStatus('Load failed')
+      }
     }).catch(() => {
       if (alive) setStatus('Load failed')
     })
@@ -124,8 +160,15 @@ export function NotepadApp({
     }
   }, [appStore])
 
-  const persist = (value: string, done: string) => {
-    void appStore.save(value).then((res) => {
+  const activeNote = notes.find(n => n.id === activeNoteId) ?? notes[0] ?? { id: 'note-1', title: 'Note 1', content: '' }
+
+  const persistNotes = (allNotes: NoteItem[], done: string) => {
+    // If only 1 note and title is Note 1, save raw string for backward compatibility
+    const first = allNotes[0]
+    const payload = allNotes.length === 1 && first && first.id === 'note-1'
+      ? first.content
+      : JSON.stringify(allNotes)
+    void appStore.save(payload).then((res) => {
       setStatus(res.ok ? done : 'Save failed')
     }).catch(() => {
       setStatus('Save failed')
@@ -134,23 +177,56 @@ export function NotepadApp({
 
   const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const value = event.target.value
-    setText(value)
+    const nextNotes = notes.map(n => n.id === activeNoteId ? { ...n, content: value } : n)
+    setNotes(nextNotes)
     setStatus('Unsaved…')
     if (timerRef.current !== null) clearTimeout(timerRef.current)
-    timerRef.current = window.setTimeout(() => persist(value, 'Autosaved'), 1200)
+    timerRef.current = window.setTimeout(() => persistNotes(nextNotes, 'Autosaved'), 1200)
   }
 
-  const save = () => persist(text, 'Saved')
+  const save = () => persistNotes(notes, 'Saved')
+
+  const handleAddNote = () => {
+    const nextNum = notes.length + 1
+    const newId = `note-${Date.now()}`
+    const newNote: NoteItem = {
+      id: newId,
+      title: `Note ${nextNum}`,
+      content: '',
+    }
+    const nextNotes = [...notes, newNote]
+    setNotes(nextNotes)
+    setActiveNoteId(newId)
+    persistNotes(nextNotes, 'Saved')
+  }
+
+  const handleCloseNote = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (notes.length <= 1) {
+      const resetNotes = [{ id: 'note-1', title: 'Note 1', content: '' }]
+      setNotes(resetNotes)
+      setActiveNoteId('note-1')
+      persistNotes(resetNotes, 'Saved')
+      return
+    }
+    const nextNotes = notes.filter(n => n.id !== id)
+    setNotes(nextNotes)
+    if (activeNoteId === id && nextNotes.length > 0) {
+      const last = nextNotes[nextNotes.length - 1]
+      if (last) setActiveNoteId(last.id)
+    }
+    persistNotes(nextNotes, 'Saved')
+  }
 
   const handleClose = () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current)
-    void appStore.save(text)
+    persistNotes(notes, 'Saved')
     onClose?.()
   }
 
   const handleDock = () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current)
-    void appStore.save(text)
+    persistNotes(notes, 'Saved')
     onClose?.()
     window.dispatchEvent(new CustomEvent('workbench:open-app', {
       detail: { appId: 'notepad', title: 'Notepad', icon: 'notepad' },
@@ -159,7 +235,7 @@ export function NotepadApp({
 
   const handleFullscreen = () => {
     if (timerRef.current !== null) clearTimeout(timerRef.current)
-    void appStore.save(text)
+    persistNotes(notes, 'Saved')
     window.dispatchEvent(new CustomEvent('workbench:close-details'))
     if (onFullscreen) {
       onFullscreen()
@@ -172,9 +248,43 @@ export function NotepadApp({
 
   const isDocked = mode === 'docked'
 
+  const notesSubrowContent = (
+    <div className={css.subrowTabs}>
+      {notes.map(note => (
+        <button
+          key={note.id}
+          type="button"
+          className={`${css.tabChip} ${note.id === activeNoteId ? css.tabChipActive : ''}`}
+          onClick={() => setActiveNoteId(note.id)}
+          title={note.title}
+        >
+          <span className={css.tabTitle}>{note.title}</span>
+          <span
+            className={css.tabClose}
+            onClick={(e) => handleCloseNote(note.id, e)}
+            role="button"
+            title="Close Note"
+          >
+            ×
+          </span>
+        </button>
+      ))}
+      <button
+        type="button"
+        className={css.newTabBtn}
+        onClick={handleAddNote}
+        title="New Note"
+        aria-label="New Note"
+      >
+        +
+      </button>
+    </div>
+  )
+
   if (isDocked) {
     return (
       <div className={css.npRootDocked}>
+        {subrowEl ? createPortal(notesSubrowContent, subrowEl) : null}
         <div className={css.npDockedToolbar}>
           <div className={css.npToolbarLeft} />
           <div className={css.npActions}>
@@ -193,7 +303,7 @@ export function NotepadApp({
         </div>
         <textarea
           className={css.npTaDocked}
-          value={text}
+          value={activeNote.content}
           placeholder="Type here — I can read what you write. It autosaves as you go."
           onChange={onChange}
         />
@@ -227,7 +337,7 @@ export function NotepadApp({
       </div>
       <textarea
         className={css.npTa}
-        value={text}
+        value={activeNote.content}
         placeholder="Type here — I can read what you write. It autosaves as you go."
         onChange={onChange}
       />

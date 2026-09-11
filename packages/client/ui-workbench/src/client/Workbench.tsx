@@ -219,7 +219,10 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
           url: custom.detail.url,
           streamUrl: custom.detail.streamUrl,
         })
-        openDetails()
+        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+        if (!isMobile) {
+          openDetails()
+        }
       }
     }
     window.addEventListener('workbench:open-browser', onOpenBrowser)
@@ -247,7 +250,10 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
       if (href === null) return
       event.preventDefault()
       openPane('browser', { url: href })
-      openDetails()
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+      if (!isMobile) {
+        openDetails()
+      }
     }
     document.addEventListener('click', onClick)
     return () => document.removeEventListener('click', onClick)

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconSendOutline16,
   IconLinkOutline16,
@@ -13,6 +14,13 @@ import css from './browser-pane.module.css'
 
 /** Full browser-pane props: the owner params (an initial URL) + locale seat. */
 export type BrowserPaneProps = PropsRuntime<'workbench.pane.browser'> & PropsLocale<typeof NS>
+
+interface BrowserTab {
+  id: string
+  title: string
+  url: string
+  streamUrl?: string | null
+}
 
 /** Normalise an address to an http(s) URL, or null when it is not navigable. */
 function toHref(raw: string): string | null {
@@ -41,6 +49,18 @@ function resolveDisplayUrl(url?: string, streamUrl?: string): string {
   return url || streamUrl || ''
 }
 
+/** Derive a concise tab label from a URL. */
+function getTabTitle(url: string, streamUrl?: string | null): string {
+  const display = resolveDisplayUrl(url, streamUrl ?? undefined)
+  if (!display) return 'New Tab'
+  try {
+    const host = new URL(display).hostname
+    return host.replace(/^www\./, '') || 'Tab'
+  } catch {
+    return display.slice(0, 16) || 'Tab'
+  }
+}
+
 /** Construct optimal streaming iframe src with theme and interactivity. */
 function buildStreamIframeSrc(streamUrl: string, interactive: boolean, theme: string): string {
   try {
@@ -55,18 +75,42 @@ function buildStreamIframeSrc(streamUrl: string, interactive: boolean, theme: st
   }
 }
 
-/** Render the browser pane with native controls and live stream takeover. */
+/** Render the browser pane with native controls, multi-tabs in sub-row, and live stream takeover. */
 export function BrowserPane({ params, t }: BrowserPaneProps) {
   const initialUrl = typeof params?.url === 'string' ? params.url : ''
   const initialStream = typeof params?.streamUrl === 'string' ? params.streamUrl : null
 
-  const [value, setValue] = useState(() => resolveDisplayUrl(initialUrl, initialStream ?? undefined))
-  const [streamEndpoint, setStreamEndpoint] = useState<string | null>(initialStream)
-  const [rawTargetUrl, setRawTargetUrl] = useState<string | null>(initialUrl || null)
+  const initialTab: BrowserTab = {
+    id: 'tab-1',
+    title: getTabTitle(initialUrl, initialStream),
+    url: initialUrl,
+    streamUrl: initialStream,
+  }
+
+  const [tabs, setTabs] = useState<BrowserTab[]>([initialTab])
+  const [activeTabId, setActiveTabId] = useState<string>('tab-1')
+
+  const activeTab = tabs.find(t => t.id === activeTabId) ?? tabs[0] ?? initialTab
+  const [value, setValue] = useState(() => resolveDisplayUrl(activeTab.url, activeTab.streamUrl ?? undefined))
+  const [streamEndpoint, setStreamEndpoint] = useState<string | null>(activeTab.streamUrl ?? null)
+  const [rawTargetUrl, setRawTargetUrl] = useState<string | null>(activeTab.url || null)
   const [interactive, setInteractive] = useState(true)
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [error, setError] = useState(false)
+  const [isFrameBlocked, setIsFrameBlocked] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
+
+  // Target DOM element in Workbench header row 2 (#workbench-strip-subrow)
+  const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
+    return typeof document !== 'undefined' ? document.getElementById('workbench-strip-subrow') : null
+  })
+
+  useEffect(() => {
+    if (!subrowEl && typeof document !== 'undefined') {
+      const el = document.getElementById('workbench-strip-subrow')
+      if (el) setSubrowEl(el)
+    }
+  }, [subrowEl])
 
   // Track system theme changes for stream background matching
   useEffect(() => {
@@ -83,26 +127,97 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
 
   // Follow a new owner-supplied URL or streamUrl without remounting.
   useEffect(() => {
-    if (typeof params?.streamUrl === 'string') {
-      setStreamEndpoint(params.streamUrl)
-      if (typeof params?.url === 'string' && params.url) {
-        setRawTargetUrl(params.url)
-        setValue(params.url)
+    const nextUrl = typeof params?.url === 'string' ? params.url : ''
+    const nextStream = typeof params?.streamUrl === 'string' ? params.streamUrl : null
+
+    if (!nextUrl && !nextStream) return
+
+    setTabs(prev => {
+      const current = prev.find(t => t.id === activeTabId)
+      if (current && (current.url !== nextUrl || current.streamUrl !== nextStream)) {
+        return prev.map(t => t.id === activeTabId ? {
+          ...t,
+          title: getTabTitle(nextUrl, nextStream),
+          url: nextUrl,
+          streamUrl: nextStream,
+        } : t)
+      }
+      return prev
+    })
+
+    if (nextStream) {
+      setStreamEndpoint(nextStream)
+      if (nextUrl) {
+        setRawTargetUrl(nextUrl)
+        setValue(nextUrl)
       } else {
-        setValue(resolveDisplayUrl(undefined, params.streamUrl))
+        setValue(resolveDisplayUrl(undefined, nextStream))
       }
       setError(false)
-    } else if (typeof params?.url === 'string') {
-      setRawTargetUrl(params.url)
-      setValue(params.url)
-      if (isSteelStreamUrl(params.url)) {
-        setStreamEndpoint(params.url)
+      setIsFrameBlocked(false)
+    } else if (nextUrl) {
+      setRawTargetUrl(nextUrl)
+      setValue(nextUrl)
+      if (isSteelStreamUrl(nextUrl)) {
+        setStreamEndpoint(nextUrl)
       } else {
         setStreamEndpoint(null)
       }
       setError(false)
+      setIsFrameBlocked(false)
     }
-  }, [params?.url, params?.streamUrl])
+  }, [params?.url, params?.streamUrl, activeTabId])
+
+  // Switch tabs
+  const handleSelectTab = (tab: BrowserTab) => {
+    setActiveTabId(tab.id)
+    setValue(resolveDisplayUrl(tab.url, tab.streamUrl ?? undefined))
+    setStreamEndpoint(tab.streamUrl ?? null)
+    setRawTargetUrl(tab.url || null)
+    setError(false)
+    setIsFrameBlocked(false)
+  }
+
+  // Create new tab
+  const handleAddTab = () => {
+    const newId = `tab-${Date.now()}`
+    const newTab: BrowserTab = {
+      id: newId,
+      title: 'New Tab',
+      url: '',
+      streamUrl: null,
+    }
+    setTabs(prev => [...prev, newTab])
+    setActiveTabId(newId)
+    setValue('')
+    setStreamEndpoint(null)
+    setRawTargetUrl(null)
+    setError(false)
+    setIsFrameBlocked(false)
+  }
+
+  // Close tab
+  const handleCloseTab = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (tabs.length <= 1) {
+      // Don't close last tab, just reset it
+      setTabs([{ id: 'tab-1', title: 'New Tab', url: '', streamUrl: null }])
+      setActiveTabId('tab-1')
+      setValue('')
+      setStreamEndpoint(null)
+      setRawTargetUrl(null)
+      setError(false)
+      setIsFrameBlocked(false)
+      return
+    }
+
+    const nextTabs = tabs.filter(t => t.id !== id)
+    setTabs(nextTabs)
+    if (activeTabId === id && nextTabs.length > 0) {
+      const nextActive = nextTabs[nextTabs.length - 1]
+      if (nextActive) handleSelectTab(nextActive)
+    }
+  }
 
   const submit = (event: FormEvent): void => {
     event.preventDefault()
@@ -112,9 +227,17 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
       return
     }
     setError(false)
+    setIsFrameBlocked(false)
     setRawTargetUrl(next)
+
+    // Update active tab title & url
+    setTabs(prev => prev.map(t => t.id === activeTabId ? {
+      ...t,
+      title: getTabTitle(next, t.streamUrl),
+      url: next,
+    } : t))
+
     if (streamEndpoint) {
-      // If we have an active stream, notify Steel session via custom event or navigate
       window.dispatchEvent(new CustomEvent('workbench:open-browser', {
         detail: { url: next, streamUrl: streamEndpoint },
       }))
@@ -139,14 +262,51 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   }
 
   const handleReload = () => {
+    setIsFrameBlocked(false)
     if (iframeRef.current) {
       const current = iframeRef.current.src
       iframeRef.current.src = current
     }
   }
 
+  // Sub-row tabs UI
+  const subrowContent = (
+    <div className={css.subrowTabs}>
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          type="button"
+          className={`${css.tabChip} ${tab.id === activeTabId ? css.tabChipActive : ''}`}
+          onClick={() => handleSelectTab(tab)}
+          title={tab.url || tab.title}
+        >
+          <span className={css.tabTitle}>{tab.title}</span>
+          <span
+            className={css.tabClose}
+            onClick={(e) => handleCloseTab(tab.id, e)}
+            role="button"
+            title={t('workbench.tabs.close')}
+          >
+            ×
+          </span>
+        </button>
+      ))}
+      <button
+        type="button"
+        className={css.newTabBtn}
+        onClick={handleAddTab}
+        title={t('workbench.browser.newTab')}
+        aria-label={t('workbench.browser.newTab')}
+      >
+        +
+      </button>
+    </div>
+  )
+
   return (
     <div className={css.root}>
+      {subrowEl ? createPortal(subrowContent, subrowEl) : null}
+
       <div className={css.bar}>
         <div className={css.navGroup}>
           <button
@@ -227,6 +387,31 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
       <div className={css.frameWrap}>
         {activeSrc === null ? (
           <div className={css.blank}>{t('workbench.browser.blank')}</div>
+        ) : isFrameBlocked ? (
+          <div className={css.blockedCard}>
+            <div className={css.blockedIcon}>🛡️</div>
+            <h3 className={css.blockedTitle}>{t('workbench.browser.frameBlockedTitle')}</h3>
+            <p className={css.blockedDesc}>{t('workbench.browser.frameBlockedDesc')}</p>
+            <div className={css.blockedActions}>
+              <button
+                type="button"
+                className={css.blockedBtn}
+                onClick={() => {
+                  const target = (value ? toHref(value) : null) ?? activeSrc
+                  if (target) window.open(target, '_blank', 'noopener')
+                }}
+              >
+                {t('workbench.browser.openNewTab')}
+              </button>
+              <button
+                type="button"
+                className={`${css.blockedBtn} ${css.blockedBtnSec}`}
+                onClick={() => setIsFrameBlocked(false)}
+              >
+                {t('workbench.browser.reload')}
+              </button>
+            </div>
+          </div>
         ) : (
           <iframe
             ref={iframeRef}
@@ -234,7 +419,8 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
             className={css.frame}
             title={value || activeSrc}
             src={activeSrc}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
+            onError={() => setIsFrameBlocked(true)}
           />
         )}
       </div>

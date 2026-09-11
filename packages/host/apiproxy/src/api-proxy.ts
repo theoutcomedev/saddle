@@ -4433,14 +4433,18 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           }
 
           const lines = stdout.trim().split('\n').filter(Boolean)
-          const systemContainers = new Set(['saddle-app', 'saddle-traefik', 'saddle-redis', 'saddle-postgres'])
+          const systemContainers = new Set([
+            'saddle-app', 'saddle-traefik', 'saddle-redis', 'saddle-postgres',
+            'saddle-steel', 'steel', 'steel-browser',
+          ])
           const apps: DeployedAppView[] = []
 
           for (const line of lines) {
             try {
               const item = JSON.parse(line)
               const rawName = String(item.Names || item.ID || '').replace(/^\//, '')
-              if (systemContainers.has(rawName)) continue
+              const imageName = String(item.Image || '')
+              if (systemContainers.has(rawName) || rawName.includes('steel') || imageName.includes('steel')) continue
 
               const labelsStr = String(item.Labels || '')
               const isApp = rawName.startsWith('app-')

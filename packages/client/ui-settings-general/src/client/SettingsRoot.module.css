@@ -253,6 +253,11 @@
   .options {
     padding: 12px calc(16px + env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left, 0px));
   }
+  .options input,
+  .options select,
+  .options textarea {
+    font-size: 16px !important;
+  }
 }
 
 .logoutBtn {

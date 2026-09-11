@@ -170,6 +170,7 @@
 .frameWrap {
   flex: 1;
   min-height: 0;
+  position: relative;
   background: var(--dsw-alias-bg-base);
 }
 
@@ -191,4 +192,211 @@
   padding: 6px 10px;
   color: var(--dsw-alias-state-error-primary, #f26);
   font-size: 12px;
+}
+
+/* --- Framing Blocked Fallback Card --- */
+.blockedCard {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: var(--dsw-alias-bg-base);
+  z-index: 10;
+}
+
+.blockedIcon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.85;
+}
+
+.blockedTitle {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.blockedDesc {
+  margin: 0 0 20px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+  max-width: 380px;
+}
+
+.blockedActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.blockedBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-interactive-primary, #3b82f6);
+  color: #fff;
+  transition: all 0.15s ease;
+}
+
+.blockedBtn:hover {
+  opacity: 0.9;
+}
+
+.blockedBtnSec {
+  background: var(--dsw-alias-interactive-bg-subtle, transparent);
+  color: var(--dsw-alias-label-primary);
+}
+
+.blockedBtnSec:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* --- Header Sub-row Browser Tabs --- */
+.subrowTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 0 2px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  width: 100%;
+  height: 100%;
+}
+
+.subrowTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tabChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  max-width: 140px;
+  padding: 0 6px 0 8px;
+  border-radius: 11px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-interactive-bg-subtle, transparent);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.tabChip:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-label-tertiary);
+}
+
+.tabChipActive {
+  background: var(--dsw-alias-interactive-bg-active, rgba(59, 130, 246, 0.15));
+  color: var(--dsw-alias-interactive-primary, #3b82f6);
+  border-color: var(--dsw-alias-interactive-primary, #3b82f6);
+}
+
+.tabTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.tabClose:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+:global([data-theme="dark"]) .tabClose:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.newTabBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.newTabBtn:hover {
+  border-color: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* --- Narrow Viewport & Workbench Responsiveness --- */
+@media (max-width: 440px) {
+  .bar {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .navBtn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .takeoverBtn {
+    padding: 0 6px;
+    height: 26px;
+  }
+
+  .takeoverLabel {
+    display: none;
+  }
+
+  .go, .open {
+    width: 26px;
+    height: 26px;
+  }
+
+  .url {
+    font-size: 12px;
+    padding: 4px 6px;
+  }
 }

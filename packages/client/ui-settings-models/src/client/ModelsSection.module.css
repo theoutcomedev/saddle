@@ -561,6 +561,14 @@
   color: var(--dsw-alias-label-primary);
 }
 
+@media (max-width: 768px) {
+  .input,
+  select.input,
+  textarea.input {
+    font-size: 16px !important;
+  }
+}
+
 /* Enum pickers hold a handful of short options; a field-width dropdown reads
    as a text field the user is expected to fill. */
 select.input {
