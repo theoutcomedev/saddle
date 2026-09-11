@@ -15,7 +15,9 @@ export class CdpSession {
   }
 
   private constructor(wsUrl: string) {
-    this.ws = new WebSocket(wsUrl)
+    this.ws = new WebSocket(wsUrl, {
+      headers: { Host: 'localhost' },
+    })
     this.ws.on('message', (data) => {
       const msg = JSON.parse(String(data)) as { id?: number; result?: unknown; error?: { message: string } }
       if (msg.id === undefined) return

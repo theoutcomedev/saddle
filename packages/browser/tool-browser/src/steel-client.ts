@@ -31,9 +31,10 @@ export class SteelClient {
       websocketUrl?: string
     }
     const rawDebugUrl = data.debugUrl ?? `${this.baseUrl}/v1/sessions/debug`
+    const wsUrl = data.cdpUrl ?? `${this.baseUrl.replace(/^http/, 'ws')}/`
     return {
       id: data.id,
-      websocketUrl: data.cdpUrl ?? `${this.baseUrl.replace(/^http/, 'ws')}/v1/sessions/${data.id}/cdp`,
+      websocketUrl: wsUrl,
       viewerUrl: data.sessionViewerUrl ?? rawDebugUrl,
       debugUrl: rawDebugUrl,
     }
