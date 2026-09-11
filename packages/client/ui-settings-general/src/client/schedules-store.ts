@@ -84,10 +84,12 @@ export class ScheduledTasksStore {
       if (res.result.ok) {
         return res.result.value.items.map((s) => {
           const vals = s.projections?.values as Record<string, unknown> | undefined
-          const titleVal = vals?.['sessionListMetadata']
-          const title = typeof titleVal === 'string'
-            ? titleVal
-            : String(s.sessionId)
+          const projTitle = vals?.['title']
+          const sObj = s as { title?: unknown }
+          const titleProp = typeof sObj.title === 'string' && sObj.title.trim() ? sObj.title.trim() : undefined
+          const titleCandidate = titleProp || ((typeof projTitle === 'string' && projTitle.trim()) ? projTitle.trim() : undefined)
+          const folder = s.cwd ? (s.cwd.split('/').filter(Boolean).pop() || s.cwd) : undefined
+          const title = titleCandidate || folder || `Session ${String(s.sessionId).slice(0, 8)}`
           return {
             id: String(s.sessionId),
             title,

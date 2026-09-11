@@ -7,9 +7,9 @@
 }
 
 .browserMaximized {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 150;
+  z-index: 20;
   background: var(--dsw-alias-bg-base);
 }
 

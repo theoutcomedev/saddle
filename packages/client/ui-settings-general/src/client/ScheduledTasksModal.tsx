@@ -387,7 +387,7 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                     <option value="">Latest active session (Auto)</option>
                     {availableSessions.map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.title ? `${s.title} (${s.id.slice(0, 16)}…)` : s.id}
+                        {s.title ? `${s.title} (${s.id.slice(0, 8)})` : s.id}
                       </option>
                     ))}
                   </select>
@@ -561,7 +561,12 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                         <span className={css.metaItem}>
                           Target:{' '}
                           <strong className={css.metaHighlight}>
-                            {task.sessionId ? `Session (${task.sessionId.slice(0, 14)}…)` : 'Latest active session'}
+                            {task.sessionId
+                              ? (() => {
+                                const match = availableSessions.find(s => s.id === task.sessionId)
+                                return match ? `${match.title} (${match.id.slice(0, 8)})` : `Session (${task.sessionId.slice(0, 8)}…)`
+                              })()
+                              : 'Latest active session'}
                           </strong>
                         </span>
                       )}

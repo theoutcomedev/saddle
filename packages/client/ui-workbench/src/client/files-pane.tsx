@@ -356,16 +356,7 @@ export function FilesPane({
   // Pane width tracking for responsive adaptations
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [isNarrow, setIsNarrow] = useState(false)
-  const [maximizeState, setMaximizeState] = useState<'docked' | 'frame' | 'fullscreen'>('docked')
-  const isMaximized = maximizeState !== 'docked'
-
-  const handleCycleMaximize = () => {
-    setMaximizeState((prev) => {
-      if (prev === 'docked') return 'frame'
-      if (prev === 'frame') return 'fullscreen'
-      return 'docked'
-    })
-  }
+  const [isMaximized, setIsMaximized] = useState(false)
 
   useEffect(() => {
     const el = rootRef.current
@@ -392,35 +383,24 @@ export function FilesPane({
   }, [subrowEl])
 
   useEffect(() => {
-    if (maximizeState === 'docked') return
-    if (maximizeState === 'fullscreen') {
-      document.body.setAttribute('data-editor-maximized', 'true')
-    } else {
-      document.body.removeAttribute('data-editor-maximized')
-    }
-    if (maximizeState === 'frame') {
-      document.body.setAttribute('data-workbench-expanded', 'true')
-    } else {
-      document.body.removeAttribute('data-workbench-expanded')
-    }
+    if (!isMaximized) return
+    document.body.setAttribute('data-editor-maximized', 'true')
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setMaximizeState(prev => prev === 'fullscreen' ? 'frame' : 'docked')
+        setIsMaximized(false)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.removeAttribute('data-editor-maximized')
-      document.body.removeAttribute('data-workbench-expanded')
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [maximizeState])
+  }, [isMaximized])
 
   useEffect(() => {
     return () => {
       document.body.removeAttribute('data-editor-maximized')
-      document.body.removeAttribute('data-workbench-expanded')
     }
   }, [])
 
@@ -1239,7 +1219,7 @@ export function FilesPane({
 
       {/* --- FILE VIEWER / EDITOR VIEW --- */}
       {selectedFile !== null ? (
-        <div className={`${css.editorContainer} ${maximizeState === 'fullscreen' ? css.editorMaximized : ''}`}>
+        <div className={`${css.editorContainer} ${isMaximized ? css.editorMaximized : ''}`}>
           <div className={css.editorBar}>
             <div className={css.fileMeta}>
               <button
@@ -1247,7 +1227,7 @@ export function FilesPane({
                 className={`${css.btn} ${css.btnBack}`}
                 onClick={() => {
                   setSelectedFile(null)
-                  setMaximizeState('docked')
+                  setIsMaximized(false)
                   load(dir)
                 }}
                 title="Return to folder listing"
@@ -1271,18 +1251,12 @@ export function FilesPane({
             <div className={css.editorActions}>
               <button
                 type="button"
-                className={`${css.ghost} ${maximizeState === 'frame' ? css.ghostActive : ''}`}
-                aria-label={
-                  maximizeState === 'fullscreen' ? 'Exit Fullscreen (Esc)' :
-                    maximizeState === 'frame' ? 'Fullscreen (Esc to restore)' : 'Maximize in Workbench'
-                }
-                title={
-                  maximizeState === 'fullscreen' ? 'Exit Fullscreen (Esc)' :
-                    maximizeState === 'frame' ? 'Fullscreen (Esc to restore)' : 'Maximize in Workbench'
-                }
-                onClick={handleCycleMaximize}
+                className={css.ghost}
+                aria-label={isMaximized ? 'Restore View (Esc)' : 'Maximize in Workbench'}
+                title={isMaximized ? 'Restore View (Esc)' : 'Maximize in Workbench'}
+                onClick={() => setIsMaximized(!isMaximized)}
               >
-                {maximizeState === 'fullscreen' ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
+                {isMaximized ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
               </button>
 
               <button
