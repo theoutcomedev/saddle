@@ -61,6 +61,9 @@
     - id: time-context
       name: '@deepseek-ai/dsh-time-context'
 
+    - id: schedule
+      name: '@deepseek-ai/dsh-schedule'
+
     # The transport-independent default for Agents created by entry points.
     # Settings may supply a saved selection; consumers read it at creation time.
     - id: agent-default-model
