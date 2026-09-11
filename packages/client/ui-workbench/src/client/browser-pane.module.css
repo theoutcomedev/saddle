@@ -6,6 +6,13 @@
   background: var(--dsw-alias-bg-base);
 }
 
+.browserMaximized {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: var(--dsw-alias-bg-base);
+}
+
 .bar {
   display: flex;
   align-items: center;

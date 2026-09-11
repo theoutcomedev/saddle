@@ -87,6 +87,14 @@ import {
   appsRestartRequestSchema,
   appsStopRequestSchema,
 } from '../api/apps.schema.ts'
+import {
+  schedulesCreateRequestSchema,
+  schedulesDeleteRequestSchema,
+  schedulesListRequestSchema,
+  schedulesLogsRequestSchema,
+  schedulesTriggerRequestSchema,
+  schedulesUpdateRequestSchema,
+} from '../api/schedules.schema.ts'
 
 /**
  * Unary dispatch table, keyed by (and compiler-locked to) RpcMethodMap: a map row without a
@@ -178,6 +186,12 @@ const UNARY_ROUTES: UnaryRoutes = {
   'apps.stop': { schema: appsStopRequestSchema, invoke: (api, r) => api.apps.stop(r) },
   'apps.delete': { schema: appsDeleteRequestSchema, invoke: (api, r) => api.apps.delete(r) },
   'apps.logs': { schema: appsLogsRequestSchema, invoke: (api, r) => api.apps.logs(r) },
+  'schedules.list': { schema: schedulesListRequestSchema, invoke: (api, r) => api.schedules.list(r) },
+  'schedules.create': { schema: schedulesCreateRequestSchema, invoke: (api, r) => api.schedules.create(r) },
+  'schedules.update': { schema: schedulesUpdateRequestSchema, invoke: (api, r) => api.schedules.update(r) },
+  'schedules.delete': { schema: schedulesDeleteRequestSchema, invoke: (api, r) => api.schedules.delete(r) },
+  'schedules.trigger': { schema: schedulesTriggerRequestSchema, invoke: (api, r) => api.schedules.trigger(r) },
+  'schedules.logs': { schema: schedulesLogsRequestSchema, invoke: (api, r) => api.schedules.logs(r) },
 }
 
 /** Route lookup that narrows an arbitrary path segment to a map key (single cast point for the string→key refinement). */

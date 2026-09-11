@@ -27,6 +27,8 @@ import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.ts
 import { SettingsDocumentStore } from './settings-document-store.ts'
 import { DeployedAppsButton, type DeployedAppsButtonInjected } from './DeployedAppsButton.tsx'
 import { DeployedAppsStore } from './apps-store.ts'
+import { ScheduledTasksButton, type ScheduledTasksButtonInjected } from './ScheduledTasksButton.tsx'
+import { ScheduledTasksStore } from './schedules-store.ts'
 import { en, zh, type SettingsKey } from './locales.ts'
 
 export type {
@@ -95,6 +97,21 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: appsInjected,
   }, DeployedAppsButton))
+
+  const schedulesController = new ScheduledTasksStore(connection.api)
+  const schedulesInjected = (): ScheduledTasksButtonInjected => ({
+    controller: schedulesController,
+    hooks: { snapshot: schedulesController.store },
+  })
+  ctx.effect(() => () => { schedulesController.dispose() }, 'ui-settings-general: schedules controller')
+
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action',
+    id: 'scheduled-tasks',
+    order: 0,
+    locale: NS,
+    inject: schedulesInjected,
+  }, ScheduledTasksButton))
   // The settings shell: this package occupies the sidebar-owned hole and
   // declares the settings slots. Ledger → nav-row projection as an observable
   // source (uSES contract: getSnapshot returns the cached rows until the

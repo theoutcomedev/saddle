@@ -260,6 +260,39 @@ export class FakeApiClient implements IApiClient {
     logs: payload => this.record('apps.logs', payload, Promise.resolve(ok({ logs: 'fake logs' }))),
   }
 
+  readonly schedules: IApiClient['schedules'] = {
+    list: payload => this.record('schedules.list', payload, Promise.resolve(ok({ tasks: [] }))),
+    create: payload => this.record('schedules.create', payload, Promise.resolve(ok({
+      task: {
+        id: 'task-fake',
+        name: 'Fake Task',
+        prompt: 'Fake Prompt',
+        cadenceType: 'interval',
+        cadenceValue: '30',
+        cadenceLabel: 'Every 30m',
+        enabled: true,
+        targetMode: 'new-session',
+        createdAt: new Date().toISOString(),
+      },
+    }))),
+    update: payload => this.record('schedules.update', payload, Promise.resolve(ok({
+      task: {
+        id: 'task-fake',
+        name: 'Fake Task',
+        prompt: 'Fake Prompt',
+        cadenceType: 'interval',
+        cadenceValue: '30',
+        cadenceLabel: 'Every 30m',
+        enabled: true,
+        targetMode: 'new-session',
+        createdAt: new Date().toISOString(),
+      },
+    }))),
+    delete: payload => this.record('schedules.delete', payload, Promise.resolve(ok({ success: true }))),
+    trigger: payload => this.record('schedules.trigger', payload, Promise.resolve(ok({ runId: 'run-fake', status: 'started' }))),
+    logs: payload => this.record('schedules.logs', payload, Promise.resolve(ok({ runs: [] }))),
+  }
+
   /** When true, streams never fire onOpen (misbehaving-carrier material for the handshake timeout guard). */
   suppressStreamOpen = false
 

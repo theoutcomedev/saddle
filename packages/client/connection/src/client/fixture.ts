@@ -3143,6 +3143,38 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       delete: request => ok(request, { success: true }),
       logs: request => ok(request, { logs: 'fixture container logs' }),
     },
+    schedules: {
+      list: request => ok(request, { tasks: [] }),
+      create: request => ok(request, {
+        task: {
+          id: 'task-fx',
+          name: request.payload.name,
+          prompt: request.payload.prompt,
+          cadenceType: request.payload.cadenceType,
+          cadenceValue: request.payload.cadenceValue,
+          cadenceLabel: 'Every 30 minutes',
+          enabled: true,
+          targetMode: 'new-session',
+          createdAt: new Date().toISOString(),
+        },
+      }),
+      update: request => ok(request, {
+        task: {
+          id: request.payload.id,
+          name: request.payload.name ?? 'Task',
+          prompt: request.payload.prompt ?? 'Prompt',
+          cadenceType: request.payload.cadenceType ?? 'interval',
+          cadenceValue: request.payload.cadenceValue ?? '30',
+          cadenceLabel: 'Every 30 minutes',
+          enabled: request.payload.enabled ?? true,
+          targetMode: 'new-session',
+          createdAt: new Date().toISOString(),
+        },
+      }),
+      delete: request => ok(request, { success: true }),
+      trigger: request => ok(request, { runId: 'run-fx', status: 'started' }),
+      logs: request => ok(request, { runs: [] }),
+    },
     respond(message: ClientResponse): Promise<RpcReceipt> {
       // Same routing discipline as the host: rpcId first, then the payload's
       // audit correlation; a settled or unknown id is not-pending.
@@ -3335,6 +3367,12 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'apps.stop': return this.api.apps.stop(request)
       case 'apps.delete': return this.api.apps.delete(request)
       case 'apps.logs': return this.api.apps.logs(request)
+      case 'schedules.list': return this.api.schedules.list(request)
+      case 'schedules.create': return this.api.schedules.create(request)
+      case 'schedules.update': return this.api.schedules.update(request)
+      case 'schedules.delete': return this.api.schedules.delete(request)
+      case 'schedules.trigger': return this.api.schedules.trigger(request)
+      case 'schedules.logs': return this.api.schedules.logs(request)
     }
   }
 

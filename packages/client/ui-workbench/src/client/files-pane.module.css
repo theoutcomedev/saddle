@@ -1064,6 +1064,13 @@
   min-height: 0;
 }
 
+.editorMaximized {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: var(--dsw-alias-bg-base);
+}
+
 .codeTextarea {
   flex: 1;
   width: 100%;

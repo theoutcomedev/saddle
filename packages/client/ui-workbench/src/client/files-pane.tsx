@@ -278,6 +278,52 @@ function IconEyeOffOutline16({ size = 14, className }: IconProps) {
   )
 }
 
+/** Crisp fullscreen expand icon */
+function IconFullscreen({ size = 14, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M1.5 5.5V3.5C1.5 2.4 2.4 1.5 3.5 1.5H5.5M10.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V5.5M14.5 10.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H10.5M5.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V10.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** Crisp minimize / restore icon */
+function IconMinimize({ size = 14, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M5.5 1.5V3.5C5.5 4.6 4.6 5.5 3.5 5.5H1.5M10.5 5.5H12.5C11.4 5.5 10.5 4.6 10.5 3.5V1.5M14.5 10.5H12.5C11.4 10.5 10.5 11.4 10.5 12.5V14.5M1.5 10.5H3.5C4.6 10.5 5.5 11.4 5.5 12.5V14.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function FilesPane({
   params,
   sessionId,
@@ -310,6 +356,7 @@ export function FilesPane({
   // Pane width tracking for responsive adaptations
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [isNarrow, setIsNarrow] = useState(false)
+  const [isMaximized, setIsMaximized] = useState(false)
 
   useEffect(() => {
     const el = rootRef.current
@@ -334,6 +381,17 @@ export function FilesPane({
       if (el) setSubrowEl(el)
     }
   }, [subrowEl])
+
+  useEffect(() => {
+    if (!isMaximized) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMaximized(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isMaximized])
 
   // Custom user-pinned presets (stored in localStorage)
   const [pinnedPresets, setPinnedPresets] = useState<Array<{ name: string; path: string }>>(() => {
@@ -1148,7 +1206,7 @@ export function FilesPane({
 
       {/* --- FILE VIEWER / EDITOR VIEW --- */}
       {selectedFile !== null ? (
-        <div className={css.editorContainer}>
+        <div className={`${css.editorContainer} ${isMaximized ? css.editorMaximized : ''}`}>
           <div className={css.editorBar}>
             <div className={css.fileMeta}>
               <button
@@ -1156,6 +1214,7 @@ export function FilesPane({
                 className={`${css.btn} ${css.btnBack}`}
                 onClick={() => {
                   setSelectedFile(null)
+                  setIsMaximized(false)
                   load(dir)
                 }}
                 title="Return to folder listing"
@@ -1177,6 +1236,16 @@ export function FilesPane({
             </div>
 
             <div className={css.editorActions}>
+              <button
+                type="button"
+                className={css.ghost}
+                aria-label={isMaximized ? 'Restore View' : 'Maximize View'}
+                title={isMaximized ? 'Restore View (Esc)' : 'Maximize View'}
+                onClick={() => setIsMaximized(!isMaximized)}
+              >
+                {isMaximized ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
+              </button>
+
               <button
                 type="button"
                 className={css.ghost}
@@ -1240,7 +1309,7 @@ export function FilesPane({
           )}
 
           {/* Editor Body */}
-          <div className={css.body} style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className={css.body} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             {previewMode && !loading ? (
               originalText.startsWith('data:image/') ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', overflow: 'hidden' }}>
@@ -1285,13 +1354,6 @@ export function FilesPane({
                 autoCorrect="off"
               />
             )}
-          </div>
-
-          <div className={css.editorFooter}>
-            <span>{selectedFile}</span>
-            <span>
-              {editText.split('\n').length} lines · {editText.length} chars
-            </span>
           </div>
         </div>
       ) : (

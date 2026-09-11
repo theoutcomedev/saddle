@@ -284,3 +284,16 @@
 :global([data-details-collapsed]) .rootFullscreen {
   display: none !important;
 }
+
+/* Enforce 16px minimum font size on iOS / mobile viewports across ALL inputs,
+   textareas, and selects inside Workbench to completely eliminate auto-zoom. */
+@media (max-width: 768px) {
+  .root input,
+  .root textarea,
+  .root select,
+  :global([data-workbench]) input,
+  :global([data-workbench]) textarea,
+  :global([data-workbench]) select {
+    font-size: 16px !important;
+  }
+}

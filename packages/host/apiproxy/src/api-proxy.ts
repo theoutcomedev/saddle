@@ -42,7 +42,7 @@ import type {
   McpServerView, ModelCatalogFailure, ModelProviderGroup,
   ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem,
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
-  WorkspaceId, WorkspaceView, DeployedAppView, WorkspaceFileEntry,
+  WorkspaceId, WorkspaceView, DeployedAppView, WorkspaceFileEntry, ScheduledTaskView, TaskRunLogEntry,
 } from './api/index.ts'
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
@@ -2213,6 +2213,244 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     }
     return ok(request, namespaceView(descriptor))
   }
+
+  const schedulesDir = join(homedir(), '.dsh')
+  const schedulesFile = join(schedulesDir, 'schedules.json')
+  const scheduleRunsFile = join(schedulesDir, 'schedule_runs.json')
+
+  async function loadScheduledTasks(): Promise<ScheduledTaskView[]> {
+    try {
+      const data = await readFile(schedulesFile, 'utf-8')
+      return JSON.parse(data) as ScheduledTaskView[]
+    } catch {
+      return []
+    }
+  }
+
+  async function saveScheduledTasks(tasks: ScheduledTaskView[]): Promise<void> {
+    try {
+      await mkdir(schedulesDir, { recursive: true })
+      await writeFile(schedulesFile, JSON.stringify(tasks, null, 2), 'utf-8')
+    } catch (err) {
+      console.error('[schedules] failed to save schedules:', err)
+    }
+  }
+
+  async function loadTaskRuns(): Promise<TaskRunLogEntry[]> {
+    try {
+      const data = await readFile(scheduleRunsFile, 'utf-8')
+      return JSON.parse(data) as TaskRunLogEntry[]
+    } catch {
+      return []
+    }
+  }
+
+  async function appendTaskRun(entry: TaskRunLogEntry): Promise<void> {
+    try {
+      const runs = await loadTaskRuns()
+      runs.unshift(entry)
+      if (runs.length > 200) runs.length = 200
+      await mkdir(schedulesDir, { recursive: true })
+      await writeFile(scheduleRunsFile, JSON.stringify(runs, null, 2), 'utf-8')
+    } catch (err) {
+      console.error('[schedules] failed to append task run:', err)
+    }
+  }
+
+  async function updateTaskRun(entry: TaskRunLogEntry): Promise<void> {
+    try {
+      const runs = await loadTaskRuns()
+      const idx = runs.findIndex(r => r.id === entry.id)
+      if (idx !== -1) {
+        runs[idx] = entry
+        await mkdir(schedulesDir, { recursive: true })
+        await writeFile(scheduleRunsFile, JSON.stringify(runs, null, 2), 'utf-8')
+      }
+    } catch (err) {
+      console.error('[schedules] failed to update task run:', err)
+    }
+  }
+
+  function formatCadenceLabel(cadenceType: 'cron' | 'interval' | 'once', cadenceValue: string): string {
+    if (cadenceType === 'interval') {
+      const mins = parseInt(cadenceValue, 10) || 30
+      if (mins >= 60 && mins % 60 === 0) {
+        const hours = mins / 60
+        return `Every ${hours} hour${hours > 1 ? 's' : ''}`
+      }
+      return `Every ${mins} minute${mins > 1 ? 's' : ''}`
+    }
+    if (cadenceType === 'once') return 'Once'
+    if (cadenceType === 'cron') {
+      const v = cadenceValue.trim()
+      if (v === '0 0 * * *') return 'Daily at midnight (UTC)'
+      if (v === '0 9 * * *') return 'Daily at 09:00 (UTC)'
+      if (v === '*/30 * * * *') return 'Every 30 minutes'
+      if (v === '0 * * * *') return 'Every hour'
+      return `Cron: ${v}`
+    }
+    return cadenceValue
+  }
+
+  function matchesCronPart(value: number, part: string): boolean {
+    if (part === '*' || part === '?') return true
+    if (part.startsWith('*/')) {
+      const step = parseInt(part.slice(2), 10)
+      return step > 0 && value % step === 0
+    }
+    if (part.includes(',')) {
+      return part.split(',').some(p => matchesCronPart(value, p.trim()))
+    }
+    if (part.includes('-')) {
+      const hyphenIdx = part.indexOf('-')
+      const start = parseInt(part.slice(0, hyphenIdx), 10)
+      const end = parseInt(part.slice(hyphenIdx + 1), 10)
+      return !isNaN(start) && !isNaN(end) && value >= start && value <= end
+    }
+    return parseInt(part, 10) === value
+  }
+
+  function computeNextRun(cadenceType: 'cron' | 'interval' | 'once', cadenceValue: string, fromTime: number): number | undefined {
+    if (cadenceType === 'interval') {
+      const mins = Math.max(1, parseInt(cadenceValue, 10) || 30)
+      return fromTime + mins * 60 * 1000
+    }
+    if (cadenceType === 'once') {
+      return undefined
+    }
+    if (cadenceType === 'cron') {
+      const parts = cadenceValue.trim().split(/\s+/)
+      if (parts.length < 5) return fromTime + 60 * 60 * 1000
+      const [minPart = '*', hourPart = '*', domPart = '*', monthPart = '*', dowPart = '*'] = parts
+      const start = new Date(fromTime + 60_000)
+      start.setSeconds(0, 0)
+      const maxMinutes = 44_640
+      for (let i = 0; i < maxMinutes; i++) {
+        const current = new Date(start.getTime() + i * 60_000)
+        if (
+          matchesCronPart(current.getUTCMinutes(), minPart) &&
+          matchesCronPart(current.getUTCHours(), hourPart) &&
+          matchesCronPart(current.getUTCDate(), domPart) &&
+          matchesCronPart(current.getUTCMonth() + 1, monthPart) &&
+          matchesCronPart(current.getUTCDay(), dowPart)
+        ) {
+          return current.getTime()
+        }
+      }
+      return fromTime + 24 * 60 * 60 * 1000
+    }
+    return fromTime + 60 * 60 * 1000
+  }
+
+  async function executeTaskRun(task: ScheduledTaskView, runId: string): Promise<void> {
+    const startedAt = new Date().toISOString()
+    const runEntry: TaskRunLogEntry = {
+      id: runId,
+      taskId: task.id,
+      startedAt,
+      status: 'running',
+    }
+    await appendTaskRun(runEntry)
+
+    let tasks = await loadScheduledTasks()
+    let idx = tasks.findIndex(t => t.id === task.id)
+    if (idx !== -1) {
+      const taskRef = tasks[idx]
+      if (taskRef) {
+        taskRef.lastStatus = 'running'
+        taskRef.lastRunAt = startedAt
+        await saveScheduledTasks(tasks)
+      }
+    }
+
+    try {
+      let targetSessionId: SessionId
+      if (task.targetMode === 'current-session' && task.sessionId) {
+        targetSessionId = task.sessionId as SessionId
+      } else {
+        targetSessionId = `session-sched-${task.id.slice(-6)}-${Date.now().toString(36)}` as SessionId
+        const cwd = task.workspacePath ?? defaults.cwd
+        await ensureSession(targetSessionId, cwd, false)
+
+        const workspaces = ctx.workspaceRegistry.list()
+        if (workspaces.length > 0 && workspaces[0]) {
+          try {
+            await workspaces[0].attachSession(targetSessionId)
+          } catch {}
+        }
+      }
+
+      runEntry.sessionId = targetSessionId
+
+      const dummyRequest = { rpcId: RpcId(randomUUID()), payload: { sessionId: targetSessionId } }
+      const turn = await turnAgentFor<{ accepted: true }>(dummyRequest, targetSessionId)
+      if ('agent' in turn) {
+        const source: MessageSource = {
+          kind: 'user',
+          rpcId: RpcId(randomUUID()),
+        }
+        const message: UserMessage = createUserMessage({
+          content: [{ type: 'text', text: task.prompt }],
+          source,
+        })
+        turn.agent.followup(message)
+      }
+
+      const nextRun = computeNextRun(task.cadenceType, task.cadenceValue, Date.now())
+      runEntry.status = 'success'
+      runEntry.finishedAt = new Date().toISOString()
+      runEntry.outputSnippet = `Dispatched to session ${targetSessionId}`
+      await updateTaskRun(runEntry)
+
+      tasks = await loadScheduledTasks()
+      idx = tasks.findIndex(t => t.id === task.id)
+      if (idx !== -1) {
+        const taskRef = tasks[idx]
+        if (taskRef) {
+          taskRef.lastStatus = 'success'
+          taskRef.lastRunAt = startedAt
+          taskRef.nextRunAt = nextRun ? new Date(nextRun).toISOString() : undefined
+          taskRef.lastError = undefined
+          await saveScheduledTasks(tasks)
+        }
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      runEntry.status = 'failed'
+      runEntry.finishedAt = new Date().toISOString()
+      runEntry.error = errorMsg
+      await updateTaskRun(runEntry)
+
+      const nextRun = computeNextRun(task.cadenceType, task.cadenceValue, Date.now())
+      tasks = await loadScheduledTasks()
+      idx = tasks.findIndex(t => t.id === task.id)
+      if (idx !== -1) {
+        const taskRef = tasks[idx]
+        if (taskRef) {
+          taskRef.lastStatus = 'failed'
+          taskRef.lastRunAt = startedAt
+          taskRef.lastError = errorMsg
+          taskRef.nextRunAt = nextRun ? new Date(nextRun).toISOString() : undefined
+          await saveScheduledTasks(tasks)
+        }
+      }
+    }
+  }
+
+  setInterval(async () => {
+    try {
+      const tasks = await loadScheduledTasks()
+      const now = Date.now()
+      for (const task of tasks) {
+        if (!task.enabled || !task.nextRunAt) continue
+        const nextTime = new Date(task.nextRunAt).getTime()
+        if (now >= nextTime) {
+          const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+          void executeTaskRun(task, runId)
+        }
+      }
+    } catch {}
+  }, 30_000)
 
   return {
     sessions: {
@@ -4444,7 +4682,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               const item = JSON.parse(line)
               const rawName = String(item.Names || item.ID || '').replace(/^\//, '')
               const imageName = String(item.Image || '')
-              if (systemContainers.has(rawName) || rawName.includes('steel') || imageName.includes('steel')) continue
+              if (
+                systemContainers.has(rawName)
+                || rawName === 'saddle-steel'
+                || imageName.includes('steel-dev/steel-browser-api')
+              ) continue
 
               const labelsStr = String(item.Labels || '')
               const isApp = rawName.startsWith('app-')
@@ -4563,6 +4805,133 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         } catch (error) {
           return ok(request, { logs: String(error) })
         }
+      },
+    },
+
+    schedules: {
+      async list(request) {
+        const tasks = await loadScheduledTasks()
+        return ok(request, { tasks })
+      },
+
+      async create(request) {
+        const p = request.payload
+        const id = `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        const createdAt = new Date().toISOString()
+        const cadenceLabel = formatCadenceLabel(p.cadenceType, p.cadenceValue)
+        const nextRunAt = computeNextRun(p.cadenceType, p.cadenceValue, Date.now())
+
+        const task: ScheduledTaskView = {
+          id,
+          name: p.name.trim(),
+          prompt: p.prompt.trim(),
+          cadenceType: p.cadenceType,
+          cadenceValue: p.cadenceValue.trim(),
+          cadenceLabel,
+          enabled: true,
+          targetMode: p.targetMode ?? 'new-session',
+          sessionId: p.sessionId,
+          workspacePath: p.workspacePath,
+          createdAt,
+          nextRunAt: nextRunAt ? new Date(nextRunAt).toISOString() : undefined,
+        }
+
+        const tasks = await loadScheduledTasks()
+        tasks.unshift(task)
+        await saveScheduledTasks(tasks)
+
+        return ok(request, { task })
+      },
+
+      async update(request) {
+        const p = request.payload
+        const tasks = await loadScheduledTasks()
+        const idx = tasks.findIndex(t => t.id === p.id)
+        if (idx === -1) {
+          return err(request, {
+            code: 'internal',
+            message: `Scheduled task ${p.id} not found`,
+            details: { id: p.id },
+          })
+        }
+
+        const current = tasks[idx]
+        if (!current) {
+          return err(request, {
+            code: 'internal',
+            message: `Scheduled task ${p.id} not found`,
+            details: { id: p.id },
+          })
+        }
+
+        const cadenceType = p.cadenceType ?? current.cadenceType
+        const cadenceValue = (p.cadenceValue ?? current.cadenceValue).trim()
+        const cadenceChanged = cadenceType !== current.cadenceType || cadenceValue !== current.cadenceValue
+        const enabled = p.enabled ?? current.enabled
+
+        let nextRunAt = current.nextRunAt
+        if (enabled && (!current.enabled || cadenceChanged || !nextRunAt)) {
+          const computed = computeNextRun(cadenceType, cadenceValue, Date.now())
+          nextRunAt = computed ? new Date(computed).toISOString() : undefined
+        } else if (!enabled) {
+          nextRunAt = undefined
+        }
+
+        const updated: ScheduledTaskView = {
+          id: current.id,
+          name: (p.name ?? current.name).trim(),
+          prompt: (p.prompt ?? current.prompt).trim(),
+          cadenceType,
+          cadenceValue,
+          cadenceLabel: formatCadenceLabel(cadenceType, cadenceValue),
+          enabled,
+          targetMode: p.targetMode ?? current.targetMode,
+          sessionId: current.sessionId,
+          workspacePath: current.workspacePath,
+          createdAt: current.createdAt,
+          lastRunAt: current.lastRunAt,
+          lastStatus: current.lastStatus,
+          lastError: current.lastError,
+          nextRunAt,
+        }
+
+        tasks[idx] = updated
+        await saveScheduledTasks(tasks)
+
+        return ok(request, { task: updated })
+      },
+
+      async delete(request) {
+        const { id } = request.payload
+        const tasks = await loadScheduledTasks()
+        const filtered = tasks.filter(t => t.id !== id)
+        await saveScheduledTasks(filtered)
+        return ok(request, { success: true })
+      },
+
+      async trigger(request) {
+        const { id } = request.payload
+        const tasks = await loadScheduledTasks()
+        const task = tasks.find(t => t.id === id)
+        if (!task) {
+          return err(request, {
+            code: 'internal',
+            message: `Scheduled task ${id} not found`,
+            details: { id },
+          })
+        }
+
+        const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        void executeTaskRun(task, runId)
+
+        return ok(request, { runId, status: 'started' })
+      },
+
+      async logs(request) {
+        const { taskId } = request.payload
+        const allRuns = await loadTaskRuns()
+        const runs = allRuns.filter(r => r.taskId === taskId).slice(0, 50)
+        return ok(request, { runs })
       },
     },
 

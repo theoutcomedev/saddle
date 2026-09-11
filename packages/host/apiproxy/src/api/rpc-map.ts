@@ -16,6 +16,7 @@ import type { ConnectionsApi } from './connections.ts'
 import type { LlmApi } from './llm.ts'
 import type { SubagentsApi } from './subagents.ts'
 import type { AppsApi } from './apps.ts'
+import type { SchedulesApi } from './schedules.ts'
 import type { RpcResponse } from './rpc.ts'
 
 /**
@@ -97,6 +98,12 @@ export interface RpcMethodMap {
   'apps.stop': AppsApi['stop']
   'apps.delete': AppsApi['delete']
   'apps.logs': AppsApi['logs']
+  'schedules.list': SchedulesApi['list']
+  'schedules.create': SchedulesApi['create']
+  'schedules.update': SchedulesApi['update']
+  'schedules.delete': SchedulesApi['delete']
+  'schedules.trigger': SchedulesApi['trigger']
+  'schedules.logs': SchedulesApi['logs']
 }
 
 /** Business request payload of method K (reaches through the RpcRequest narrow form to payload). */

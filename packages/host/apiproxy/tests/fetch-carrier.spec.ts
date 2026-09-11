@@ -342,6 +342,14 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async delete(request) { return { rpcId: request.rpcId, result: { ok: true, value: { success: true } } } },
       async logs(request) { return { rpcId: request.rpcId, result: { ok: true, value: { logs: 'stub logs' } } } },
     },
+    schedules: {
+      async list(request) { return { rpcId: request.rpcId, result: { ok: true, value: { tasks: [] } } } },
+      async create(request) { return { rpcId: request.rpcId, result: { ok: true, value: { task: { id: 'task-1', name: 'Task', prompt: 'Do work', cadenceType: 'interval', cadenceValue: '30', cadenceLabel: 'Every 30m', enabled: true, targetMode: 'new-session', createdAt: new Date().toISOString() } } } } },
+      async update(request) { return { rpcId: request.rpcId, result: { ok: true, value: { task: { id: 'task-1', name: 'Task', prompt: 'Do work', cadenceType: 'interval', cadenceValue: '30', cadenceLabel: 'Every 30m', enabled: true, targetMode: 'new-session', createdAt: new Date().toISOString() } } } } },
+      async delete(request) { return { rpcId: request.rpcId, result: { ok: true, value: { success: true } } } },
+      async trigger(request) { return { rpcId: request.rpcId, result: { ok: true, value: { runId: 'run-1', status: 'started' } } } },
+      async logs(request) { return { rpcId: request.rpcId, result: { ok: true, value: { runs: [] } } } },
+    },
     events: {
       mux: (_request, signal) => stream(muxFrames, signal),
       host: (_request, signal) => stream(hostFrames, signal),

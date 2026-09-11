@@ -91,6 +91,7 @@ export class ApiProxyService extends Service implements ApiProxy {
   readonly connections: ApiProxy['connections']
   readonly llm: ApiProxy['llm']
   readonly apps: ApiProxy['apps']
+  readonly schedules: ApiProxy['schedules']
   readonly events: ApiProxy['events']
   readonly downloads: ApiProxy['downloads']
   readonly respond: ApiProxy['respond']
@@ -121,6 +122,7 @@ export class ApiProxyService extends Service implements ApiProxy {
     this.connections = api.connections
     this.llm = api.llm
     this.apps = api.apps
+    this.schedules = api.schedules
     this.events = api.events
     this.downloads = api.downloads
     // createApiProxy returns closures (no `this` capture), so the bind is

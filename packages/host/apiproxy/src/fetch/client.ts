@@ -83,6 +83,14 @@ import {
   appsRestartValueSchema,
   appsStopValueSchema,
 } from '../api/apps.schema.ts'
+import {
+  schedulesCreateValueSchema,
+  schedulesDeleteValueSchema,
+  schedulesListValueSchema,
+  schedulesLogsValueSchema,
+  schedulesTriggerValueSchema,
+  schedulesUpdateValueSchema,
+} from '../api/schedules.schema.ts'
 
 /**
  * Client consumption face of the contract (shape a): same domain tree as ApiProxy, but unary
@@ -202,6 +210,14 @@ export interface IApiClient {
     delete(payload: RequestPayload<'apps.delete'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.delete'>>>
     logs(payload: RequestPayload<'apps.logs'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'apps.logs'>>>
   }
+  schedules: {
+    list(payload: RequestPayload<'schedules.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'schedules.list'>>>
+    create(payload: RequestPayload<'schedules.create'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'schedules.create'>>>
+    update(payload: RequestPayload<'schedules.update'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'schedules.update'>>>
+    delete(payload: RequestPayload<'schedules.delete'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'schedules.delete'>>>
+    trigger(payload: RequestPayload<'schedules.trigger'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'schedules.trigger'>>>
+    logs(payload: RequestPayload<'schedules.logs'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'schedules.logs'>>>
+  }
   /** client-response passthrough (rpcId is a backfill of the server-request's id — never minted here). */
   respond(message: ClientResponse, signal?: AbortSignal): Promise<RpcReceipt>
 }
@@ -284,6 +300,12 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'apps.stop': appsStopValueSchema,
   'apps.delete': appsDeleteValueSchema,
   'apps.logs': appsLogsValueSchema,
+  'schedules.list': schedulesListValueSchema,
+  'schedules.create': schedulesCreateValueSchema,
+  'schedules.update': schedulesUpdateValueSchema,
+  'schedules.delete': schedulesDeleteValueSchema,
+  'schedules.trigger': schedulesTriggerValueSchema,
+  'schedules.logs': schedulesLogsValueSchema,
 }
 
 /** Default timeout for bounded unary calls (rpc-compare 2026-07-19: a hung host must not leave callers pending forever). */
@@ -587,6 +609,15 @@ export abstract class AbstractApiClient implements IApiClient {
     stop: (payload, signal) => this.callUnary('apps.stop', payload, signal),
     delete: (payload, signal) => this.callUnary('apps.delete', payload, signal),
     logs: (payload, signal) => this.callUnary('apps.logs', payload, signal),
+  }
+
+  readonly schedules: IApiClient['schedules'] = {
+    list: (payload, signal) => this.callUnary('schedules.list', payload, signal),
+    create: (payload, signal) => this.callUnary('schedules.create', payload, signal),
+    update: (payload, signal) => this.callUnary('schedules.update', payload, signal),
+    delete: (payload, signal) => this.callUnary('schedules.delete', payload, signal),
+    trigger: (payload, signal) => this.callUnary('schedules.trigger', payload, signal),
+    logs: (payload, signal) => this.callUnary('schedules.logs', payload, signal),
   }
 
   readonly events: IApiClient['events'] = {

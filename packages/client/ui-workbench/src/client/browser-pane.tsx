@@ -22,6 +22,52 @@ interface BrowserTab {
   streamUrl?: string | null
 }
 
+/** Crisp fullscreen expand icon */
+function IconFullscreen({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M1.5 5.5V3.5C1.5 2.4 2.4 1.5 3.5 1.5H5.5M10.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V5.5M14.5 10.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H10.5M5.5 14.5H3.5C2.4 14.5 1.5 13.6 1.5 12.5V10.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** Crisp minimize / restore icon */
+function IconMinimize({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M5.5 1.5V3.5C5.5 4.6 4.6 5.5 3.5 5.5H1.5M10.5 5.5H12.5C11.4 5.5 10.5 4.6 10.5 3.5V1.5M14.5 10.5H12.5C11.4 10.5 10.5 11.4 10.5 12.5V14.5M1.5 10.5H3.5C4.6 10.5 5.5 11.4 5.5 12.5V14.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /** Normalise an address to an http(s) URL, or null when it is not navigable. */
 function toHref(raw: string): string | null {
   const value = raw.trim()
@@ -98,6 +144,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [error, setError] = useState(false)
   const [isFrameBlocked, setIsFrameBlocked] = useState(false)
+  const [isMaximized, setIsMaximized] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   // Target DOM element in Workbench header row 2 (#workbench-strip-subrow)
@@ -111,6 +158,17 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
       if (el) setSubrowEl(el)
     }
   }, [subrowEl])
+
+  useEffect(() => {
+    if (!isMaximized) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMaximized(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isMaximized])
 
   // Track system theme changes for stream background matching
   useEffect(() => {
@@ -132,7 +190,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
 
     if (!nextUrl && !nextStream) return
 
-    setTabs(prev => {
+    setTabs((prev) => {
       const current = prev.find(t => t.id === activeTabId)
       if (current && (current.url !== nextUrl || current.streamUrl !== nextStream)) {
         return prev.map(t => t.id === activeTabId ? {
@@ -283,7 +341,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
           <span className={css.tabTitle}>{tab.title}</span>
           <span
             className={css.tabClose}
-            onClick={(e) => handleCloseTab(tab.id, e)}
+            onClick={e => handleCloseTab(tab.id, e)}
             role="button"
             title={t('workbench.tabs.close')}
           >
@@ -304,7 +362,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   )
 
   return (
-    <div className={css.root}>
+    <div className={`${css.root} ${isMaximized ? css.browserMaximized : ''}`}>
       {subrowEl ? createPortal(subrowContent, subrowEl) : null}
 
       <div className={css.bar}>
@@ -368,6 +426,16 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
             </span>
           </button>
         )}
+
+        <button
+          type="button"
+          className={css.open}
+          aria-label={isMaximized ? 'Restore View' : 'Maximize View'}
+          title={isMaximized ? 'Restore View (Esc)' : 'Maximize View'}
+          onClick={() => setIsMaximized(!isMaximized)}
+        >
+          {isMaximized ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
+        </button>
 
         <button
           type="button"

@@ -17,6 +17,7 @@ import type { CredentialsApi } from './credentials.ts'
 import type { ConnectionsApi } from './connections.ts'
 import type { LlmApi } from './llm.ts'
 import type { AppsApi } from './apps.ts'
+import type { SchedulesApi, ScheduledTaskView, TaskRunLogEntry } from './schedules.ts'
 import type { DownloadsApi } from './downloads.ts'
 import type { ClientResponse, RpcReceipt } from './rpc.ts'
 
@@ -35,6 +36,7 @@ export interface ApiProxy {
   connections: ConnectionsApi
   llm: LlmApi
   apps: AppsApi
+  schedules: SchedulesApi
   /** Host-only download surfaces (GET, no wire envelope); absent from IApiClient. */
   downloads: DownloadsApi
   /**
@@ -44,6 +46,8 @@ export interface ApiProxy {
    */
   respond(message: ClientResponse): Promise<RpcReceipt>
 }
+
+export type { SchedulesApi, ScheduledTaskView, TaskRunLogEntry }
 
 // ---- Domain interfaces and payload entities ----
 export type {
