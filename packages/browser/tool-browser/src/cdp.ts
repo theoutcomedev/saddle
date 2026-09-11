@@ -284,7 +284,7 @@ export class CdpSession {
 
   async evaluate(script: string): Promise<unknown> {
     const result = await this.send<{ result: { value?: unknown; description?: string } }>(
-      'Runtime.evaluate', { expression: script, returnByValue: true },
+      'Runtime.evaluate', { expression: script, returnByValue: true, awaitPromise: true },
     )
     return result.result.value ?? result.result.description
   }
