@@ -129,7 +129,6 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="schedules-title">
         <div className={css.header}>
           <div className={css.titleArea}>
-            <IconScheduleOutline16 size={18} />
             <h2 id="schedules-title" className={css.title}>Scheduled Tasks</h2>
             {tasks.length > 0 && (
               <span className={css.badge}>{activeCount} active</span>
