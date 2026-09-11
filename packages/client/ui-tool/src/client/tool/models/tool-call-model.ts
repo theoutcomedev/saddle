@@ -64,6 +64,7 @@ const TOOL_VARIANTS: Record<string, ToolRowVariant> = {
   browser_scroll: 'read',
   browser_evaluate: 'code',
   browser_session_end: 'others',
+  browser_get_content: 'read',
 }
 
 /** Tool-owned titles that refine a generic row variant without replacing it. */
@@ -81,6 +82,7 @@ const TOOL_TITLES: Record<string, string> = {
   browser_scroll: 'Browser Scroll',
   browser_evaluate: 'Browser Evaluate',
   browser_session_end: 'End Browser Session',
+  browser_get_content: 'Browser Page Content',
 }
 
 /**

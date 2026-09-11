@@ -80,13 +80,42 @@ async function ensureSession(ctx: Context, config: Config): Promise<{ steel: Ste
 }
 
 export function apply(ctx: Context, config: Config = {}): void {
+  async function closeActiveSession(): Promise<void> {
+    if (steelSession && cdpSession) {
+      const id = steelSession.id
+      try { cdpSession.close() } catch {}
+      const key = credentialKey('connections', 'steel-browser')
+      const cred = await ctx.credentials.readRecord(key).catch(() => null)
+      let apiKey: string | undefined
+      let credUrl: string | undefined
+      if (cred?.kind === 'grant' && cred.payload && typeof cred.payload === 'object') {
+        const payload = cred.payload as { type?: string; values?: { apiKey?: string; url?: string } }
+        if (payload.type === 'api-key' && payload.values) {
+          apiKey = payload.values.apiKey
+          credUrl = payload.values.url
+        }
+      }
+      const baseUrl = resolveBaseUrl(config, credUrl)
+      const client = new SteelClient(baseUrl, apiKey)
+      client.releaseSession(id).catch(() => {})
+      steelSession = null
+      cdpSession = null
+    }
+  }
+
+  ctx.effect(() => () => {
+    void closeActiveSession().catch(() => {})
+  }, 'tool-browser: cleanup')
+
   ctx.systemPrompt.section({
     name: 'tool:browser',
     order: 110,
     text: [
       'Browser tools give you a real Chrome browser. Call browser_navigate first to open a page.',
-      'Always call browser_screenshot after interactions to verify the result.',
-      'Use browser_click with x,y pixel coordinates (read them from the screenshot).',
+      'Use browser_get_content to inspect the page and discover form inputs, buttons, and recommended selectors.',
+      'Use browser_click with selector (e.g. "#search-btn"), button text, or x,y pixel coordinates.',
+      'Use browser_type with selector and text to fill input fields, with optional pressEnter: true.',
+      'Use browser_screenshot after interactions to verify the visual state in the browser pane.',
       'Call browser_session_end when completely done browsing to free resources.',
     ].join(' '),
   })
@@ -122,6 +151,20 @@ export function apply(ctx: Context, config: Config = {}): void {
   }))
 
   ctx.tools.register(defineTool({
+    name: 'browser_get_content',
+    description: 'Inspect the current page to extract its title, URL, form inputs (with exact selectors), clickable buttons, links, and headings.',
+    parameters: {
+      format: { type: 'string', description: 'Output format: "interactive" (default, structured form inputs and buttons), "text" (clean text only), or "html".' },
+    },
+    output: outputBase,
+    async execute(args: { format?: 'interactive' | 'text' | 'html' }, _exec) {
+      const { cdp, viewerUrl } = await ensureSession(ctx, config)
+      const content = await cdp.getPageContent(args.format || 'interactive')
+      return { viewerUrl, result: content }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
     name: 'browser_screenshot',
     description: 'Take a screenshot of the current page. Open the browser pane viewer to see it.',
     parameters: {},
@@ -135,30 +178,35 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.tools.register(defineTool({
     name: 'browser_click',
-    description: 'Click at specific x,y coordinates.',
+    description: 'Click an element on the page using a CSS selector, visible button/link text, or (x, y) coordinates.',
     parameters: {
-      x: { type: 'number', required: true },
-      y: { type: 'number', required: true },
+      selector: { type: 'string', description: 'CSS selector of the element to click (e.g. "#submit-button", "button.btn-primary").' },
+      text: { type: 'string', description: 'Visible text of the button or link to click (e.g. "Log In", "Search").' },
+      x: { type: 'number', description: 'Optional pixel X coordinate.' },
+      y: { type: 'number', description: 'Optional pixel Y coordinate.' },
     },
     output: outputBase,
-    async execute(args: { x: number; y: number }, _exec) {
+    async execute(args: { selector?: string; text?: string; x?: number; y?: number }, _exec) {
       const { cdp, viewerUrl } = await ensureSession(ctx, config)
-      await cdp.click(args.x, args.y)
-      return { viewerUrl, result: `Clicked at (${args.x}, ${args.y}).` }
+      const res = await cdp.clickElement(args)
+      return { viewerUrl, result: res.description }
     },
   }))
 
   ctx.tools.register(defineTool({
     name: 'browser_type',
-    description: 'Type text at the current cursor position.',
+    description: 'Type text into an input field or at the current cursor position. Optionally clear the field first and press Enter.',
     parameters: {
-      text: { type: 'string', required: true },
+      text: { type: 'string', required: true, description: 'The text to type.' },
+      selector: { type: 'string', description: 'Optional CSS selector of the input or textarea to focus and type into (e.g. "input[name=\'q\']", "#search").' },
+      clear: { type: 'boolean', description: 'Clear existing text in the input before typing (defaults to false).' },
+      pressEnter: { type: 'boolean', description: 'Press Enter key immediately after typing (defaults to false).' },
     },
     output: outputBase,
-    async execute(args: { text: string }, _exec) {
+    async execute(args: { text: string; selector?: string; clear?: boolean; pressEnter?: boolean }, _exec) {
       const { cdp, viewerUrl } = await ensureSession(ctx, config)
-      await cdp.type(args.text)
-      return { viewerUrl, result: 'Typed text.' }
+      const result = await cdp.typeElement(args)
+      return { viewerUrl, result }
     },
   }))
 
@@ -194,34 +242,13 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.tools.register(defineTool({
     name: 'browser_session_end',
-    description: 'End the current browser session.',
+    description: 'End the current browser session and free resources.',
     parameters: {},
     output: outputBase,
     async execute(_args: unknown, _exec) {
       if (steelSession && cdpSession) {
-        const id = steelSession.id
         const viewerUrl = steelSession.viewerUrl
-
-        // release without waiting
-        const key = credentialKey('connections', 'steel-browser')
-        const cred = await ctx.credentials.readRecord(key).catch(() => null)
-        let apiKey: string | undefined
-        let credUrl: string | undefined
-        if (cred?.kind === 'grant' && cred.payload && typeof cred.payload === 'object') {
-          const payload = cred.payload as { type?: string; values?: { apiKey?: string; url?: string } }
-          if (payload.type === 'api-key' && payload.values) {
-            const values = payload.values
-            apiKey = values.apiKey
-            credUrl = values.url
-          }
-        }
-        const baseUrl = resolveBaseUrl(config, credUrl)
-        const client = new SteelClient(baseUrl, apiKey)
-        client.releaseSession(id).catch(() => {})
-
-        cdpSession.close()
-        steelSession = null
-        cdpSession = null
+        await closeActiveSession()
         return { viewerUrl, result: 'Session ended.' }
       }
       return { viewerUrl: '', result: 'No active session.' }
