@@ -67,6 +67,8 @@ const TOOL_VARIANTS: Record<string, ToolRowVariant> = {
   browser_get_content: 'read',
   browser_save_profile: 'others',
   browser_list_profiles: 'others',
+  browser_pdf: 'write',
+  browser_download_file: 'write',
 }
 
 /** Tool-owned titles that refine a generic row variant without replacing it. */
@@ -87,6 +89,8 @@ const TOOL_TITLES: Record<string, string> = {
   browser_get_content: 'Browser Page Content',
   browser_save_profile: 'Save Browser Profile',
   browser_list_profiles: 'List Browser Profiles',
+  browser_pdf: 'Export Page PDF',
+  browser_download_file: 'Download File',
 }
 
 /**

@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -37,14 +39,15 @@ function resolveViewerUrl(rawDebugUrl?: string): string {
   }
   const hostIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP
   const serverIp = (!hostIp || hostIp === 'auto') ? '91.99.165.95' : hostIp
-  const fallback = `http://steel.${serverIp}.sslip.io/v1/sessions/debug?interactive=true`
+  const fallback = `http://steel.${serverIp}.sslip.io/v1/sessions/debug?showControls=false&interactive=true`
 
   if (!rawDebugUrl) return fallback
   if (rawDebugUrl.includes('0.0.0.0') || rawDebugUrl.includes('127.0.0.1') || rawDebugUrl.includes('steel:')
     || rawDebugUrl.includes('saddle-steel:') || /^https?:\/\/172\./.test(rawDebugUrl)) {
     return fallback
   }
-  return rawDebugUrl.includes('?') ? `${rawDebugUrl}&interactive=true` : `${rawDebugUrl}?interactive=true`
+  const sep = rawDebugUrl.includes('?') ? '&' : '?'
+  return `${rawDebugUrl}${sep}showControls=false&interactive=true`
 }
 
 async function resolveModelAdmitsImages(ctx: Context, exec?: ToolRunContext): Promise<boolean> {
@@ -108,6 +111,9 @@ async function ensureSession(
       ...(sessionContext ? { sessionContext } : {}),
     })
     cdpSession = await CdpSession.connect(steelSession.websocketUrl)
+    const downloadDir = path.resolve(process.env.SADDLE_DATA_DIR || '/app/data', 'downloads')
+    await fs.mkdir(downloadDir, { recursive: true }).catch(() => {})
+    await cdpSession.setDownloadPath(downloadDir).catch(() => {})
   } catch (error) {
     throw new Error(`Steel browser not configured or reachable. Detail: ${error}`)
   }
@@ -155,6 +161,8 @@ export function apply(ctx: Context, config: Config = {}): void {
       'Use browser_click with selector (e.g. "#search-btn"), button text, or x,y pixel coordinates.',
       'Use browser_type with selector and text to fill input fields, with optional pressEnter: true.',
       'Use browser_screenshot to capture the visual page state.',
+      'Use browser_pdf to export pages as styled PDFs directly into the workspace.',
+      'Use browser_download_file to download files using session authentication cookies.',
       'Call browser_session_end when completely done browsing to free resources.',
     ].join(' '),
   })
@@ -372,6 +380,124 @@ export function apply(ctx: Context, config: Config = {}): void {
       return {
         viewerUrl,
         result: `Saved browser profiles (${profiles.length}):\n${profiles.map(p => `- ${p}`).join('\n')}`,
+      }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'browser_pdf',
+    description: 'Export the current page as a styled PDF and save it directly into the workspace.',
+    parameters: {
+      path: {
+        type: 'string',
+        description: 'Destination filename or path (e.g. "report.pdf", "docs/summary.pdf"). Defaults to "page.pdf".',
+      },
+      landscape: {
+        type: 'boolean',
+        description: 'Render in landscape orientation (defaults to false).',
+      },
+      printBackground: {
+        type: 'boolean',
+        description: 'Print background graphics and colors (defaults to true).',
+      },
+      scale: {
+        type: 'number',
+        description: 'Scale factor of the webpage rendering (default 1.0).',
+      },
+      pageRanges: {
+        type: 'string',
+        description: 'Paper ranges to print, e.g. "1-5", "8", "1-3, 5".',
+      },
+    },
+    output: outputBase,
+    async execute(args: {
+      path?: string
+      landscape?: boolean
+      printBackground?: boolean
+      scale?: number
+      pageRanges?: string
+    }, exec: ToolRunContext) {
+      const { cdp, viewerUrl } = await ensureSession(ctx, config)
+      const pdfBase64 = await cdp.printToPdf({
+        landscape: args.landscape,
+        printBackground: args.printBackground,
+        scale: args.scale,
+        pageRanges: args.pageRanges,
+      })
+      const targetFile = args.path || 'page.pdf'
+      const sessionCwd = exec.agent?.session.header.cwd || process.cwd()
+      const fullPath = path.isAbsolute(targetFile) ? targetFile : path.resolve(sessionCwd, targetFile)
+      await fs.mkdir(path.dirname(fullPath), { recursive: true })
+      const buffer = Buffer.from(pdfBase64, 'base64')
+      await fs.writeFile(fullPath, buffer)
+      return {
+        viewerUrl,
+        result: `Successfully exported page PDF (${buffer.length} bytes) to ${fullPath}`,
+      }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'browser_download_file',
+    description: 'Download a file using the active session cookies and headers, saving it to the workspace.',
+    parameters: {
+      url: {
+        type: 'string',
+        required: true,
+        description: 'The URL of the file to download.',
+      },
+      path: {
+        type: 'string',
+        description: 'Destination path or filename in workspace (defaults to filename from URL).',
+      },
+    },
+    output: outputBase,
+    async execute(args: { url: string; path?: string }, exec: ToolRunContext) {
+      const { cdp, viewerUrl } = await ensureSession(ctx, config)
+      const script = `(async () => {
+        const res = await fetch(${JSON.stringify(args.url)});
+        if (!res.ok) throw new Error('HTTP download failed: ' + res.status + ' ' + res.statusText);
+        const blob = await res.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result;
+            if (typeof result === 'string') {
+              const idx = result.indexOf(',');
+              resolve(idx >= 0 ? result.slice(idx + 1) : result);
+            } else {
+              reject(new Error('Failed to read blob'));
+            }
+          };
+          reader.onerror = () => reject(new Error('FileReader error'));
+          reader.readAsDataURL(blob);
+        });
+      })()`
+
+      const base64Data = await cdp.evaluate(script) as string
+      if (!base64Data || typeof base64Data !== 'string') {
+        throw new Error('Failed to retrieve file contents from browser context.')
+      }
+
+      let filename = args.path
+      if (!filename) {
+        try {
+          const parsed = new URL(args.url)
+          const base = path.basename(parsed.pathname)
+          filename = base || 'downloaded_file'
+        } catch {
+          filename = 'downloaded_file'
+        }
+      }
+
+      const sessionCwd = exec.agent?.session.header.cwd || process.cwd()
+      const fullPath = path.isAbsolute(filename) ? filename : path.resolve(sessionCwd, filename)
+      await fs.mkdir(path.dirname(fullPath), { recursive: true })
+      const buffer = Buffer.from(base64Data, 'base64')
+      await fs.writeFile(fullPath, buffer)
+      return {
+        viewerUrl,
+        result: `Successfully downloaded file (${buffer.length} bytes) to ${fullPath}`,
       }
     },
   }))

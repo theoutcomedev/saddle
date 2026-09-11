@@ -289,6 +289,44 @@ export class CdpSession {
     return result.result.value ?? result.result.description
   }
 
+  async printToPdf(options: {
+    landscape?: boolean | undefined
+    printBackground?: boolean | undefined
+    scale?: number | undefined
+    pageRanges?: string | undefined
+    paperWidth?: number | undefined
+    paperHeight?: number | undefined
+  } = {}): Promise<string> {
+    const params: Record<string, unknown> = {
+      printBackground: options.printBackground ?? true,
+      landscape: options.landscape ?? false,
+      scale: options.scale ?? 1,
+    }
+    if (options.pageRanges) params.pageRanges = options.pageRanges
+    if (options.paperWidth) params.paperWidth = options.paperWidth
+    if (options.paperHeight) params.paperHeight = options.paperHeight
+
+    const result = await this.send<{ data: string }>('Page.printToPDF', params)
+    return result.data
+  }
+
+  async setDownloadPath(downloadPath: string): Promise<void> {
+    try {
+      await this.send('Browser.setDownloadBehavior', {
+        behavior: 'allowAndName',
+        downloadPath,
+        eventsEnabled: true,
+      })
+    } catch {
+      try {
+        await this.send('Page.setDownloadBehavior', {
+          behavior: 'allow',
+          downloadPath,
+        })
+      } catch {}
+    }
+  }
+
   close(): void {
     this.closed = true
     this.ws.close()

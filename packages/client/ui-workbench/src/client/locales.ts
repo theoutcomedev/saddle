@@ -20,6 +20,11 @@ export const zh = {
   'workbench.browser.go': '前往',
   'workbench.browser.blank': '请输入地址。',
   'workbench.browser.open': '在浏览器中打开',
+  'workbench.browser.back': '后退',
+  'workbench.browser.forward': '前进',
+  'workbench.browser.reload': '刷新',
+  'workbench.browser.takeover': '接管控制',
+  'workbench.browser.viewOnly': '只读观察',
 } as const
 
 /** English dictionary, key-identical to the Chinese source of truth. */
@@ -39,6 +44,11 @@ export const en: Record<WorkbenchKey, string> = {
   'workbench.browser.go': 'Go',
   'workbench.browser.blank': 'Enter a URL.',
   'workbench.browser.open': 'Open in browser',
+  'workbench.browser.back': 'Back',
+  'workbench.browser.forward': 'Forward',
+  'workbench.browser.reload': 'Reload',
+  'workbench.browser.takeover': 'Takeover',
+  'workbench.browser.viewOnly': 'View only',
 }
 
 /** Key domain of the `workbench` namespace (zh is the source of truth). */
