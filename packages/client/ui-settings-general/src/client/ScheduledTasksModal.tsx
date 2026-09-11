@@ -129,36 +129,52 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="schedules-title">
         <div className={css.header}>
           <div className={css.titleArea}>
-            <h2 id="schedules-title" className={css.title}>Scheduled Tasks</h2>
-            {tasks.length > 0 && (
-              <span className={css.badge}>{activeCount} active</span>
+            {activeLogs !== null ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => store.closeLogs()}
+                  title="Back to task list"
+                >
+                  ← Back to Tasks
+                </Button>
+                <h2 id="schedules-title" className={css.title}>
+                  Run History: {activeLogs.taskName}
+                </h2>
+              </>
+            ) : activeTab === 'create' ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveTab('list')}
+                  title="Back to task list"
+                >
+                  ← All Tasks
+                </Button>
+                <h2 id="schedules-title" className={css.title}>New Scheduled Task</h2>
+              </>
+            ) : (
+              <>
+                <h2 id="schedules-title" className={css.title}>Scheduled Tasks</h2>
+                {tasks.length > 0 && (
+                  <span className={css.badge}>{activeCount} active</span>
+                )}
+              </>
             )}
           </div>
 
-          <div className={css.tabs}>
-            <button
-              type="button"
-              className={clsx(css.tab, activeTab === 'list' && css.tabActive)}
-              onClick={() => {
-                if (activeLogs !== null) store.closeLogs()
-                setActiveTab('list')
-              }}
-            >
-              All Tasks ({tasks.length})
-            </button>
-            <button
-              type="button"
-              className={clsx(css.tab, activeTab === 'create' && css.tabActive)}
-              onClick={() => {
-                if (activeLogs !== null) store.closeLogs()
-                setActiveTab('create')
-              }}
-            >
-              + Create Task
-            </button>
-          </div>
-
           <div className={css.headerControls}>
+            {activeLogs === null && activeTab === 'list' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setActiveTab('create')}
+              >
+                + New Task
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -178,12 +194,6 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
           {activeLogs !== null ? (
             /* --- EXECUTION LOGS VIEW --- */
             <div className={css.logsOverlay}>
-              <div className={css.logsHeader}>
-                <h3 className={css.emptyTitle}>Run History: {activeLogs.taskName}</h3>
-                <Button size="sm" variant="ghost" onClick={() => store.closeLogs()}>
-                  ← Back to Tasks
-                </Button>
-              </div>
               {activeLogs.runs.length === 0 ? (
                 <div className={css.emptyState}>
                   <p className={css.emptyDesc}>No execution runs recorded for this task yet.</p>
