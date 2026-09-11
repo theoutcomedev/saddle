@@ -94,11 +94,34 @@ function IconFullscreen({ size = 14, className, style }: { size?: number; classN
   )
 }
 
+/** Crisp, pixel-perfect 4-corners minimize icon */
+function IconMinimize({ size = 14, className, style }: { size?: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={{ display: 'block', flexShrink: 0, ...style }}
+      aria-hidden="true"
+    >
+      <path
+        d="M5.5 1.5V3.5C5.5 4.6 4.6 5.5 3.5 5.5H1.5M10.5 5.5H12.5C11.4 5.5 10.5 4.6 10.5 3.5V1.5M14.5 10.5H12.5C11.4 10.5 10.5 11.4 10.5 12.5V14.5M1.5 10.5H3.5C4.6 10.5 5.5 11.4 5.5 12.5V14.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function NotepadApp({
   appStore,
   mode = 'fullscreen',
   onClose,
-  onFullscreen,
 }: {
   appStore: AppStoreRemote
   mode?: 'fullscreen' | 'docked'
@@ -118,6 +141,8 @@ export function NotepadApp({
   const [status, setStatus] = useState('')
   const timerRef = useRef<number | null>(null)
 
+  const [isMaximized, setIsMaximized] = useState(false)
+
   // Subrow element target (#workbench-strip-subrow)
   const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
     return typeof document !== 'undefined' ? document.getElementById('workbench-strip-subrow') : null
@@ -129,6 +154,30 @@ export function NotepadApp({
       if (el) setSubrowEl(el)
     }
   }, [subrowEl])
+
+  const isDocked = (mode ?? 'fullscreen') === 'docked'
+
+  useEffect(() => {
+    if (!isDocked || !isMaximized) return
+    document.body.setAttribute('data-notepad-maximized', 'true')
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMaximized(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.removeAttribute('data-notepad-maximized')
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isDocked, isMaximized])
+
+  useEffect(() => {
+    return () => {
+      document.body.removeAttribute('data-notepad-maximized')
+    }
+  }, [])
 
   // Load initial content from appStore on mount
   useEffect(() => {
@@ -233,21 +282,6 @@ export function NotepadApp({
     }))
   }
 
-  const handleFullscreen = () => {
-    if (timerRef.current !== null) clearTimeout(timerRef.current)
-    persistNotes(notes, 'Saved')
-    window.dispatchEvent(new CustomEvent('workbench:close-details'))
-    if (onFullscreen) {
-      onFullscreen()
-    } else {
-      window.dispatchEvent(new CustomEvent('saddle:open-fullscreen-app', {
-        detail: { appId: 'notepad' },
-      }))
-    }
-  }
-
-  const isDocked = mode === 'docked'
-
   const notesSubrowContent = (
     <div className={css.subrowTabs}>
       {notes.map(note => (
@@ -283,21 +317,23 @@ export function NotepadApp({
 
   if (isDocked) {
     return (
-      <div className={css.npRootDocked}>
-        {subrowEl ? createPortal(notesSubrowContent, subrowEl) : null}
+      <div className={`${css.npRootDocked} ${isMaximized ? css.npDockedMaximized : ''}`}>
+        {!isMaximized && subrowEl ? createPortal(notesSubrowContent, subrowEl) : null}
         <div className={css.npDockedToolbar}>
-          <div className={css.npToolbarLeft} />
+          <div className={css.npToolbarLeft}>
+            {isMaximized ? notesSubrowContent : null}
+          </div>
           <div className={css.npActions}>
             {status && <span className={css.npStatus}>{status}</span>}
             <Button variant="primary" size="sm" onClick={save}>Save</Button>
             <button
               type="button"
               className={css.iconBtn}
-              title="Fullscreen"
-              aria-label="Fullscreen"
-              onClick={handleFullscreen}
+              title={isMaximized ? 'Restore View (Esc)' : 'Maximize in Workbench'}
+              aria-label={isMaximized ? 'Restore View' : 'Maximize in Workbench'}
+              onClick={() => setIsMaximized(!isMaximized)}
             >
-              <IconFullscreen size={16} />
+              {isMaximized ? <IconMinimize size={16} /> : <IconFullscreen size={16} />}
             </button>
           </div>
         </div>
@@ -486,10 +522,6 @@ export function WorkbenchAppHost({
       <NotepadApp
         appStore={appStore}
         mode="docked"
-        onFullscreen={() => {
-          window.dispatchEvent(new CustomEvent('workbench:close-details'))
-          window.dispatchEvent(new CustomEvent('saddle:open-fullscreen-app', { detail: { appId: 'notepad' } }))
-        }}
       />
     )
   }

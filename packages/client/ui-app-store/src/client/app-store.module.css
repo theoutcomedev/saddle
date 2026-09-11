@@ -321,6 +321,13 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.npDockedMaximized {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--dsw-alias-bg-base);
+}
+
 .npDockedToolbar {
   flex: none;
   display: flex;

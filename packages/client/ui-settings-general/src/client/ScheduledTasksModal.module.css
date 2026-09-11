@@ -26,6 +26,7 @@
 }
 
 .header {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
@@ -43,12 +44,42 @@
   gap: 10px;
 }
 
+.backBtn {
+  border: 1px solid var(--dsw-alias-border-l2) !important;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary) !important;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px !important;
+  padding: 0 10px !important;
+  height: 28px !important;
+  transition: all 0.15s ease;
+}
+
+.backBtn:hover {
+  border-color: var(--dsw-alias-border-l3) !important;
+  background: var(--dsw-alias-interactive-bg-hover) !important;
+  color: var(--dsw-alias-label-primary) !important;
+}
+
 .title {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
   line-height: 24px;
   color: var(--dsw-alias-label-primary);
+}
+
+.titleCenter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .badge {

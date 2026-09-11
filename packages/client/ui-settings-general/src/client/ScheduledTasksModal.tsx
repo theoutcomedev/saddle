@@ -165,8 +165,9 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
             {activeLogs !== null ? (
               <>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
+                  className={css.backBtn}
                   onClick={() => store.closeLogs()}
                   title="Back to task list"
                 >
@@ -179,14 +180,15 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
             ) : activeTab === 'create' ? (
               <>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
+                  className={css.backBtn}
                   onClick={() => setActiveTab('list')}
                   title="Back to task list"
                 >
                   ← All Tasks
                 </Button>
-                <h2 id="schedules-title" className={css.title}>New Scheduled Task</h2>
+                <h2 id="schedules-title" className={`${css.title} ${css.titleCenter}`}>New Scheduled Task</h2>
               </>
             ) : (
               <>
