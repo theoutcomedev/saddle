@@ -118,6 +118,8 @@ export function NotepadApp({
   const [status, setStatus] = useState('')
   const timerRef = useRef<number | null>(null)
 
+  const [isExpanded, setIsExpanded] = useState(false)
+
   // Subrow element target (#workbench-strip-subrow)
   const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
     return typeof document !== 'undefined' ? document.getElementById('workbench-strip-subrow') : null
@@ -129,6 +131,31 @@ export function NotepadApp({
       if (el) setSubrowEl(el)
     }
   }, [subrowEl])
+
+  useEffect(() => {
+    if (mode !== 'docked') return
+    if (isExpanded) {
+      document.body.setAttribute('data-workbench-expanded', 'true')
+    } else {
+      document.body.removeAttribute('data-workbench-expanded')
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isExpanded) {
+        setIsExpanded(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.removeAttribute('data-workbench-expanded')
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [mode, isExpanded])
+
+  useEffect(() => {
+    return () => {
+      document.body.removeAttribute('data-workbench-expanded')
+    }
+  }, [])
 
   // Load initial content from appStore on mount
   useEffect(() => {
@@ -261,7 +288,7 @@ export function NotepadApp({
           <span className={css.tabTitle}>{note.title}</span>
           <span
             className={css.tabClose}
-            onClick={(e) => handleCloseNote(note.id, e)}
+            onClick={e => handleCloseNote(note.id, e)}
             role="button"
             title="Close Note"
           >
@@ -292,10 +319,16 @@ export function NotepadApp({
             <Button variant="primary" size="sm" onClick={save}>Save</Button>
             <button
               type="button"
-              className={css.iconBtn}
-              title="Fullscreen"
-              aria-label="Fullscreen"
-              onClick={handleFullscreen}
+              className={`${css.iconBtn} ${isExpanded ? css.iconBtnActive : ''}`}
+              title={isExpanded ? 'Fullscreen App (Esc to restore)' : 'Maximize in Workbench'}
+              aria-label={isExpanded ? 'Fullscreen App' : 'Maximize in Workbench'}
+              onClick={() => {
+                if (!isExpanded) {
+                  setIsExpanded(true)
+                } else {
+                  handleFullscreen()
+                }
+              }}
             >
               <IconFullscreen size={16} />
             </button>

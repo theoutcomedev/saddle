@@ -356,7 +356,16 @@ export function FilesPane({
   // Pane width tracking for responsive adaptations
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [isNarrow, setIsNarrow] = useState(false)
-  const [isMaximized, setIsMaximized] = useState(false)
+  const [maximizeState, setMaximizeState] = useState<'docked' | 'frame' | 'fullscreen'>('docked')
+  const isMaximized = maximizeState !== 'docked'
+
+  const handleCycleMaximize = () => {
+    setMaximizeState((prev) => {
+      if (prev === 'docked') return 'frame'
+      if (prev === 'frame') return 'fullscreen'
+      return 'docked'
+    })
+  }
 
   useEffect(() => {
     const el = rootRef.current
@@ -383,23 +392,35 @@ export function FilesPane({
   }, [subrowEl])
 
   useEffect(() => {
-    if (!isMaximized) return
-    document.body.setAttribute('data-editor-maximized', 'true')
+    if (maximizeState === 'docked') return
+    if (maximizeState === 'fullscreen') {
+      document.body.setAttribute('data-editor-maximized', 'true')
+    } else {
+      document.body.removeAttribute('data-editor-maximized')
+    }
+    if (maximizeState === 'frame') {
+      document.body.setAttribute('data-workbench-expanded', 'true')
+    } else {
+      document.body.removeAttribute('data-workbench-expanded')
+    }
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsMaximized(false)
+        setMaximizeState(prev => prev === 'fullscreen' ? 'frame' : 'docked')
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.removeAttribute('data-editor-maximized')
+      document.body.removeAttribute('data-workbench-expanded')
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isMaximized])
+  }, [maximizeState])
 
   useEffect(() => {
     return () => {
       document.body.removeAttribute('data-editor-maximized')
+      document.body.removeAttribute('data-workbench-expanded')
     }
   }, [])
 
@@ -1115,94 +1136,96 @@ export function FilesPane({
       {!isMaximized && (subrowEl ? createPortal(presetsContent, subrowEl) : presetsContent)}
 
       {/* --- TOP NAVIGATION BAR --- */}
-      <div className={css.navBar}>
-        {isEditingPath ? (
-          <div className={css.pathInputWrapper}>
-            <input
-              type="text"
-              className={css.pathInput}
-              value={pathInput}
-              autoFocus
-              onChange={e => setPathInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') load(pathInput.trim() || '/')
-                if (e.key === 'Escape') {
+      {!(selectedFile !== null && isMaximized) && (
+        <div className={css.navBar}>
+          {isEditingPath ? (
+            <div className={css.pathInputWrapper}>
+              <input
+                type="text"
+                className={css.pathInput}
+                value={pathInput}
+                autoFocus
+                onChange={e => setPathInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') load(pathInput.trim() || '/')
+                  if (e.key === 'Escape') {
+                    setPathInput(dir)
+                    setIsEditingPath(false)
+                  }
+                }}
+                placeholder="/host, /root, /etc..."
+              />
+              <button
+                type="button"
+                className={`${css.btn} ${css.btnPrimary}`}
+                onClick={() => load(pathInput.trim() || '/')}
+              >
+                Go
+              </button>
+              <button
+                type="button"
+                className={css.ghost}
+                onClick={() => {
                   setPathInput(dir)
                   setIsEditingPath(false)
-                }
-              }}
-              placeholder="/host, /root, /etc..."
-            />
-            <button
-              type="button"
-              className={`${css.btn} ${css.btnPrimary}`}
-              onClick={() => load(pathInput.trim() || '/')}
-            >
-              Go
-            </button>
-            <button
-              type="button"
-              className={css.ghost}
-              onClick={() => {
-                setPathInput(dir)
-                setIsEditingPath(false)
-              }}
-            >
-              <IconCloseOutline16 size={12} />
-            </button>
-          </div>
-        ) : (
-          <div className={css.breadcrumbs} onDoubleClick={() => setIsEditingPath(true)}>
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={crumb.path} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                {idx > 0 && <span className={css.crumbSep}>/</span>}
-                <button
-                  type="button"
-                  className={idx === 0 && crumb.name === '..'
-                    ? css.crumbRoot
-                    : `${css.crumb} ${idx === breadcrumbs.length - 1 ? css.crumbActive : ''}`}
-                  onClick={() => load(crumb.path)}
-                  title={idx === 0 && crumb.name === '..' ? 'Jump to parent / root folder' : crumb.path}
-                >
-                  {crumb.name}
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+                }}
+              >
+                <IconCloseOutline16 size={12} />
+              </button>
+            </div>
+          ) : (
+            <div className={css.breadcrumbs} onDoubleClick={() => setIsEditingPath(true)}>
+              {breadcrumbs.map((crumb, idx) => (
+                <span key={crumb.path} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  {idx > 0 && <span className={css.crumbSep}>/</span>}
+                  <button
+                    type="button"
+                    className={idx === 0 && crumb.name === '..'
+                      ? css.crumbRoot
+                      : `${css.crumb} ${idx === breadcrumbs.length - 1 ? css.crumbActive : ''}`}
+                    onClick={() => load(crumb.path)}
+                    title={idx === 0 && crumb.name === '..' ? 'Jump to parent / root folder' : crumb.path}
+                  >
+                    {crumb.name}
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
-        <button
-          type="button"
-          className={css.ghost}
-          title={isEditingPath ? 'Done editing path' : 'Type path manually'}
-          onClick={() => {
-            if (!isEditingPath) setPathInput(dir)
-            setIsEditingPath(!isEditingPath)
-          }}
-        >
-          <IconEditOutline16 size={14} />
-        </button>
+          <button
+            type="button"
+            className={css.ghost}
+            title={isEditingPath ? 'Done editing path' : 'Type path manually'}
+            onClick={() => {
+              if (!isEditingPath) setPathInput(dir)
+              setIsEditingPath(!isEditingPath)
+            }}
+          >
+            <IconEditOutline16 size={14} />
+          </button>
 
-        <button
-          type="button"
-          className={css.ghost}
-          title={isCurrentDirPinned ? 'Unpin this folder from presets' : 'Pin this folder to presets'}
-          onClick={togglePinCurrentDir}
-          style={isCurrentDirPinned ? { color: 'var(--dsw-alias-interactive-primary, #3b82f6)' } : undefined}
-          aria-label={isCurrentDirPinned ? 'Unpin this folder' : 'Pin this folder'}
-        >
-          <IconStar size={15} filled={isCurrentDirPinned} />
-        </button>
+          <button
+            type="button"
+            className={css.ghost}
+            title={isCurrentDirPinned ? 'Unpin this folder from presets' : 'Pin this folder to presets'}
+            onClick={togglePinCurrentDir}
+            style={isCurrentDirPinned ? { color: 'var(--dsw-alias-interactive-primary, #3b82f6)' } : undefined}
+            aria-label={isCurrentDirPinned ? 'Unpin this folder' : 'Pin this folder'}
+          >
+            <IconStar size={15} filled={isCurrentDirPinned} />
+          </button>
 
-        <button
-          type="button"
-          className={css.ghost}
-          title="Refresh current folder"
-          onClick={() => load(dir)}
-        >
-          <IconRefreshOutline16 size={14} />
-        </button>
-      </div>
+          <button
+            type="button"
+            className={css.ghost}
+            title="Refresh current folder"
+            onClick={() => load(dir)}
+          >
+            <IconRefreshOutline16 size={14} />
+          </button>
+        </div>
+      )}
 
       {/* --- ERROR MESSAGE --- */}
       {error !== null && (
@@ -1216,7 +1239,7 @@ export function FilesPane({
 
       {/* --- FILE VIEWER / EDITOR VIEW --- */}
       {selectedFile !== null ? (
-        <div className={`${css.editorContainer} ${isMaximized ? css.editorMaximized : ''}`}>
+        <div className={`${css.editorContainer} ${maximizeState === 'fullscreen' ? css.editorMaximized : ''}`}>
           <div className={css.editorBar}>
             <div className={css.fileMeta}>
               <button
@@ -1224,7 +1247,7 @@ export function FilesPane({
                 className={`${css.btn} ${css.btnBack}`}
                 onClick={() => {
                   setSelectedFile(null)
-                  setIsMaximized(false)
+                  setMaximizeState('docked')
                   load(dir)
                 }}
                 title="Return to folder listing"
@@ -1248,12 +1271,18 @@ export function FilesPane({
             <div className={css.editorActions}>
               <button
                 type="button"
-                className={css.ghost}
-                aria-label={isMaximized ? 'Restore View' : 'Maximize View'}
-                title={isMaximized ? 'Restore View (Esc)' : 'Maximize View'}
-                onClick={() => setIsMaximized(!isMaximized)}
+                className={`${css.ghost} ${maximizeState === 'frame' ? css.ghostActive : ''}`}
+                aria-label={
+                  maximizeState === 'fullscreen' ? 'Exit Fullscreen (Esc)' :
+                    maximizeState === 'frame' ? 'Fullscreen (Esc to restore)' : 'Maximize in Workbench'
+                }
+                title={
+                  maximizeState === 'fullscreen' ? 'Exit Fullscreen (Esc)' :
+                    maximizeState === 'frame' ? 'Fullscreen (Esc to restore)' : 'Maximize in Workbench'
+                }
+                onClick={handleCycleMaximize}
               >
-                {isMaximized ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
+                {maximizeState === 'fullscreen' ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
               </button>
 
               <button

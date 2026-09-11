@@ -19,6 +19,10 @@
   transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out);
 }
 
+:global(body[data-workbench-expanded]) .frame:not([data-details-collapsed]) {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) minmax(680px, 58vw) !important;
+}
+
 /* Dragging writes widths at pointer cadence; easing them would detach the
    column from the handle. */
 .frame[data-dragging] {
@@ -80,7 +84,8 @@
     transform: translateY(0);
   }
   .frame:not([data-details-collapsed]) .detailsCol:has([class*="rootFullscreen"]),
-  :global(body[data-workbench-fullscreen]) .frame:not([data-details-collapsed]) .detailsCol {
+  :global(body[data-workbench-fullscreen]) .frame:not([data-details-collapsed]) .detailsCol,
+  :global(body[data-workbench-expanded]) .frame:not([data-details-collapsed]) .detailsCol {
     top: 0 !important;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;

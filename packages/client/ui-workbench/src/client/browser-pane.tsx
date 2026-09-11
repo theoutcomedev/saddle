@@ -144,8 +144,16 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [error, setError] = useState(false)
   const [isFrameBlocked, setIsFrameBlocked] = useState(false)
-  const [isMaximized, setIsMaximized] = useState(false)
+  const [maximizeState, setMaximizeState] = useState<'docked' | 'frame' | 'fullscreen'>('docked')
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
+
+  const handleCycleMaximize = () => {
+    setMaximizeState((prev) => {
+      if (prev === 'docked') return 'frame'
+      if (prev === 'frame') return 'fullscreen'
+      return 'docked'
+    })
+  }
 
   // Target DOM element in Workbench header row 2 (#workbench-strip-subrow)
   const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
@@ -160,23 +168,35 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   }, [subrowEl])
 
   useEffect(() => {
-    if (!isMaximized) return
-    document.body.setAttribute('data-browser-maximized', 'true')
+    if (maximizeState === 'docked') return
+    if (maximizeState === 'fullscreen') {
+      document.body.setAttribute('data-browser-maximized', 'true')
+    } else {
+      document.body.removeAttribute('data-browser-maximized')
+    }
+    if (maximizeState === 'frame') {
+      document.body.setAttribute('data-workbench-expanded', 'true')
+    } else {
+      document.body.removeAttribute('data-workbench-expanded')
+    }
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsMaximized(false)
+        setMaximizeState(prev => prev === 'fullscreen' ? 'frame' : 'docked')
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.removeAttribute('data-browser-maximized')
+      document.body.removeAttribute('data-workbench-expanded')
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [isMaximized])
+  }, [maximizeState])
 
   useEffect(() => {
     return () => {
       document.body.removeAttribute('data-browser-maximized')
+      document.body.removeAttribute('data-workbench-expanded')
     }
   }, [])
 
@@ -372,8 +392,8 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   )
 
   return (
-    <div className={`${css.root} ${isMaximized ? css.browserMaximized : ''}`}>
-      {!isMaximized && subrowEl ? createPortal(subrowContent, subrowEl) : null}
+    <div className={`${css.root} ${maximizeState === 'fullscreen' ? css.browserMaximized : ''}`}>
+      {maximizeState === 'docked' && subrowEl ? createPortal(subrowContent, subrowEl) : null}
 
       <div className={css.bar}>
         <div className={css.navGroup}>
@@ -439,12 +459,18 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
 
         <button
           type="button"
-          className={css.open}
-          aria-label={isMaximized ? 'Restore View' : 'Maximize View'}
-          title={isMaximized ? 'Restore View (Esc)' : 'Maximize View'}
-          onClick={() => setIsMaximized(!isMaximized)}
+          className={`${css.open} ${maximizeState === 'frame' ? css.takeoverActive : ''}`}
+          aria-label={
+            maximizeState === 'fullscreen' ? 'Exit Fullscreen (Esc)' :
+              maximizeState === 'frame' ? 'Fullscreen (Esc to restore)' : 'Maximize in Workbench'
+          }
+          title={
+            maximizeState === 'fullscreen' ? 'Exit Fullscreen (Esc)' :
+              maximizeState === 'frame' ? 'Fullscreen (Esc to restore)' : 'Maximize in Workbench'
+          }
+          onClick={handleCycleMaximize}
         >
-          {isMaximized ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
+          {maximizeState === 'fullscreen' ? <IconMinimize size={14} /> : <IconFullscreen size={14} />}
         </button>
 
         <button

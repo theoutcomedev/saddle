@@ -35,7 +35,7 @@ import {
   PresetNotWritableError, resolveSessionPreset, UnknownPresetError,
 } from '@deepseek-ai/dsh-agent-presets'
 import type { PresetBearingSession } from '@deepseek-ai/dsh-agent-presets'
-import type {} from '@deepseek-ai/dsh-tools'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {
   ApiProxy, ConfigurableProviderView, ConnectionAttemptState, ConnectionFlowView,
   ConnectionPromptView, CredentialView, GoalRef, HistoryEntry, HostFrame,
@@ -2284,7 +2284,21 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       }
       return `Every ${mins} minute${mins > 1 ? 's' : ''}`
     }
-    if (cadenceType === 'once') return 'Once'
+    if (cadenceType === 'once') {
+      const parsed = Date.parse(cadenceValue)
+      if (!Number.isNaN(parsed)) {
+        try {
+          return `Once on ${new Date(parsed).toLocaleString('en-US', clientTimeZone ? { timeZone: clientTimeZone } : undefined)}`
+        } catch {
+          return `Once on ${new Date(parsed).toUTCString()}`
+        }
+      }
+      const mins = parseInt(cadenceValue, 10)
+      if (!Number.isNaN(mins) && mins > 0) {
+        return `Once in ${mins} minute${mins > 1 ? 's' : ''}`
+      }
+      return 'Once'
+    }
     if (cadenceType === 'cron') {
       const v = cadenceValue.trim()
       const tzLabel = clientTimeZone ? ` (${clientTimeZone})` : ' (UTC)'
@@ -2326,6 +2340,14 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       return fromTime + mins * 60 * 1000
     }
     if (cadenceType === 'once') {
+      const parsed = Date.parse(cadenceValue)
+      if (!Number.isNaN(parsed)) {
+        return parsed > fromTime ? parsed : undefined
+      }
+      const mins = parseInt(cadenceValue, 10)
+      if (!Number.isNaN(mins) && mins > 0) {
+        return fromTime + mins * 60 * 1000
+      }
       return undefined
     }
     if (cadenceType === 'cron') {
@@ -2459,7 +2481,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if (taskRef) {
           taskRef.lastStatus = 'success'
           taskRef.lastRunAt = startedAt
-          taskRef.nextRunAt = nextRun ? new Date(nextRun).toISOString() : undefined
+          if (task.cadenceType === 'once') {
+            taskRef.enabled = false
+            taskRef.nextRunAt = undefined
+          } else {
+            taskRef.nextRunAt = nextRun ? new Date(nextRun).toISOString() : undefined
+          }
           taskRef.lastError = undefined
           await saveScheduledTasks(tasks)
         }
@@ -2480,7 +2507,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           taskRef.lastStatus = 'failed'
           taskRef.lastRunAt = startedAt
           taskRef.lastError = errorMsg
-          taskRef.nextRunAt = nextRun ? new Date(nextRun).toISOString() : undefined
+          if (task.cadenceType === 'once') {
+            taskRef.enabled = false
+            taskRef.nextRunAt = undefined
+          } else {
+            taskRef.nextRunAt = nextRun ? new Date(nextRun).toISOString() : undefined
+          }
           await saveScheduledTasks(tasks)
         }
       }
@@ -2501,6 +2533,324 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       }
     } catch {}
   }, 30_000)
+
+  // ── AI Tools for Persistent Scheduled Tasks ──────────────────────────
+  if (ctx.tools?.register) {
+    ctx.tools.register(defineTool({
+      name: 'scheduled_task_list',
+      description:
+        'List all persistent background scheduled tasks configured on Saddle (distinct from in-session reminders). '
+        + 'These tasks survive server restarts, are visible in the Scheduled Tasks UI, and run autonomously on a schedule.',
+      parameters: {},
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            tasks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  prompt: { type: 'string' },
+                  cadenceType: { type: 'string' },
+                  cadenceValue: { type: 'string' },
+                  cadenceLabel: { type: 'string' },
+                  enabled: { type: 'boolean' },
+                  targetMode: { type: 'string' },
+                  clientTimeZone: { type: 'string' },
+                  nextRunAt: { type: 'string' },
+                  lastRunAt: { type: 'string' },
+                  lastStatus: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        render(_args, val) {
+          const list = val.tasks ?? []
+          return [{
+            type: 'text',
+            text: list.length === 0
+              ? 'No scheduled tasks currently configured on the server.'
+              : `Found ${list.length} scheduled task(s):\n` + list.map(t =>
+                  `- [${t.enabled ? 'ACTIVE' : 'PAUSED'}] "${t.name ?? ''}" (ID: ${t.id ?? ''})\n`
+                  + `  Cadence: ${t.cadenceLabel ?? ''} | Next run: ${t.nextRunAt ?? 'none'}\n`
+                  + `  Prompt: ${(t.prompt ?? '').slice(0, 100)}${(t.prompt ?? '').length > 100 ? '...' : ''}`,
+                ).join('\n'),
+          }]
+        },
+      },
+      async execute() {
+        const tasks = await loadScheduledTasks()
+        return {
+          tasks: tasks.map(t => ({
+            id: t.id,
+            name: t.name,
+            prompt: t.prompt,
+            cadenceType: t.cadenceType,
+            cadenceValue: t.cadenceValue,
+            cadenceLabel: t.cadenceLabel,
+            enabled: t.enabled,
+            targetMode: t.targetMode,
+            ...(t.clientTimeZone ? { clientTimeZone: t.clientTimeZone } : {}),
+            ...(t.nextRunAt ? { nextRunAt: t.nextRunAt } : {}),
+            ...(t.lastRunAt ? { lastRunAt: t.lastRunAt } : {}),
+            ...(t.lastStatus ? { lastStatus: t.lastStatus } : {}),
+          })),
+        }
+      },
+    }))
+
+    ctx.tools.register(defineTool({
+      name: 'scheduled_task_create',
+      description:
+        'Create a persistent background scheduled task on Saddle that survives server restarts and runs autonomously. '
+        + 'The task appears in the Scheduled Tasks UI and executes in its own session.',
+      parameters: {
+        name: { type: 'string', required: true, description: 'Short descriptive label for the task' },
+        prompt: { type: 'string', required: true, description: 'Instruction/prompt to execute when the task fires' },
+        cadenceType: {
+          type: 'string',
+          required: true,
+          enum: ['cron', 'interval', 'once'],
+          description: "Cadence type: 'cron' (5-part cron syntax), 'interval' (minutes), or 'once' (one-off)",
+        },
+        cadenceValue: {
+          type: 'string',
+          required: true,
+          description: "Cadence value: for cron '0 9 * * *'; for interval minutes '30'; for once: ISO timestamp or minutes",
+        },
+        clientTimeZone: { type: 'string', description: "IANA timezone e.g. 'America/Los_Angeles'" },
+        targetMode: {
+          type: 'string',
+          enum: ['new-session', 'current-session'],
+          description: "Target mode: 'new-session' (default) or 'current-session'",
+        },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            task: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                cadenceLabel: { type: 'string' },
+                nextRunAt: { type: 'string' },
+                enabled: { type: 'boolean' },
+              },
+            },
+          },
+        },
+        render(_args, val) {
+          return [{
+            type: 'text',
+            text: `Created persistent scheduled task "${val.task?.name ?? ''}" (ID: ${val.task?.id ?? ''}).\n`
+              + `Cadence: ${val.task?.cadenceLabel ?? ''}\nNext run: ${val.task?.nextRunAt ?? 'not scheduled'}`,
+          }]
+        },
+      },
+      async execute(args) {
+        const id = `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        const createdAt = new Date().toISOString()
+        const tz = args.clientTimeZone
+          || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC')
+        const cType = args.cadenceType as 'cron' | 'interval' | 'once'
+        const cadenceLabel = formatCadenceLabel(cType, args.cadenceValue, tz)
+        const nextRunMs = computeNextRun(cType, args.cadenceValue, Date.now(), tz)
+        const nextRunAt = nextRunMs ? new Date(nextRunMs).toISOString() : undefined
+
+        const task: ScheduledTaskView = {
+          id,
+          name: args.name.trim(),
+          prompt: args.prompt.trim(),
+          cadenceType: cType,
+          cadenceValue: args.cadenceValue.trim(),
+          cadenceLabel,
+          enabled: true,
+          targetMode: (args.targetMode as 'new-session' | 'current-session' | undefined) ?? 'new-session',
+          ...(tz ? { clientTimeZone: tz } : {}),
+          createdAt,
+          ...(nextRunAt ? { nextRunAt } : {}),
+        }
+
+        const tasks = await loadScheduledTasks()
+        tasks.unshift(task)
+        await saveScheduledTasks(tasks)
+
+        return {
+          task: {
+            id: task.id,
+            name: task.name,
+            cadenceLabel: task.cadenceLabel,
+            ...(task.nextRunAt ? { nextRunAt: task.nextRunAt } : {}),
+            enabled: task.enabled,
+          },
+        }
+      },
+    }))
+
+    ctx.tools.register(defineTool({
+      name: 'scheduled_task_update',
+      description: 'Update an existing persistent scheduled task on Saddle (pause/resume, change cadence, or change prompt).',
+      parameters: {
+        id: { type: 'string', required: true, description: 'ID of the task to update' },
+        enabled: { type: 'boolean', description: 'Enable (true) or pause/disable (false) the task' },
+        name: { type: 'string', description: 'New name for the task' },
+        prompt: { type: 'string', description: 'New prompt to execute' },
+        cadenceType: { type: 'string', enum: ['cron', 'interval', 'once'], description: 'New cadence type' },
+        cadenceValue: { type: 'string', description: 'New cadence value' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            success: { type: 'boolean' },
+            task: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                enabled: { type: 'boolean' },
+                cadenceLabel: { type: 'string' },
+                nextRunAt: { type: 'string' },
+              },
+            },
+          },
+        },
+        render(_args, val) {
+          return [{
+            type: 'text',
+            text: `Updated scheduled task "${val.task?.name ?? ''}" (ID: ${val.task?.id ?? ''}): `
+              + `${val.task?.enabled ? 'ACTIVE' : 'PAUSED'}. Cadence: ${val.task?.cadenceLabel ?? ''}, `
+              + `Next run: ${val.task?.nextRunAt ?? 'none'}.`,
+          }]
+        },
+      },
+      async execute(args) {
+        const tasks = await loadScheduledTasks()
+        const idx = tasks.findIndex(t => t.id === args.id)
+        const current = tasks[idx]
+        if (idx === -1 || !current) {
+          throw new Error(`Scheduled task with ID "${args.id}" not found.`)
+        }
+        const cadenceType = (args.cadenceType as 'cron' | 'interval' | 'once' | undefined) ?? current.cadenceType
+        const cadenceValue = (args.cadenceValue ?? current.cadenceValue).trim()
+        const cadenceChanged = cadenceType !== current.cadenceType || cadenceValue !== current.cadenceValue
+        const enabled = args.enabled ?? current.enabled
+
+        let nextRunAt = current.nextRunAt
+        if (enabled && (!current.enabled || cadenceChanged || !nextRunAt)) {
+          const computed = computeNextRun(cadenceType, cadenceValue, Date.now(), current.clientTimeZone)
+          nextRunAt = computed ? new Date(computed).toISOString() : undefined
+        } else if (!enabled) {
+          nextRunAt = undefined
+        }
+
+        const updated: ScheduledTaskView = {
+          ...current,
+          name: args.name ? args.name.trim() : current.name,
+          prompt: args.prompt ? args.prompt.trim() : current.prompt,
+          cadenceType,
+          cadenceValue,
+          cadenceLabel: formatCadenceLabel(cadenceType, cadenceValue, current.clientTimeZone),
+          enabled,
+          nextRunAt,
+        }
+
+        tasks[idx] = updated
+        await saveScheduledTasks(tasks)
+
+        return {
+          success: true,
+          task: {
+            id: updated.id,
+            name: updated.name,
+            enabled: updated.enabled,
+            cadenceLabel: updated.cadenceLabel,
+            ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
+          },
+        }
+      },
+    }))
+
+    ctx.tools.register(defineTool({
+      name: 'scheduled_task_delete',
+      description: 'Delete a persistent background scheduled task on Saddle by its ID.',
+      parameters: {
+        id: { type: 'string', required: true, description: 'ID of the task to delete' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            success: { type: 'boolean' },
+            id: { type: 'string' },
+          },
+        },
+        render(_args, val) {
+          return [{
+            type: 'text',
+            text: `Deleted scheduled task ${val.id ?? ''}.`,
+          }]
+        },
+      },
+      async execute(args) {
+        const tasks = await loadScheduledTasks()
+        const filtered = tasks.filter(t => t.id !== args.id)
+        if (filtered.length === tasks.length) {
+          throw new Error(`Scheduled task with ID "${args.id}" not found.`)
+        }
+        await saveScheduledTasks(filtered)
+        return { success: true, id: args.id }
+      },
+    }))
+
+    ctx.tools.register(defineTool({
+      name: 'scheduled_task_trigger',
+      description: 'Immediately trigger an ad-hoc run of a persistent scheduled task by its ID without waiting for schedule.',
+      parameters: {
+        id: { type: 'string', required: true, description: 'ID of the task to run now' },
+      },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            success: { type: 'boolean' },
+            runId: { type: 'string' },
+            taskName: { type: 'string' },
+          },
+        },
+        render(_args, val) {
+          return [{
+            type: 'text',
+            text: `Triggered execution for task "${val.taskName ?? ''}" (run ID: ${val.runId ?? ''}).`,
+          }]
+        },
+      },
+      async execute(args) {
+        const tasks = await loadScheduledTasks()
+        const task = tasks.find(t => t.id === args.id)
+        if (!task) {
+          throw new Error(`Scheduled task with ID "${args.id}" not found.`)
+        }
+        const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        void executeTaskRun(task, runId)
+        return { success: true, runId, taskName: task.name }
+      },
+    }))
+  }
 
   return {
     sessions: {
