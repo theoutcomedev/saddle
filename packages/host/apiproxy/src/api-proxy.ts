@@ -59,6 +59,8 @@ import {
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,
   truncateUnicodeCodePoints,
 } from './api/session-search.ts'
+import { computeNextRun, computeNextRunAfterDispatch } from './schedule-cadence.ts'
+import { selectDueTasks } from './schedule-dispatch.ts'
 // Type-only: resolves `ctx.get('sessionProjections')` to the projection registry.
 import type {} from '@deepseek-ai/dsh-session-projection'
 // Type-only: resolves `ctx.get('tasks')` to the background job registry.
@@ -2311,108 +2313,6 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     return cadenceValue
   }
 
-  function matchesCronPart(value: number, part: string): boolean {
-    if (part === '*' || part === '?') return true
-    if (part.startsWith('*/')) {
-      const step = parseInt(part.slice(2), 10)
-      return step > 0 && value % step === 0
-    }
-    if (part.includes(',')) {
-      return part.split(',').some(p => matchesCronPart(value, p.trim()))
-    }
-    if (part.includes('-')) {
-      const hyphenIdx = part.indexOf('-')
-      const start = parseInt(part.slice(0, hyphenIdx), 10)
-      const end = parseInt(part.slice(hyphenIdx + 1), 10)
-      return !isNaN(start) && !isNaN(end) && value >= start && value <= end
-    }
-    return parseInt(part, 10) === value
-  }
-
-  function computeNextRun(
-    cadenceType: 'cron' | 'interval' | 'once',
-    cadenceValue: string,
-    fromTime: number,
-    clientTimeZone?: string,
-  ): number | undefined {
-    if (cadenceType === 'interval') {
-      const mins = Math.max(1, parseInt(cadenceValue, 10) || 30)
-      return fromTime + mins * 60 * 1000
-    }
-    if (cadenceType === 'once') {
-      const parsed = Date.parse(cadenceValue)
-      if (!Number.isNaN(parsed)) {
-        return parsed > fromTime ? parsed : undefined
-      }
-      const mins = parseInt(cadenceValue, 10)
-      if (!Number.isNaN(mins) && mins > 0) {
-        return fromTime + mins * 60 * 1000
-      }
-      return undefined
-    }
-    if (cadenceType === 'cron') {
-      const parts = cadenceValue.trim().split(/\s+/)
-      if (parts.length < 5) return fromTime + 60 * 60 * 1000
-      const [minPart = '*', hourPart = '*', domPart = '*', monthPart = '*', dowPart = '*'] = parts
-      const start = new Date(fromTime + 60_000)
-      start.setSeconds(0, 0)
-      const maxMinutes = 44_640
-
-      let tzFormatter: Intl.DateTimeFormat | undefined
-      if (clientTimeZone) {
-        try {
-          tzFormatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: clientTimeZone,
-            minute: 'numeric',
-            hour: 'numeric',
-            hour12: false,
-            day: 'numeric',
-            month: 'numeric',
-            weekday: 'short',
-          })
-        } catch {
-          tzFormatter = undefined
-        }
-      }
-
-      const weekdayMap: Record<string, number> = {
-        Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
-      }
-
-      for (let i = 0; i < maxMinutes; i++) {
-        const current = new Date(start.getTime() + i * 60_000)
-        let minute = current.getUTCMinutes()
-        let hour = current.getUTCHours()
-        let day = current.getUTCDate()
-        let month = current.getUTCMonth() + 1
-        let dow = current.getUTCDay()
-
-        if (tzFormatter) {
-          const partsFormatted = tzFormatter.formatToParts(current)
-          for (const p of partsFormatted) {
-            if (p.type === 'minute') minute = parseInt(p.value, 10)
-            else if (p.type === 'hour') hour = parseInt(p.value, 10) % 24
-            else if (p.type === 'day') day = parseInt(p.value, 10)
-            else if (p.type === 'month') month = parseInt(p.value, 10)
-            else if (p.type === 'weekday') dow = weekdayMap[p.value] ?? dow
-          }
-        }
-
-        if (
-          matchesCronPart(minute, minPart) &&
-          matchesCronPart(hour, hourPart) &&
-          matchesCronPart(day, domPart) &&
-          matchesCronPart(month, monthPart) &&
-          matchesCronPart(dow, dowPart)
-        ) {
-          return current.getTime()
-        }
-      }
-      return fromTime + 24 * 60 * 60 * 1000
-    }
-    return fromTime + 60 * 60 * 1000
-  }
-
   async function executeTaskRun(task: ScheduledTaskView, runId: string): Promise<void> {
     const startedAt = new Date().toISOString()
     const runEntry: TaskRunLogEntry = {
@@ -2422,6 +2322,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       status: 'running',
     }
     await appendTaskRun(runEntry)
+
+    // The fire this run is completing: anchoring the next one to it keeps an
+    // interval cadence on its original grid instead of absorbing this run's tick lag.
+    const scheduledAt = task.nextRunAt ? Date.parse(task.nextRunAt) : undefined
 
     let tasks = await loadScheduledTasks()
     let idx = tasks.findIndex(t => t.id === task.id)
@@ -2468,7 +2372,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         turn.agent.followup(message)
       }
 
-      const nextRun = computeNextRun(task.cadenceType, task.cadenceValue, Date.now(), task.clientTimeZone)
+      const nextRun = computeNextRunAfterDispatch(task.cadenceType, task.cadenceValue, scheduledAt, Date.now(), task.clientTimeZone)
       runEntry.status = 'success'
       runEntry.finishedAt = new Date().toISOString()
       runEntry.outputSnippet = `Dispatched to session ${targetSessionId}`
@@ -2498,7 +2402,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       runEntry.error = errorMsg
       await updateTaskRun(runEntry)
 
-      const nextRun = computeNextRun(task.cadenceType, task.cadenceValue, Date.now())
+      const nextRun = computeNextRunAfterDispatch(task.cadenceType, task.cadenceValue, scheduledAt, Date.now(), task.clientTimeZone)
       tasks = await loadScheduledTasks()
       idx = tasks.findIndex(t => t.id === task.id)
       if (idx !== -1) {
@@ -2519,17 +2423,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     }
   }
 
+  // Ids of tasks whose in-flight run has not written its next fire time back yet.
+  const claimedTaskIds = new Set<string>()
+
   setInterval(async () => {
     try {
       const tasks = await loadScheduledTasks()
       const now = Date.now()
-      for (const task of tasks) {
-        if (!task.enabled || !task.nextRunAt) continue
-        const nextTime = new Date(task.nextRunAt).getTime()
-        if (now >= nextTime) {
-          const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
-          void executeTaskRun(task, runId)
-        }
+      for (const task of selectDueTasks(tasks, now, claimedTaskIds)) {
+        const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        claimedTaskIds.add(task.id)
+        void executeTaskRun(task, runId).then(
+          () => { claimedTaskIds.delete(task.id) },
+          (err: unknown) => {
+            claimedTaskIds.delete(task.id)
+            console.error(`[schedules] run ${runId} failed before dispatch:`, err)
+          },
+        )
       }
     } catch {}
   }, 30_000)

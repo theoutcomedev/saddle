@@ -9,6 +9,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
+import { useSubrowHost } from './use-subrow-host.ts'
 import type {} from './contract/slots.ts'
 import css from './browser-pane.module.css'
 
@@ -147,17 +148,9 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
   const [isMaximized, setIsMaximized] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  // Target DOM element in Workbench header row 2 (#workbench-strip-subrow)
-  const [subrowEl, setSubrowEl] = useState<HTMLElement | null>(() => {
-    return typeof document !== 'undefined' ? document.getElementById('workbench-strip-subrow') : null
-  })
-
-  useEffect(() => {
-    if (!subrowEl && typeof document !== 'undefined') {
-      const el = document.getElementById('workbench-strip-subrow')
-      if (el) setSubrowEl(el)
-    }
-  }, [subrowEl])
+  // Workbench header row 2, tracked live: it can mount after this pane and is
+  // replaced whenever the header remounts.
+  const subrowEl = useSubrowHost()
 
   useEffect(() => {
     if (!isMaximized) return

@@ -152,4 +152,93 @@ describe('FilesPane', () => {
       expect(listFiles).toHaveBeenCalledWith('/workspace/my-project', expect.any(AbortSignal))
     }
   })
-})
+
+  it('binds to the strip sub-row that mounts after the pane', async () => {
+    const listFiles = vi.fn().mockResolvedValue({ path: '/workspace/my-project', entries: [], truncated: false })
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile: vi.fn(),
+      openPath: vi.fn(),
+    } as unknown as FilesPaneProps
+
+    await act(async () => {
+      render(<FilesPane {...props} />)
+    })
+    expect(document.getElementById('workbench-strip-subrow')).toBeNull()
+
+    const subrow = document.createElement('div')
+    subrow.id = 'workbench-strip-subrow'
+    await act(async () => {
+      document.body.appendChild(subrow)
+      await Promise.resolve()
+    })
+
+    expect(subrow.textContent).toContain('Workspace')
+    expect(subrow.textContent).toContain('Root')
+
+    document.body.removeChild(subrow)
+  })
+
+  it('re-binds to a strip sub-row that replaces the one it started with', async () => {
+    const listFiles = vi.fn().mockResolvedValue({ path: '/workspace/my-project', entries: [], truncated: false })
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile: vi.fn(),
+      openPath: vi.fn(),
+    } as unknown as FilesPaneProps
+
+    const original = document.createElement('div')
+    original.id = 'workbench-strip-subrow'
+    document.body.appendChild(original)
+    await act(async () => {
+      render(<FilesPane {...props} />)
+    })
+    expect(original.textContent).toContain('Root')
+
+    const replacement = document.createElement('div')
+    replacement.id = 'workbench-strip-subrow'
+    await act(async () => {
+      original.remove()
+      document.body.appendChild(replacement)
+      await Promise.resolve()
+    })
+
+    expect(replacement.textContent).toContain('Workspace')
+    expect(replacement.textContent).toContain('Root')
+    expect(original.textContent).toBe('')
+
+    document.body.removeChild(replacement)
+  })
+
+  it('renders the presets inside the pane once the strip sub-row is gone', async () => {
+    const listFiles = vi.fn().mockResolvedValue({ path: '/workspace/my-project', entries: [], truncated: false })
+    const props = {
+      sessionId: 's-1',
+      useSessions: dummyUseSessions,
+      listFiles,
+      readFile: vi.fn(),
+      openPath: vi.fn(),
+    } as unknown as FilesPaneProps
+
+    const subrow = document.createElement('div')
+    subrow.id = 'workbench-strip-subrow'
+    document.body.appendChild(subrow)
+    await act(async () => {
+      render(<FilesPane {...props} />)
+    })
+    expect(subrow.textContent).toContain('Root')
+
+    await act(async () => {
+      subrow.remove()
+      await Promise.resolve()
+    })
+
+    const rootChip = screen.getByRole('button', { name: /\/ Root/i })
+    expect(subrow.contains(rootChip)).toBe(false)
+    expect(document.body.contains(rootChip)).toBe(true)
+  })
+});
