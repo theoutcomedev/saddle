@@ -2487,10 +2487,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             text: list.length === 0
               ? 'No scheduled tasks currently configured on the server.'
               : `Found ${list.length} scheduled task(s):\n` + list.map(t =>
-                  `- [${t.enabled ? 'ACTIVE' : 'PAUSED'}] "${t.name ?? ''}" (ID: ${t.id ?? ''})\n`
+                `- [${t.enabled ? 'ACTIVE' : 'PAUSED'}] "${t.name ?? ''}" (ID: ${t.id ?? ''})\n`
                   + `  Cadence: ${t.cadenceLabel ?? ''} | Next run: ${t.nextRunAt ?? 'none'}\n`
                   + `  Prompt: ${(t.prompt ?? '').slice(0, 100)}${(t.prompt ?? '').length > 100 ? '...' : ''}`,
-                ).join('\n'),
+              ).join('\n'),
           }]
         },
       },
