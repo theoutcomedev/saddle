@@ -46,6 +46,19 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
 
   const runningCount = apps.filter(a => a.status === 'running').length
 
+  /**
+   * Route an app link into the workbench browser pane on a narrow viewport: a
+   * new tab leaves Saddle entirely, and on a phone there is no second window to
+   * come back from. Wide viewports keep the plain new-tab link.
+   * @param url - The deployed app's public URL.
+   * @param event - The anchor's click event, cancelled only where the pane takes over.
+   */
+  const openInWorkbenchOnMobile = (url: string, event: { preventDefault: () => void }): void => {
+    if (typeof window === 'undefined' || window.innerWidth > 768) return
+    event.preventDefault()
+    window.dispatchEvent(new CustomEvent('workbench:open-browser', { detail: { url, openDrawer: true } }))
+  }
+
   return (
     <div className={css.mask} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="deployed-apps-title">
@@ -99,7 +112,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
                           rel="noreferrer"
                           className={css.appUrl}
                           title="Open live public URL in new tab"
-                          onClick={onClose}
+                          onClick={(event) => { openInWorkbenchOnMobile(app.url, event); onClose() }}
                         >
                           {app.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
                         </a>
@@ -125,7 +138,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
                         target="_blank"
                         rel="noreferrer"
                         className={css.openBtn}
-                        onClick={onClose}
+                        onClick={(event) => { openInWorkbenchOnMobile(app.url, event); onClose() }}
                       >
                         Open App ↗
                       </a>

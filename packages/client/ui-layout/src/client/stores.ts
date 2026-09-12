@@ -65,7 +65,13 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
         d.narrow = narrow
         d.narrowExpanded = false
       },
-      openDetails: (d) => { if (d.details === 0) d.details = DETAILS_DEFAULT },
+      // The dock and the sidebar drawer are alternative full-height surfaces on a
+      // narrow viewport: opening the dock closes the drawer instead of stacking
+      // one over the other.
+      openDetails: (d) => {
+        if (d.details === 0) d.details = DETAILS_DEFAULT
+        if (d.narrow) d.narrowExpanded = false
+      },
       closeDetails: (d) => { d.details = 0 },
       toggleDetails: (d) => {
         if (d.details === 0) d.details = DETAILS_DEFAULT

@@ -85,6 +85,18 @@ describe('createLayoutStore', () => {
     expect(store.getSnapshot().details).toBe(0)
   })
 
+  it('opening the dock collapses the narrow sidebar drawer instead of stacking over it', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setNarrow(true)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+    actions.openDetails()
+    expect(store.getSnapshot()).toMatchObject({ details: DETAILS_DEFAULT, narrowExpanded: false })
+    // The width preference is untouched, so re-expanding restores the drawer.
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+  })
+
   it('does not persist panel geometry', () => {
     const first = createLayoutStore().create()
     first.actions.setSidebar(400)

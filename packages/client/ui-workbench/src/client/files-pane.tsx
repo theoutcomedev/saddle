@@ -1329,7 +1329,7 @@ export function FilesPane({
                   sandbox="allow-scripts"
                 />
               ) : (
-                <div style={{ padding: '16px 20px', overflowY: 'auto', height: '100%', userSelect: 'text', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                <div className={css.markdownPreview} style={{ padding: '16px 20px', overflowY: 'auto', height: '100%', userSelect: 'text', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   <MarkdownText text={editText} />
                 </div>
               )

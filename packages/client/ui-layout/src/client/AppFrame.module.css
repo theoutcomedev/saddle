@@ -194,8 +194,12 @@
   position: absolute;
   inset: 0;
   z-index: 40;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.28);
+  /* WebKit needs the prefixed property: iOS Safari and every iOS browser engine
+     ignore the unprefixed one, which is why the drawer's backdrop covered the
+     conversation without blurring it. */
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .mobileHamburger {

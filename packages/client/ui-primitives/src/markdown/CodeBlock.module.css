@@ -19,7 +19,10 @@
 }
 
 .bannerWrap {
-  position: sticky;
+  /* Chat pins a tall block's banner while the block is on screen; a host that
+     renders markdown as a document (the workbench preview) opts out by setting
+     --dsh-code-block-banner-position to a non-sticky value. */
+  position: var(--dsh-code-block-banner-position, sticky);
   top: 0;
   z-index: 6;
   background-color: var(--dsw-alias-bg-base);
