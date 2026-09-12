@@ -137,3 +137,11 @@
     height: 320px;
   }
 }
+
+:global(.sp-wrapper),
+:global(.sp-preview),
+:global(.sp-preview-container),
+:global(.sp-preview-iframe) {
+  height: 100% !important;
+  width: 100% !important;
+}

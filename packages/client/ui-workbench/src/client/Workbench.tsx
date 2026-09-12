@@ -180,15 +180,16 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
     return () => window.removeEventListener('workbench:open-file', onCustomOpen)
   }, [openDetails, openPane])
 
-  // Custom event listener for programmatic app opening (Notepad, etc.)
+  // Custom event listener for programmatic app opening (Notepad, Metamorphic Apps, etc.)
   useEffect(() => {
     const onCustomOpenApp = (event: Event): void => {
-      const custom = event as CustomEvent<{ appId: string; title?: string; icon?: string }>
+      const custom = event as CustomEvent<{ appId: string; title?: string; icon?: string; params?: Record<string, unknown> }>
       if (custom.detail?.appId) {
         openPane('app', {
           appId: custom.detail.appId,
-          appTitle: custom.detail.title ?? 'Notepad',
+          appTitle: custom.detail.title ?? 'App',
           appIcon: custom.detail.icon ?? 'notepad',
+          ...(custom.detail.params || {}),
         })
         openDetails()
       }
@@ -316,7 +317,11 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
                   <span className={css.tabLabel}>
                     {tab.kind === 'app' ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <IconListPenOutline16 size={13} />
+                        {typeof tab.params?.appIcon === 'string' && tab.params.appIcon !== 'notepad' ? (
+                          <span style={{ fontSize: 13, lineHeight: 1 }}>{tab.params.appIcon}</span>
+                        ) : (
+                          <IconListPenOutline16 size={13} />
+                        )}
                         <span>{paneLabel(tab.kind, t, tab)}</span>
                       </span>
                     ) : (

@@ -556,13 +556,15 @@ export function WorkbenchAppHost({
 export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore: AppStoreRemote }) {
   const [open, setOpen] = useState(false)
   const [activeApp, setActiveApp] = useState<string | null>(null)
+  const [appParams, setAppParams] = useState<Record<string, unknown> | undefined>(undefined)
 
   useEffect(() => {
     const onOpenFullscreen = (event: Event) => {
-      const custom = event as CustomEvent<{ appId: string }>
+      const custom = event as CustomEvent<{ appId: string; params?: Record<string, unknown> }>
       if (custom.detail?.appId) {
         window.dispatchEvent(new CustomEvent('workbench:close-details'))
         setActiveApp(custom.detail.appId)
+        setAppParams(custom.detail.params)
         setOpen(true)
       }
     }
@@ -570,12 +572,23 @@ export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore:
     return () => window.removeEventListener('saddle:open-fullscreen-app', onOpenFullscreen)
   }, [])
 
-  const closeAll = () => { setActiveApp(null); setOpen(false) }
+  const closeAll = () => { setActiveApp(null); setAppParams(undefined); setOpen(false) }
 
   const renderActiveApp = (id: string) => {
     switch (id) {
       case 'notepad': return <NotepadApp appStore={appStore} mode="fullscreen" onClose={closeAll} />
-      case 'metamorphic': return <SandpackMetamorphicCanvas isMaximized onToggleMaximize={closeAll} />
+      case 'metamorphic': return (
+        <SandpackMetamorphicCanvas
+          title={appParams?.title ? String(appParams.title) : 'Metamorphic App'}
+          description={appParams?.description ? String(appParams.description) : undefined}
+          files={appParams?.files as Record<string, string> | undefined}
+          dependencies={appParams?.dependencies as Record<string, string> | undefined}
+          template={appParams?.template as 'react-ts' | 'react' | 'vanilla' | undefined}
+          entryFile={appParams?.entryFile ? String(appParams.entryFile) : undefined}
+          isMaximized
+          onToggleMaximize={closeAll}
+        />
+      )
       default: return null
     }
   }

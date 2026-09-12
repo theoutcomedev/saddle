@@ -225,11 +225,13 @@ export function SandpackMetamorphicCanvas({
             dependencies: customDependencies,
           }}
           options={{
+            bundlerTimeOut: 60000,
+            initMode: 'immediate',
             externalResources: [
               'https://cdn.tailwindcss.com',
             ],
-            recompileMode: 'immediate',
-            recompileDelay: 200,
+            recompileMode: 'delayed',
+            recompileDelay: 300,
           }}
         >
           {activeTab === 'preview' ? (

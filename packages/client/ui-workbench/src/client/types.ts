@@ -29,4 +29,12 @@ export interface WorkbenchPaneParams {
   appIcon?: string | undefined
   /** Target job ID to focus in the jobs pane. */
   jobId?: string | undefined
+  /** Virtual files for metamorphic apps. */
+  files?: Record<string, string> | undefined
+  /** Dependencies for metamorphic apps. */
+  dependencies?: Record<string, string> | undefined
+  /** Sandpack template environment. */
+  template?: string | undefined
+  /** Arbitrary additional parameters passed to app panes. */
+  [key: string]: unknown
 }

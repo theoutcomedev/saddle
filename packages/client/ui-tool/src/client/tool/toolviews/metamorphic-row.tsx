@@ -109,7 +109,10 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
 
   const handleFullscreen = () => {
     window.dispatchEvent(new CustomEvent('saddle:open-fullscreen-app', {
-      detail: { appId: 'metamorphic' },
+      detail: {
+        appId: 'metamorphic',
+        params: { title, description, files, dependencies, template },
+      },
     }))
   }
 
@@ -180,11 +183,13 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
               },
             }}
             options={{
+              bundlerTimeOut: 60000,
+              initMode: 'immediate',
               externalResources: [
                 'https://cdn.tailwindcss.com',
               ],
-              recompileMode: 'immediate',
-              recompileDelay: 200,
+              recompileMode: 'delayed',
+              recompileDelay: 300,
             }}
           >
             <SandpackPreview
