@@ -241,4 +241,4 @@ describe('FilesPane', () => {
     expect(subrow.contains(rootChip)).toBe(false)
     expect(document.body.contains(rootChip)).toBe(true)
   })
-});
+})
