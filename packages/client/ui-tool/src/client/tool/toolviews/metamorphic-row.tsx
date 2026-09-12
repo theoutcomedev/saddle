@@ -34,24 +34,29 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
 
   let parsedArgs: Record<string, unknown> = {}
   try {
-    if (argsRaw) parsedArgs = JSON.parse(argsRaw)
+    if (argsRaw) {
+      const parsed: unknown = JSON.parse(argsRaw)
+      if (parsed && typeof parsed === 'object') {
+        parsedArgs = parsed as Record<string, unknown>
+      }
+    }
   } catch {}
 
   const presentationMeta = done ? (block as unknown as { presentationMeta?: Record<string, unknown> }).presentationMeta : undefined
-  const meta = (presentationMeta || parsedArgs) as Record<string, unknown>
+  const meta = presentationMeta || parsedArgs
 
-  const title = String(meta.title || parsedArgs.title || 'Metamorphic App')
-  const description = String(meta.description || parsedArgs.description || 'Interactive live application')
-  const template = ((meta.template || parsedArgs.template) as 'react-ts' | 'react' | 'vanilla') || 'react-ts'
-  const rawFiles = (meta.files || parsedArgs.files || {}) as Record<string, string>
-  const dependencies = (meta.dependencies || parsedArgs.dependencies || {}) as Record<string, string>
+  const title = typeof meta.title === 'string' ? meta.title : 'Metamorphic App'
+  const description = typeof meta.description === 'string' ? meta.description : 'Interactive live application'
+  const template = meta.template === 'react' || meta.template === 'vanilla' ? meta.template : 'react-ts'
+  const rawFiles = meta.files && typeof meta.files === 'object' ? (meta.files as Record<string, string>) : {}
+  const dependencies = meta.dependencies && typeof meta.dependencies === 'object' ? (meta.dependencies as Record<string, string>) : {}
 
   // Normalize files
   const files = useMemo(() => {
     const res: Record<string, string> = {}
     for (const [key, val] of Object.entries(rawFiles)) {
       const path = key.startsWith('/') ? key : `/${key}`
-      res[path] = String(val)
+      res[path] = typeof val === 'string' ? val : JSON.stringify(val)
     }
     return res
   }, [rawFiles])
@@ -131,7 +136,9 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
             <button
               type="button"
               className={`${css.actionBtn} ${showInlinePreview ? css.actionBtnActive : ''}`}
-              onClick={() => setShowInlinePreview(!showInlinePreview)}
+              onClick={() => {
+                setShowInlinePreview(!showInlinePreview)
+              }}
               title={showInlinePreview ? 'Hide Inline Preview' : 'Show Inline Preview'}
             >
               <IconEyeOutline16 size={13} />

@@ -124,27 +124,25 @@ export function apply(ctx: Context) {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `✨ Successfully mounted metamorphic app "${String(value.title)}" (${Number(value.fileCount)} files) into ${String(value.target)}. The interactive live app is running now.`,
+        text: `✨ Successfully mounted metamorphic app "${value.title}" (${value.fileCount} files) into ${value.target}. The interactive live app is running now.`,
       }],
       presentationMeta: (_args, value) => value as unknown as JsonValue,
     },
     async execute(rawArgs, exec) {
       const args = rawArgs as unknown as MountAppArgs
-      const rawTitle = typeof args.title === 'string' ? args.title : String(args.title || 'Untitled App')
+      const rawTitle = args.title || 'Untitled App'
       const title = rawTitle.trim()
       const slug = slugify(title)
       const appId = `app-${slug}-${Date.now()}`
-      const target = (args.target as MountAppOutput['target']) || 'workbench'
+      const target = args.target || 'workbench'
       const entryFile = typeof args.entryFile === 'string' && args.entryFile ? args.entryFile : '/App.tsx'
-      const template = (args.template as MountAppOutput['template']) || 'react-ts'
+      const template = args.template || 'react-ts'
 
       // Normalize virtual files: guarantee keys start with '/'
       const files: Record<string, string> = {}
-      if (args.files && typeof args.files === 'object') {
-        for (const [rawKey, content] of Object.entries(args.files)) {
-          const key = rawKey.startsWith('/') ? rawKey : `/${rawKey}`
-          files[key] = String(content)
-        }
+      for (const [rawKey, content] of Object.entries(args.files)) {
+        const key = rawKey.startsWith('/') ? rawKey : `/${rawKey}`
+        files[key] = content
       }
 
       // If /App.tsx is missing in react template, provide a sensible fallback if /App.jsx or /index.tsx exists
@@ -160,9 +158,9 @@ export function apply(ctx: Context) {
       const dependencies: Record<string, string> = {
         'lucide-react': '^0.454.0',
       }
-      if (args.dependencies && typeof args.dependencies === 'object') {
+      if (args.dependencies) {
         for (const [pkg, ver] of Object.entries(args.dependencies)) {
-          dependencies[pkg] = String(ver)
+          dependencies[pkg] = ver
         }
       }
 
