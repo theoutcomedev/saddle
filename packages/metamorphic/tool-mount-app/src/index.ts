@@ -68,7 +68,7 @@ export function apply(ctx: Context) {
     description:
       'Mount and render a live interactive metamorphic application (React/TypeScript/HTML) directly into the user interface. '
       + 'Use this when the user asks to build, create, or morph the UI into an interactive app (e.g. workout tracker, financial calculator, '
-      + 'bookstore, game, data dashboard, interactive canvas, or form). The app will be compiled and executed live in the browser using an isolated Sandpack runtime. '
+      + 'bookstore, game, data dashboard, interactive canvas, or form). The app will be compiled and executed live in the browser using a sandboxed zero-latency runtime. '
       + 'Always provide clean, complete, runnable code in /App.tsx with Tailwind CSS utility classes. Prefer native SVG elements for charts and graphs.',
     parameters: {
       title: {

@@ -41,8 +41,8 @@ const APP_CATALOG: readonly AppCatalogEntry[] = [
     name: 'Metamorphic Studio',
     category: 'AI Apps',
     icon: '✨',
-    tags: ['metamorphic', 'sandpack', 'live-apps', 'react'],
-    description: 'Live interactive React & TypeScript canvas powered by isolated Sandpack. Run apps created by Saddle agents.',
+    tags: ['metamorphic', 'live-apps', 'react', 'canvas'],
+    description: 'Live interactive React & TypeScript canvas powered by isolated browser runtime. Run apps created by Saddle agents.',
   },
 ]
 

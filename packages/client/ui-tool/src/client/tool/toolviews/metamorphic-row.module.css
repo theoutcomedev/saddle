@@ -148,10 +148,10 @@
   }
 }
 
-:global(.sp-wrapper),
-:global(.sp-preview),
-:global(.sp-preview-container),
-:global(.sp-preview-iframe) {
-  height: 100% !important;
-  width: 100% !important;
+.runnerIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: var(--dsw-alias-surface-primary);
 }
