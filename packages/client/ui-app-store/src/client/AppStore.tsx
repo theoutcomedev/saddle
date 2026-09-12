@@ -577,8 +577,9 @@ function ParticleLifeApp({
     <iframe
       title="Particle Life"
       srcDoc={PARTICLE_LIFE_HTML}
-      sandbox="allow-scripts allow-modals"
-      style={{ flex: 1, width: '100%', minHeight: 0, border: 'none', display: 'block', background: '#05070d' }}
+      sandbox="allow-scripts allow-modals allow-same-origin"
+      className={css.appIframe}
+      style={{ flex: 1, width: '100%', height: '100%', minHeight: 0, border: 'none', display: 'block', background: '#05070d' }}
     />
   )
 

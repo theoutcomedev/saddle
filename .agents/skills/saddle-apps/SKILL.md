@@ -224,31 +224,72 @@ node scripts/embed-app.mjs <path-to-index.html> /app/packages/client/ui-app-stor
 
 It writes `export const YOUR_APP_HTML: string = <JSON.stringify(html)>`. Keep the app source in the workspace and the generated module in the package.
 
-## Host layout rules (this is where "can't scroll" comes from)
+## Host layout rules (this is where "can't scroll" and "unclickable" come from)
 
 Apps run inside an iframe whose size you do not control: a docked pane is often ~360 px wide and tall, a phone is narrow, fullscreen is large. Write the app **mobile-first** and add a wide-screen override:
 
 ```css
-/* base: the document scrolls, so every control stays reachable in a narrow pane */
-.app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+/* Base: the document itself must scroll so every control stays reachable in a narrow pane or mobile drawer */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
 main { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 0; }
-#stage { flex: 0 0 auto; height: clamp(240px, 48vh, 460px); }
+
+#stage {
+  position: relative;
+  flex: 0 0 auto;
+  height: clamp(200px, 36vh, 400px);
+  touch-action: pan-y; /* Crucial: allows vertical page scrolling on touch screens */
+}
+
+@media (pointer: fine) {
+  #stage { touch-action: none; } /* Desktop mouse can drag 2D without scrolling */
+}
 
 @media (min-width: 900px) and (min-height: 560px) {
   html, body { height: 100%; overflow: hidden; }
   .app { height: 100%; min-height: 0; }
   main { flex-direction: row; min-height: 0; }
-  #stage { flex: 1 1 auto; height: auto; min-height: 240px; }
+  #stage { flex: 1 1 auto; height: auto; min-height: 240px; touch-action: none; }
   aside { width: 336px; flex: 0 0 auto; min-height: 0; overflow-y: auto; }
 }
 ```
 
-Two traps that cost real debugging time:
+### Critical Rules for Mobile & All Screen Sizes (Never Break These)
 
-- **`body { overflow: hidden }` + `.app { height: 100% }` with no narrow-screen rule** cuts off everything below the canvas in a docked pane, with no way to scroll. That is the classic "can't scroll the app in the Workbench" bug.
-- **`min-height: 0` is mandatory** on the flex children that scroll (`main`, `aside`). Without it the default `min-height: auto` lets the sidebar stretch the row: a canvas measured 1354 px tall inside a 768 px viewport.
-
-Also: `touch-action: none` only on the interactive canvas (so dragging works), keep a short stage on small screens so there is always page left to scroll, and bump button/slider targets under `@media (hover: none)`.
+1. **`html, body { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }`**
+   On iOS Safari / WebKit inside an iframe, omitting `height: 100%; overflow-y: auto;` completely kills scrolling. If `body` has unconstrained height or missing overflow, the iframe viewport clips everything below the fold and rejects touch drag gestures.
+2. **Never put `touch-action: none` on large elements without mobile scoping**:
+   Putting `touch-action: none` on an interactive stage/canvas intercepts all touch pointers. On mobile screens where the stage covers 40-70% of the screen, the user's thumb is trapped and cannot scroll down to the controls. Use `touch-action: pan-y` on touch devices so vertical drags scroll the document, while horizontal drags/taps interact. Use `touch-action: none` ONLY inside `@media (pointer: fine)`.
+3. **Touch-friendly hit targets and `touch-action: manipulation`**:
+   Use `@media (pointer: coarse), (hover: none)` to give all buttons and sliders at least 44px minimum tap targets. Add `touch-action: manipulation` and `-webkit-tap-highlight-color: transparent` to eliminate mobile tap latency. Set inner text (`b`, `i`, `span`) to `pointer-events: none` on buttons so taps consistently hit the button element.
+4. **Pointer events touch support**:
+   Never check `if (e.buttons !== 0)` for pointer moves without also checking `|| e.pointerType === "touch"`. On mobile touch devices, `e.buttons` is 0 during touch moves! Always release pointer capture on both `pointerup` and `pointercancel`.
+5. **Iframe Sandbox**:
+   Always specify `sandbox="allow-scripts allow-modals allow-same-origin"` on the host iframe. Without `allow-same-origin`, pointer capture and touch gestures can fail due to opaque origin restrictions in mobile browsers.
+6. **Stacking Context & Pointer Events**:
+   Ensure `.detailsCol` has `pointer-events: auto;` and `z-index: 50;` (strictly above `.mobileBackdrop` at `z-index: 40;`) so touches and clicks are never intercepted by backdrop overlays.
 
 `references/app-shell.html` implements all of this.
 

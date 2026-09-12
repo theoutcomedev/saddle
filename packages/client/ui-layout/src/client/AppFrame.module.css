@@ -79,6 +79,7 @@
   .frame:not([data-details-collapsed]) .detailsCol {
     display: block !important;
     transform: translateY(0);
+    pointer-events: auto !important;
   }
   .frame:not([data-details-collapsed]) .detailsCol:has([class*="rootFullscreen"]),
   :global(body[data-workbench-fullscreen]) .frame:not([data-details-collapsed]) .detailsCol {
@@ -187,18 +188,6 @@
 
 .overlayLayer > * {
   pointer-events: auto;
-
-  .detailsCol {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: var(--details-width);
-    z-index: 50;
-    box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-    transition: width var(--ds-transition-duration-slow) var(--ds-ease-in-out), left var(--ds-transition-duration-slow) var(--ds-ease-in-out);
-    background: var(--dsw-alias-bg-base);
-  }
 }
 
 .mobileBackdrop {

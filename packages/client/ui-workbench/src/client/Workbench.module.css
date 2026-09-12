@@ -179,6 +179,8 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   background: var(--dsw-alias-bg-base);
 }
 

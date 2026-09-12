@@ -28,14 +28,27 @@
     --accent: #67e8f9;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
   body {
     background: var(--bg);
     color: var(--text);
     font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    overflow-x: hidden;
   }
-  .app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    box-sizing: border-box;
+  }
 
   header {
     display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
@@ -48,9 +61,12 @@
   main { display: flex; flex-direction: column; gap: 12px; padding: 12px; flex: 1 1 auto; min-height: 0; }
 
   #stage {
-    position: relative; flex: 0 0 auto; height: clamp(240px, 48vh, 460px);
+    position: relative; flex: 0 0 auto; height: clamp(200px, 36vh, 400px);
     border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
-    background: var(--bg); cursor: crosshair; touch-action: none;
+    background: var(--bg); cursor: crosshair; touch-action: pan-y;
+  }
+  @media (pointer: fine) {
+    #stage { touch-action: none; }
   }
   #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .overlay-top {
@@ -70,6 +86,7 @@
   button {
     font: inherit; color: var(--text); background: rgba(255,255,255,0.04);
     border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
     transition: background .15s, border-color .15s;
   }
   button:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.25); }
@@ -96,13 +113,15 @@
     color: #fecaca; font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap;
   }
 
-  /* Touch devices: bigger targets, taller sliders. */
-  @media (hover: none) {
-    button { padding: 8px 12px; }
-    input[type=range] { height: 8px; }
-    input[type=range]::-webkit-slider-thumb { width: 20px; height: 20px; }
+  /* Touch devices: 44px min touch target, taller sliders. */
+  @media (pointer: coarse), (hover: none) {
+    button { min-height: 44px; padding: 10px 14px; touch-action: manipulation; }
+    .tiny { min-height: 36px; padding: 8px 12px; }
+    input[type=range] { height: 12px; touch-action: pan-x; }
+    input[type=range]::-webkit-slider-thumb { width: 24px; height: 24px; }
   }
   @media (max-width: 620px) {
+    #stage { height: clamp(180px, 30vh, 260px); }
     header { padding: 8px 10px; }
     #meta { display: none; }
     main { padding: 8px; gap: 8px; }
@@ -117,7 +136,7 @@
     .app { height: 100%; min-height: 0; }
     .sub { display: inline; }
     main { flex-direction: row; min-height: 0; }
-    #stage { flex: 1 1 auto; height: auto; min-height: 240px; }
+    #stage { flex: 1 1 auto; height: auto; min-height: 240px; touch-action: none; }
     aside { width: 336px; flex: 0 0 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
   }
 </style>
