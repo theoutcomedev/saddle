@@ -10,11 +10,14 @@
 }
 
 .maximized {
-  position: absolute !important;
+  position: fixed !important;
   inset: 0 !important;
-  z-index: 20 !important;
-  height: 100% !important;
-  width: 100% !important;
+  z-index: 10000 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  width: 100vw !important;
+  background: var(--dsw-alias-surface-primary) !important;
+  padding-top: var(--safe-top, 0px);
 }
 
 .toolbar {
@@ -85,7 +88,7 @@
   display: inline-flex;
   align-items: center;
   background: var(--dsw-alias-surface-tertiary);
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 1px solid var(--dsw-alias-border-l1);
   border-radius: 6px;
   padding: 2px;
   gap: 2px;
@@ -94,26 +97,29 @@
 .segmentBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: 5px;
+  padding: 4px 10px;
   font-size: 12px;
+  font-weight: 500;
   border-radius: 4px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .segmentBtn:hover {
   color: var(--dsw-alias-label-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .segmentBtnActive {
   background: var(--dsw-alias-surface-primary);
   color: var(--dsw-alias-label-primary);
-  font-weight: 500;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+  border-color: var(--dsw-alias-border-l2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .iconBtn {
@@ -133,6 +139,26 @@
 .iconBtn:hover {
   background: var(--dsw-alias-surface-tertiary);
   color: var(--dsw-alias-label-primary);
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-surface-secondary);
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.closeBtn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--dsw-static-red-500, #ef4444);
 }
 
 .canvasBody {
@@ -245,11 +271,70 @@
   display: inline;
 }
 
+.mobileFileBar {
+  display: none;
+}
+
+.mobileFileLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobileFileSelect {
+  flex: 1;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-surface-primary);
+  color: var(--dsw-alias-label-primary);
+  outline: none;
+}
+
+/* On narrow screens or containers, hide vertical file sidebar and show top file dropdown */
+@container (max-width: 540px) {
+  .codeLayout {
+    flex-direction: column;
+  }
+  .fileSidebar {
+    display: none !important;
+  }
+  .mobileFileBar {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--dsw-alias-surface-secondary);
+    border-bottom: 1px solid var(--dsw-alias-border-l2);
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .codeLayout {
+    flex-direction: column;
+  }
+  .fileSidebar {
+    display: none !important;
+  }
+  .mobileFileBar {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--dsw-alias-surface-secondary);
+    border-bottom: 1px solid var(--dsw-alias-border-l2);
+    flex-shrink: 0;
+  }
+}
+
 /* Container queries: seamlessly respond to dragging workbench/chat column */
 @container (max-width: 420px) {
-  .btnText {
-    display: none;
-  }
   .toolbar {
     padding: 6px 8px;
     gap: 6px;
@@ -259,19 +344,15 @@
     padding: 1px 5px;
   }
   .segmentBtn {
-    padding: 4px 6px;
-  }
-  .fileSidebar {
-    width: 120px;
-    min-width: 100px;
+    padding: 3px 6px;
   }
 }
 
 @container (max-width: 320px) {
-  .liveBadge {
+  .btnText {
     display: none;
   }
-  .fileSidebar {
+  .liveBadge {
     display: none;
   }
 }

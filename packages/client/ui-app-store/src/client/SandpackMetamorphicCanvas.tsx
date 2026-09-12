@@ -5,10 +5,12 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconEyeOutline16,
   IconCodeOutline16,
   IconRefreshOutline16,
+  IconCloseOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './SandpackMetamorphicCanvas.module.css'
 
@@ -406,7 +408,7 @@ export function SandpackMetamorphicCanvas({
     return buildMetamorphicSrcDoc(normalizedFiles, entryFile, title)
   }, [normalizedFiles, entryFile, title, reloadKey])
 
-  return (
+  const element = (
     <div className={`${css.root} ${isMax ? css.maximized : ''}`}>
       <div className={css.toolbar}>
         <div className={css.toolbarLeft}>
@@ -460,6 +462,18 @@ export function SandpackMetamorphicCanvas({
           >
             {isMax ? <LocalMinimizeIcon size={14} /> : <LocalFullscreenIcon size={14} />}
           </button>
+
+          {isMax && (
+            <button
+              type="button"
+              className={css.closeBtn}
+              onClick={handleToggleMax}
+              title="Close Fullscreen (Esc)"
+              aria-label="Close Fullscreen"
+            >
+              <IconCloseOutline16 size={16} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -475,22 +489,38 @@ export function SandpackMetamorphicCanvas({
         ) : (
           <div className={css.codeLayout}>
             {fileKeys.length > 1 && (
-              <div className={css.fileSidebar}>
-                <div className={css.fileSidebarTitle}>Files ({fileKeys.length})</div>
-                <div className={css.fileList}>
-                  {fileKeys.map(f => (
-                    <button
-                      key={f}
-                      type="button"
-                      className={`${css.fileItem} ${f === selectedFile ? css.fileItemActive : ''}`}
-                      onClick={() => setSelectedFile(f)}
-                      title={f}
-                    >
-                      {f.replace(/^\//, '')}
-                    </button>
-                  ))}
+              <>
+                <div className={css.fileSidebar}>
+                  <div className={css.fileSidebarTitle}>Files ({fileKeys.length})</div>
+                  <div className={css.fileList}>
+                    {fileKeys.map(f => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`${css.fileItem} ${f === selectedFile ? css.fileItemActive : ''}`}
+                        onClick={() => setSelectedFile(f)}
+                        title={f}
+                      >
+                        {f.replace(/^\//, '')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+                <div className={css.mobileFileBar}>
+                  <span className={css.mobileFileLabel}>File:</span>
+                  <select
+                    className={css.mobileFileSelect}
+                    value={selectedFile}
+                    onChange={e => setSelectedFile(e.target.value)}
+                  >
+                    {fileKeys.map(f => (
+                      <option key={f} value={f}>
+                        {f.replace(/^\//, '')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
             <div className={css.editorArea}>
               <pre className={css.editorPre}>
@@ -502,4 +532,9 @@ export function SandpackMetamorphicCanvas({
       </div>
     </div>
   )
+
+  if (isMax && typeof document !== 'undefined') {
+    return createPortal(element, document.body)
+  }
+  return element
 }

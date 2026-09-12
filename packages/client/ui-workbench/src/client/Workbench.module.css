@@ -292,6 +292,7 @@
 
 :global([data-editor-maximized="true"]) .strip,
 :global([data-browser-maximized="true"]) .strip,
+:global([data-app-maximized="true"]) .strip,
 :global([data-notepad-maximized="true"]) .strip {
   display: none !important;
 }

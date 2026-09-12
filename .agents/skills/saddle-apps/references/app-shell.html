@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>App Shell</title>
+<!--
+  Starting point for a Saddle app: ONE self-contained document, no imports, no CDN, no build step.
+
+  Why: mount_app's default path rewrites imports and evaluates the entry with
+  `new Function('React','useState','useEffect','useMemo','useRef','useCallback','LucideIcons', code)`,
+  which redeclares any hook the entry imports. A file named /index.html is returned verbatim instead,
+  so it cannot fail to compile.
+
+  Layout rules (see the media queries at the bottom):
+  - mobile-first: the document scrolls, so controls stay reachable in a ~360px docked pane;
+  - wide + tall viewports pin to the viewport with two columns;
+  - min-height:0 on scrolling flex children, or the sidebar stretches the row.
+-->
+<style>
+  :root {
+    --bg: #05070d;
+    --panel: rgba(255,255,255,0.03);
+    --line: rgba(255,255,255,0.10);
+    --text: #e2e8f0;
+    --dim: #94a3b8;
+    --dimmer: #64748b;
+    --accent: #67e8f9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+  .app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 8px 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex: 0 0 auto;
+  }
+  h1 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; }
+  .sub { display: none; color: var(--dimmer); font-size: 11px; }
+  .stats { display: flex; align-items: center; gap: 12px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--dim); }
+
+  main { display: flex; flex-direction: column; gap: 12px; padding: 12px; flex: 1 1 auto; min-height: 0; }
+
+  #stage {
+    position: relative; flex: 0 0 auto; height: clamp(240px, 48vh, 460px);
+    border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+    background: var(--bg); cursor: crosshair; touch-action: none;
+  }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .overlay-top {
+    position: absolute; left: 12px; right: 12px; top: 12px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    flex-wrap: wrap; pointer-events: none;
+  }
+  .bar {
+    display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line);
+    background: rgba(0,0,0,0.5); border-radius: 12px; pointer-events: auto;
+  }
+
+  aside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  section { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 12px; }
+  section h2 { margin: 0 0 10px; font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+
+  button {
+    font: inherit; color: var(--text); background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.25); }
+  button.on { border-color: rgba(103,232,249,0.6); background: rgba(103,232,249,0.15); color: #cffafe; }
+  .row { display: flex; gap: 6px; }
+  .row > button { flex: 1; }
+  .tiny { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .sl { display: block; margin-bottom: 10px; }
+  .sl-top { display: flex; justify-content: space-between; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim); }
+  .sl-val { font-family: ui-monospace, monospace; color: #a5f3fc; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 6px; margin-top: 6px;
+    border-radius: 999px; background: rgba(255,255,255,0.1); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 8px rgba(103,232,249,0.8);
+  }
+
+  #err {
+    display: none; margin: 8px 12px 0; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid rgba(248,113,113,0.5); background: rgba(248,113,113,0.12);
+    color: #fecaca; font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap;
+  }
+
+  /* Touch devices: bigger targets, taller sliders. */
+  @media (hover: none) {
+    button { padding: 8px 12px; }
+    input[type=range] { height: 8px; }
+    input[type=range]::-webkit-slider-thumb { width: 20px; height: 20px; }
+  }
+  @media (max-width: 620px) {
+    header { padding: 8px 10px; }
+    #meta { display: none; }
+    main { padding: 8px; gap: 8px; }
+    section { padding: 10px; }
+    .overlay-top { left: 8px; right: 8px; top: 8px; }
+  }
+
+  /* Wide and tall enough: fill the viewport, sidebar scrolls on its own.
+     min-height:0 is required — without it the aside stretches the row. */
+  @media (min-width: 900px) and (min-height: 560px) {
+    html, body { height: 100%; overflow: hidden; }
+    .app { height: 100%; min-height: 0; }
+    .sub { display: inline; }
+    main { flex-direction: row; min-height: 0; }
+    #stage { flex: 1 1 auto; height: auto; min-height: 240px; }
+    aside { width: 336px; flex: 0 0 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div style="display:flex;align-items:baseline;gap:12px">
+      <h1>APP NAME</h1>
+      <span class="sub">one-line description</span>
+    </div>
+    <div class="stats">
+      <span id="fps">60 fps</span>
+      <span id="meta">0 items</span>
+      <button id="play" title="Play / pause (space)">❚❚</button>
+    </div>
+  </header>
+
+  <div id="err"></div>
+
+  <main>
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div class="overlay-top">
+        <div class="bar">
+          <button class="tiny" id="reset">Reset</button>
+          <button class="tiny" id="scatter">Scatter</button>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <section>
+        <h2>Controls</h2>
+        <div id="panel"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="tiny" id="action">Do thing</button>
+        </div>
+      </section>
+      <section>
+        <h2>Notes</h2>
+        <p style="margin:0;color:var(--dimmer);font-size:10px;line-height:1.5">
+          Everything lives in this one file. Keep it that way.
+        </p>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Surface any failure instead of showing a blank pane. */
+  var errBox = document.getElementById('err');
+  window.onerror = function (msg, url, line) {
+    errBox.style.display = 'block';
+    errBox.textContent = 'Error: ' + msg + (line ? '  (line ' + line + ')' : '');
+  };
+
+  /* ---------------------------------------------------------------- state */
+  var P = { count: 600, speed: 1.4, size: 2.4, playing: true };
+  var COLORS = ['#ff5c76', '#56c8ff', '#ffd054', '#7cff9b', '#ba84ff', '#ff8a3e'];
+
+  /* ---------------------------------------------------------------- demo sim (replace) */
+  var particles = [];
+  function reset(n) {
+    particles = [];
+    for (var i = 0; i < n; i++) {
+      particles.push({
+        x: Math.random(), y: Math.random(),
+        vx: (Math.random() * 2 - 1) * 0.02,
+        vy: (Math.random() * 2 - 1) * 0.02,
+        c: COLORS[i % COLORS.length]
+      });
+    }
+    document.getElementById('meta').textContent = particles.length + ' items';
+  }
+
+  /* ---------------------------------------------------------------- render */
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d', { alpha: false });
+  function render(W, H) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(5,7,13,0.25)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    var size = P.size;
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.fillStyle = p.c;
+      ctx.fillRect(p.x * W, p.y * H, size, size);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  /* ---------------------------------------------------------------- loop */
+  var stage = document.getElementById('stage'), fpsEl = document.getElementById('fps');
+  var frames = 0, statStart = performance.now();
+
+  function loop(now) {
+    requestAnimationFrame(loop);
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = Math.max(1, Math.round(stage.clientWidth * dpr));
+    var H = Math.max(1, Math.round(stage.clientHeight * dpr));
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+
+    if (P.playing) {
+      for (var s = 0; s < Math.round(P.speed); s++) {
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+          p.x += p.vx * 0.01; p.y += p.vy * 0.01;
+          if (p.x < 0) p.x += 1; else if (p.x > 1) p.x -= 1;
+          if (p.y < 0) p.y += 1; else if (p.y > 1) p.y -= 1;
+        }
+      }
+    }
+    render(W, H);
+
+    frames++;
+    if (now - statStart > 480) {
+      fpsEl.textContent = Math.round((frames * 1000) / (now - statStart)) + ' fps';
+      frames = 0; statStart = now;
+    }
+  }
+
+  /* ---------------------------------------------------------------- controls */
+  function slider(parent, label, get, set, min, max, step, fmt) {
+    var row = document.createElement('label');
+    row.className = 'sl';
+    row.innerHTML = '<div class="sl-top"><span></span><span class="sl-val"></span></div>';
+    row.querySelector('span').textContent = label;
+    var input = document.createElement('input');
+    input.type = 'range'; input.min = min; input.max = max; input.step = step; input.value = get();
+    var val = row.querySelector('.sl-val');
+    function sync() { val.textContent = fmt ? fmt(parseFloat(input.value)) : input.value; }
+    input.addEventListener('input', function () { set(parseFloat(input.value)); sync(); });
+    sync();
+    row.appendChild(input);
+    parent.appendChild(row);
+  }
+  var panel = document.getElementById('panel');
+  slider(panel, 'Count', function () { return P.count; }, function (v) { P.count = v; reset(v); }, 50, 3000, 50);
+  slider(panel, 'Speed', function () { return P.speed; }, function (v) { P.speed = v; }, 1, 4, 1, function (v) { return v + 'x'; });
+  slider(panel, 'Size', function () { return P.size; }, function (v) { P.size = v; }, 1, 8, 0.2, function (v) { return v.toFixed(1) + 'px'; });
+
+  document.getElementById('play').addEventListener('click', function () {
+    P.playing = !P.playing;
+    this.textContent = P.playing ? '❚❚' : '▶';
+  });
+  document.getElementById('reset').addEventListener('click', function () { reset(P.count); });
+  document.getElementById('scatter').addEventListener('click', function () { reset(P.count); });
+  document.getElementById('action').addEventListener('click', function () { reset(P.count); });
+
+  window.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON')) return;
+    if (e.code === 'Space') { e.preventDefault(); document.getElementById('play').click(); }
+  });
+
+  reset(P.count);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

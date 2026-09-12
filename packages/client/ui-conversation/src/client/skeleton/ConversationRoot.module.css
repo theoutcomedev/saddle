@@ -369,9 +369,25 @@
 
 @media (max-width: 768px) {
   .header {
-    min-height: calc(83px + var(--safe-top, 0px)) !important;
-    padding-left: 60px !important;
-    padding-right: 6px !important;
+    min-height: calc(64px + var(--safe-top, 0px)) !important;
+    padding: calc(8px + var(--safe-top, 0px)) 6px 0 56px !important;
+  }
+  .titleRow {
+    min-height: 28px !important;
+    align-items: center !important;
+  }
+  .crumb {
+    padding: 2px 6px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+  .tabs {
+    margin-top: 4px !important;
+    padding-left: 6px !important;
+    gap: 24px !important;
+  }
+  .tab {
+    padding: 0 0 6px !important;
   }
 }
 
@@ -430,22 +446,22 @@
 
 @container (max-width: 768px) {
   .heroHeader {
-    top: calc(12px + var(--safe-top, 0px));
+    top: calc(8px + var(--safe-top, 0px));
     right: 6px;
   }
   .workbenchToggle {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 }
 
 @media (max-width: 768px) {
   .heroHeader {
-    top: calc(12px + var(--safe-top, 0px));
+    top: calc(8px + var(--safe-top, 0px));
     right: 6px;
   }
   .workbenchToggle {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 }

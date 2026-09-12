@@ -9,6 +9,7 @@ import { Button, IconCloseOutline16, IconListPenOutline16 } from '@deepseek-ai/d
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
 import { SandpackMetamorphicCanvas } from './SandpackMetamorphicCanvas.tsx'
+import { PARTICLE_LIFE_HTML } from './particle-life-app.ts'
 
 /** One installable app in the storefront catalog. */
 export interface AppCatalogEntry {
@@ -35,6 +36,14 @@ const APP_CATALOG: readonly AppCatalogEntry[] = [
     icon: 'notepad',
     tags: ['notes', 'autosave'],
     description: 'A full-screen notepad that autosaves. I can read what you type.',
+  },
+  {
+    id: 'particle-life',
+    name: 'Particle Life',
+    category: 'Simulations',
+    icon: 'particle-life',
+    tags: ['simulation', 'emergence', 'canvas', 'physics'],
+    description: 'Thousands of particles of several species, each pulled or pushed by its neighbours. Edit the interaction matrix and the ecosystem reinvents itself.',
   },
   {
     id: 'metamorphic',
@@ -75,6 +84,21 @@ function IconDock({ size = 14, className, style }: { size?: number; className?: 
         d="M8.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H8.5V1.5Z"
         fill="currentColor"
       />
+    </svg>
+  )
+}
+
+/** Storefront icon for Particle Life: orbiters around a dense core. */
+function IconParticleCluster({ size = 22, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 22 22" fill="none" className={className} aria-hidden="true">
+      <circle cx="11" cy="11" r="6.4" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+      <circle cx="11" cy="11" r="3.1" fill="currentColor" opacity="0.95" />
+      <circle cx="11" cy="4.6" r="1.5" fill="currentColor" />
+      <circle cx="17.4" cy="11" r="1.3" fill="currentColor" opacity="0.8" />
+      <circle cx="11" cy="17.4" r="1.2" fill="currentColor" opacity="0.7" />
+      <circle cx="4.6" cy="11" r="1.1" fill="currentColor" opacity="0.6" />
+      <circle cx="15.7" cy="6.3" r="1" fill="currentColor" opacity="0.5" />
     </svg>
   )
 }
@@ -460,7 +484,11 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
                 <div key={app.id} className={css.card}>
                   <div className={css.cardHead}>
                     <div className={css.cardIcon}>
-                      {app.id === 'notepad' ? <IconListPenOutline16 size={22} /> : (app.icon || '📦')}
+                      {app.id === 'notepad'
+                        ? <IconListPenOutline16 size={22} />
+                        : (app.id === 'particle-life' || app.icon === 'particle-life')
+                          ? <IconParticleCluster size={22} />
+                          : (app.icon || '📦')}
                     </div>
                     <div className={css.cardTitle}>
                       <div className={css.cardName}>{app.name}</div>
@@ -517,6 +545,123 @@ function AppStoreModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id: 
     : modalElement
 }
 
+/**
+ * Hosts the Particle Life simulation in the Workbench pane or full screen.
+ * The app is one self-contained HTML document, so it runs inside a sandboxed
+ * iframe and asks nothing of the host beyond the pane it is given.
+ */
+function ParticleLifeApp({
+  mode,
+  onClose,
+  onDock,
+}: {
+  mode: 'docked' | 'fullscreen'
+  onClose?: (() => void) | undefined
+  onDock?: (() => void) | undefined
+}) {
+  const isDocked = mode === 'docked'
+  const [isMaximized, setIsMaximized] = useState(false)
+
+  // Escape restores a maximized docked app, and the Workbench hides its tab strip
+  // while one is maximized — both matching the notepad's behavior.
+  useEffect(() => {
+    if (!isDocked || !isMaximized) return
+    document.body.setAttribute('data-app-maximized', 'true')
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMaximized(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.removeAttribute('data-app-maximized')
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isDocked, isMaximized])
+
+  useEffect(() => () => {
+    document.body.removeAttribute('data-app-maximized')
+  }, [])
+
+  const frame = (
+    <iframe
+      title="Particle Life"
+      srcDoc={PARTICLE_LIFE_HTML}
+      sandbox="allow-scripts allow-modals"
+      style={{ flex: 1, width: '100%', minHeight: 0, border: 'none', display: 'block', background: '#05070d' }}
+    />
+  )
+
+  if (isDocked) {
+    return (
+      <div className={`${css.npRootDocked} ${isMaximized ? css.npDockedMaximized : ''}`}>
+        <div className={css.npDockedToolbar}>
+          <div className={css.npToolbarLeft} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconParticleCluster size={15} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>Particle Life</span>
+          </div>
+          <div className={css.npActions}>
+            <button
+              type="button"
+              className={css.iconBtn}
+              title={isMaximized ? 'Restore View (Esc)' : 'Maximize in Workbench'}
+              aria-label={isMaximized ? 'Restore View' : 'Maximize in Workbench'}
+              onClick={() => setIsMaximized(prev => !prev)}
+            >
+              {isMaximized ? <IconMinimize size={16} /> : <IconFullscreen size={16} />}
+            </button>
+            {onDock
+              ? (
+                <button type="button" className={css.iconBtn} title="Dock in Workbench" onClick={onDock}>
+                  <IconDock size={16} />
+                </button>
+              )
+              : null}
+            {onClose
+              ? (
+                <button type="button" className={css.close} aria-label="Close" title="Close" onClick={onClose}>
+                  <IconCloseOutline16 size={16} />
+                </button>
+              )
+              : null}
+          </div>
+        </div>
+        {frame}
+      </div>
+    )
+  }
+
+  const fullscreenElement = (
+    <div className={css.npRoot}>
+      <div className={css.npHeader}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconParticleCluster size={18} />
+          <h2 className={css.npTitle}>Particle Life</h2>
+        </div>
+        <div className={css.npActions}>
+          {onDock
+            ? (
+              <button type="button" className={css.iconBtn} title="Dock in Workbench" onClick={onDock}>
+                <IconDock size={16} />
+              </button>
+            )
+            : null}
+          {onClose
+            ? (
+              <button type="button" className={css.close} aria-label="Close" title="Close" onClick={onClose}>
+                <IconCloseOutline16 size={16} />
+              </button>
+            )
+            : null}
+        </div>
+      </div>
+      {frame}
+    </div>
+  )
+
+  return typeof document !== 'undefined'
+    ? createPortal(fullscreenElement, document.body)
+    : fullscreenElement
+}
+
 /** Hosts an application inside the Workbench App Pane slot. */
 export function WorkbenchAppHost({
   appStore,
@@ -533,6 +678,9 @@ export function WorkbenchAppHost({
         mode="docked"
       />
     )
+  }
+  if (appId === 'particle-life') {
+    return <ParticleLifeApp mode="docked" />
   }
   if (appId === 'metamorphic' || params?.files) {
     return (
@@ -577,6 +725,7 @@ export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore:
   const renderActiveApp = (id: string) => {
     switch (id) {
       case 'notepad': return <NotepadApp appStore={appStore} mode="fullscreen" onClose={closeAll} />
+      case 'particle-life': return <ParticleLifeApp mode="fullscreen" onClose={closeAll} />
       case 'metamorphic': return (
         <SandpackMetamorphicCanvas
           title={appParams?.title ? String(appParams.title) : 'Metamorphic App'}
