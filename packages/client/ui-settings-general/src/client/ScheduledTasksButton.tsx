@@ -44,15 +44,17 @@ export interface ScheduledTasksButtonInjected {
   hooks: {
     snapshot: ScheduledTasksStore['store']
   }
+  openSession?: (id: string) => void
 }
 
 export interface ScheduledTasksButtonProps {
   wide?: boolean
   controller?: ScheduledTasksStore
   useSnapshot?: <T>(selector: (state: ReturnType<ScheduledTasksStore['store']['getSnapshot']>) => T) => T
+  openSession?: (id: string) => void
 }
 
-export function ScheduledTasksButton({ wide = true, controller, useSnapshot }: ScheduledTasksButtonProps) {
+export function ScheduledTasksButton({ wide = true, controller, useSnapshot, openSession }: ScheduledTasksButtonProps) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export function ScheduledTasksButton({ wide = true, controller, useSnapshot }: S
         <ScheduledTasksModal
           store={controller}
           useSnapshot={useSnapshot}
+          openSession={openSession}
           onClose={() => { setOpen(false) }}
         />
       )}

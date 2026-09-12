@@ -7,7 +7,7 @@
  * Feature-owned rows and sections stay with their features.
  * Export discipline: packages/client/AGENTS.md.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: the settings slot declarations plus the ctx.settingsScope Context
@@ -57,7 +57,7 @@ const NS = 'settings'
  * ui-settings' apply, whose activation order relative to this one is NOT
  * constrained; registrations depend on their slots through `slots.inject()`.
  */
-export const inject = ['slots', 'locale', 'connection', 'settingsScope']
+export const inject = ['slots', 'locale', 'connection', 'settingsScope', 'sessions']
 
 /**
  * Register the `settings` dictionaries, the chrome content, and the General
@@ -102,6 +102,9 @@ export function apply(ctx: ClientContext): void {
   const schedulesInjected = (): ScheduledTasksButtonInjected => ({
     controller: schedulesController,
     hooks: { snapshot: schedulesController.store },
+    openSession: (id: string) => {
+      ctx.sessions.open(id as SessionId)
+    },
   })
   ctx.effect(() => () => { schedulesController.dispose() }, 'ui-settings-general: schedules controller')
 

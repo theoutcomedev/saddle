@@ -12,7 +12,25 @@ import css from './ScheduledTasksModal.module.css'
 export interface ScheduledTasksModalProps {
   store: ScheduledTasksStore
   useSnapshot: <T>(selector: (state: ReturnType<ScheduledTasksStore['store']['getSnapshot']>) => T) => T
+  openSession?: ((id: string) => void) | undefined
   onClose: () => void
+}
+
+function extractSessionId(snippet?: string, explicitSessionId?: string): string | null {
+  if (explicitSessionId && explicitSessionId.trim()) {
+    return explicitSessionId.trim()
+  }
+  if (!snippet) return null
+  // Match session patterns like 'session-sched-...', 'sched-0_...', or 'session xxxx'
+  const match = /(?:session(?:-sched-|\s+)|sess\s+)([a-z0-9_-]+)/i.exec(snippet)
+  if (match && match[1]) {
+    return match[1].startsWith('session-sched-') ? match[1] : (snippet.includes('session-sched-') ? `session-sched-${match[1]}` : match[1])
+  }
+  const rawSchedMatch = /(session-sched-[a-z0-9_-]+)/i.exec(snippet)
+  if (rawSchedMatch && rawSchedMatch[1]) {
+    return rawSchedMatch[1]
+  }
+  return null
 }
 
 function IconPlay({ size = 12 }: { size?: number }) {
@@ -71,9 +89,21 @@ function IconHistory({ size = 12 }: { size?: number }) {
   )
 }
 
-export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTasksModalProps) {
+export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }: ScheduledTasksModalProps) {
   const { tasks, activeLogs, actionInFlight } = useSnapshot(s => s)
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list')
+
+  const handleNavigateSession = (sessionId: string) => {
+    if (!sessionId) return
+    if (openSession) {
+      openSession(sessionId)
+      onClose()
+    } else {
+      // Dispatch custom event in case sessions service is listening globally
+      window.dispatchEvent(new CustomEvent('saddle:open-session', { detail: { sessionId } }))
+      onClose()
+    }
+  }
 
   // Form states
   const [name, setName] = useState('')
@@ -173,7 +203,7 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                 >
                   ← Back to Tasks
                 </Button>
-                <h2 id="schedules-title" className={css.title}>
+                <h2 id="schedules-title" className={clsx(css.title, css.titleTruncated)} title={`Run History: ${activeLogs.taskName}`}>
                   Run History: {activeLogs.taskName}
                 </h2>
               </>
@@ -234,21 +264,73 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                   <p className={css.emptyDesc}>No execution runs recorded for this task yet.</p>
                 </div>
               ) : (
-                <div className={css.logsTableWrapper}>
-                  <table className={css.logsTable}>
-                    <thead>
-                      <tr>
-                        <th>Started At</th>
-                        <th>Status</th>
-                        <th>Finished At</th>
-                        <th>Details</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeLogs.runs.map(run => (
-                        <tr key={run.id}>
-                          <td>{new Date(run.startedAt).toLocaleString()}</td>
-                          <td>
+                <>
+                  {/* Desktop Table View */}
+                  <div className={css.logsTableWrapper}>
+                    <table className={css.logsTable}>
+                      <thead>
+                        <tr>
+                          <th>Started At</th>
+                          <th>Status</th>
+                          <th>Finished At</th>
+                          <th>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeLogs.runs.map((run) => {
+                          const sid = extractSessionId(run.outputSnippet, run.sessionId)
+                          return (
+                            <tr key={run.id}>
+                              <td>{new Date(run.startedAt).toLocaleString()}</td>
+                              <td>
+                                <span
+                                  className={clsx(
+                                    css.statusPill,
+                                    run.status === 'success' && css.statusActive,
+                                    run.status === 'failed' && css.statusPaused,
+                                    run.status === 'running' && css.statusRunning,
+                                  )}
+                                >
+                                  {run.status}
+                                </span>
+                              </td>
+                              <td>{run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString() : '—'}</td>
+                              <td>
+                                <div className={css.runDetailsCol}>
+                                  {sid && (
+                                    <button
+                                      type="button"
+                                      className={css.sessionLink}
+                                      onClick={() => handleNavigateSession(sid)}
+                                      title={`Open session ${sid}`}
+                                    >
+                                      <span className={css.sessionLinkSession}>{sid}</span>
+                                      <span className={css.sessionArrow}>↗</span>
+                                    </button>
+                                  )}
+                                  {run.error ? (
+                                    <span style={{ color: '#ef4444' }}>{run.error}</span>
+                                  ) : run.outputSnippet ? (
+                                    <span className={css.runSnippetText}>{run.outputSnippet}</span>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Run Cards View (visible on screen width <= 768px) */}
+                  <div className={css.mobileRunsList}>
+                    {activeLogs.runs.map((run) => {
+                      const sid = extractSessionId(run.outputSnippet, run.sessionId)
+                      return (
+                        <div key={run.id} className={css.mobileRunCard}>
+                          <div className={css.mobileRunHeader}>
                             <span
                               className={clsx(
                                 css.statusPill,
@@ -259,22 +341,45 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                             >
                               {run.status}
                             </span>
-                          </td>
-                          <td>{run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString() : '—'}</td>
-                          <td>
-                            {run.error ? (
-                              <span style={{ color: '#ef4444' }}>{run.error}</span>
-                            ) : run.outputSnippet ? (
-                              <span>{run.outputSnippet}</span>
-                            ) : (
-                              '—'
+                            <span className={css.mobileRunTime}>
+                              {new Date(run.startedAt).toLocaleDateString()} {new Date(run.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+
+                          <div className={css.mobileRunBody}>
+                            {sid && (
+                              <div className={css.mobileRunMetaRow}>
+                                <span>Target Session:</span>
+                                <button
+                                  type="button"
+                                  className={css.sessionLink}
+                                  onClick={() => handleNavigateSession(sid)}
+                                  title={`Open session ${sid}`}
+                                >
+                                  <span className={css.sessionLinkSession}>{sid}</span>
+                                  <span className={css.sessionArrow}>↗</span>
+                                </button>
+                              </div>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+
+                            {run.finishedAt && (
+                              <div className={css.mobileRunMetaRow}>
+                                <span>Finished:</span>
+                                <span>{new Date(run.finishedAt).toLocaleTimeString()}</span>
+                              </div>
+                            )}
+
+                            {run.error ? (
+                              <div className={css.mobileRunError}>{run.error}</div>
+                            ) : run.outputSnippet ? (
+                              <div className={css.mobileRunSnippet}>{run.outputSnippet}</div>
+                            ) : null}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </div>
           ) : activeTab === 'create' ? (
@@ -562,14 +667,26 @@ export function ScheduledTasksModal({ store, useSnapshot, onClose }: ScheduledTa
                       {task.targetMode === 'current-session' && (
                         <span className={css.metaItem}>
                           Target:{' '}
-                          <strong className={css.metaHighlight}>
-                            {task.sessionId
-                              ? (() => {
-                                const match = availableSessions.find(s => s.id === task.sessionId)
-                                return match ? `${match.title} (${match.id.slice(0, 8)})` : `Session (${task.sessionId.slice(0, 8)}…)`
-                              })()
-                              : 'Latest active session'}
-                          </strong>
+                          {task.sessionId ? (
+                            (() => {
+                              const targetId = task.sessionId
+                              const match = availableSessions.find(s => s.id === targetId)
+                              const label = match ? `${match.title} (${match.id.slice(0, 8)})` : `Session (${targetId.slice(0, 8)}…)`
+                              return (
+                                <button
+                                  type="button"
+                                  className={css.sessionLink}
+                                  onClick={() => handleNavigateSession(targetId)}
+                                  title={`Open session ${targetId}`}
+                                >
+                                  <span className={css.sessionLinkSession}>{label}</span>
+                                  <span className={css.sessionArrow}>↗</span>
+                                </button>
+                              )
+                            })()
+                          ) : (
+                            <strong className={css.metaHighlight}>Latest active session</strong>
+                          )}
                         </span>
                       )}
                       {task.workspacePath && (
