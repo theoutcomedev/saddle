@@ -17,6 +17,24 @@ import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { CONVERSATION_NS as NS } from '../../locale.ts'
 import css from './metamorphic-row.module.css'
 
+function IconDock({ size = 13 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
+      <path d="M8.5 1.5H12.5C13.6 1.5 14.5 2.4 14.5 3.5V12.5C14.5 13.6 13.6 14.5 12.5 14.5H8.5V1.5Z" fill="currentColor" />
+    </svg>
+  )
+}
+
 function LocalFullscreenIcon({ size = 13 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
@@ -119,7 +137,8 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
             onClick={handleDockInWorkbench}
             title="Dock application into Workbench"
           >
-            <span>📱 Dock in Workbench</span>
+            <IconDock size={13} />
+            <span className={css.btnText}>Dock</span>
           </button>
 
           <button
@@ -129,7 +148,7 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
             title="Open in Fullscreen"
           >
             <LocalFullscreenIcon size={13} />
-            <span>Fullscreen</span>
+            <span className={css.btnText}>Fullscreen</span>
           </button>
 
           {fileCount > 0 && (
@@ -142,7 +161,7 @@ export function MetamorphicRow({ block }: ToolCallViewProps) {
               title={showInlinePreview ? 'Hide Inline Preview' : 'Show Inline Preview'}
             >
               <IconEyeOutline16 size={13} />
-              <span>{showInlinePreview ? 'Hide Preview' : 'View'}</span>
+              <span className={css.btnText}>{showInlinePreview ? 'Hide' : 'Preview'}</span>
             </button>
           )}
         </div>

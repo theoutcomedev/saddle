@@ -55,9 +55,11 @@ export function apply(ctx: Context) {
       name: 'saddle:metamorphic-apps',
       order: 195,
       text: 'When a user asks you to build, create, or morph the UI into an interactive tool, application, or dashboard '
-        + '(e.g. workout tracker, financial calculator, bookstore, game, data visualizer, canvas, or form), '
-        + 'use the `mount_app` tool to compile and render it live. Provide complete, clean, runnable React code '
-        + 'in `/App.tsx` styled with Tailwind CSS classes and Lucide icons.',
+        + '(e.g. workout tracker, financial calculator, runway simulator, bookstore, game, data visualizer, canvas, or form), '
+        + 'use the `mount_app` tool to compile and render it live. Provide complete, clean, self-contained runnable React code '
+        + 'in `/App.tsx` styled with Tailwind CSS classes. For icons, use simple inline SVGs or lucide-react. For charts and visualizations, '
+        + 'prefer rendering clean native SVG elements (<svg>, <path>, <rect>, <circle>, gradients, tooltips) directly in React rather than '
+        + 'complex heavyweight charting packages, ensuring fast zero-latency rendering without dependency resolution issues.',
     })
   }
 
@@ -67,7 +69,7 @@ export function apply(ctx: Context) {
       'Mount and render a live interactive metamorphic application (React/TypeScript/HTML) directly into the user interface. '
       + 'Use this when the user asks to build, create, or morph the UI into an interactive app (e.g. workout tracker, financial calculator, '
       + 'bookstore, game, data dashboard, interactive canvas, or form). The app will be compiled and executed live in the browser using an isolated Sandpack runtime. '
-      + 'Always provide clean, complete, runnable code in /App.tsx with Tailwind CSS utility classes and Lucide icons.',
+      + 'Always provide clean, complete, runnable code in /App.tsx with Tailwind CSS utility classes. Prefer native SVG elements for charts and graphs.',
     parameters: {
       title: {
         type: 'string',
