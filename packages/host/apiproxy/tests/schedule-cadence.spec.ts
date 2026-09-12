@@ -44,9 +44,16 @@ describe('computeNextRun', () => {
     expect(computeNextRun('cron', '0,45 * * * *', MIDNIGHT_UTC)).toBe(MIDNIGHT_UTC + 45 * 60_000)
     expect(computeNextRun('cron', '0 10-11 * * *', MIDNIGHT_UTC)).toBe(Date.UTC(2026, 0, 15, 10, 0, 0))
     expect(computeNextRun('cron', '0 9 ? * *', MIDNIGHT_UTC)).toBe(Date.UTC(2026, 0, 15, 9, 0, 0))
-    // Numeric day-of-week only: '1' is Monday, so the next Monday 09:00 in Los
-    // Angeles (Jan 19, a Monday) is the answer, not Thursday.
+    // '1' is Monday, so the next Monday 09:00 in Los Angeles (Jan 19) is the
+    // answer, not Thursday.
     expect(computeNextRun('cron', '0 9 * * 1', MIDNIGHT_UTC, 'America/Los_Angeles')).toBe(Date.UTC(2026, 0, 19, 17, 0, 0))
+    // Names are the same field as the numbers they stand for, in lists and ranges.
+    expect(computeNextRun('cron', '0 9 * * Mon', MIDNIGHT_UTC, 'America/Los_Angeles')).toBe(Date.UTC(2026, 0, 19, 17, 0, 0))
+    expect(computeNextRun('cron', '0 9 * * SAT,SUN', MIDNIGHT_UTC, 'America/Los_Angeles')).toBe(Date.UTC(2026, 0, 17, 17, 0, 0))
+    expect(computeNextRun('cron', '0 9 * * MON-FRI', MIDNIGHT_UTC, 'America/Los_Angeles')).toBe(Date.UTC(2026, 0, 15, 17, 0, 0))
+    expect(computeNextRun('cron', '0 9 * * mon', MIDNIGHT_UTC, 'America/Los_Angeles')).toBe(Date.UTC(2026, 0, 19, 17, 0, 0))
+    // An unknown token still matches nothing, so the search gives up as before.
+    expect(computeNextRun('cron', '0 9 * * XYZ', MIDNIGHT_UTC)).toBe(MIDNIGHT_UTC + 24 * 60 * 60 * 1000)
   })
 
   it('gives up after 31 days when a cron expression can never match', () => {

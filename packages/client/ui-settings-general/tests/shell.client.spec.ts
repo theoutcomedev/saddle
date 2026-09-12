@@ -22,6 +22,8 @@ async function bench() {
     api: { settings: { describe: async () => ({ result: { ok: false } }) } },
     isLoopback: false,
   } as never)
+  // The scheduled-tasks modal opens a session through this seat.
+  ctx.provide('sessions', { open: vi.fn() } as never)
   ctx.provide('remote', { $on: () => () => {} } as never)
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
   return { ctx, slots: ctx.get('slots') as SlotRegistry }
@@ -50,8 +52,8 @@ const CHILD_SPECS = {
 } as const
 
 describe('ui-settings apply', () => {
-  it('declares only the slot registry (a pure composition face, no locale)', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'settingsScope'])
+  it('declares the services it composes with', () => {
+    expect(inject).toEqual(['slots', 'locale', 'connection', 'settingsScope', 'sessions'])
   })
 
   it('registers the shell and declares every child slot, before or after the declaration', async () => {

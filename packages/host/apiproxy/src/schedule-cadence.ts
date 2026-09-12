@@ -18,6 +18,20 @@ const WEEKDAYS: Record<string, number> = {
 /** How far a cron search looks ahead before giving up (31 days of minutes). */
 const CRON_SEARCH_MINUTES = 44_640
 
+/** The same weekday numbering spelled as cron fields spell it, so `MON-FRI` and `1-5` are one field. */
+const CRON_WEEKDAY_NAMES: Record<string, string> = Object.fromEntries(
+  Object.entries(WEEKDAYS).map(([name, index]) => [name.toUpperCase(), String(index)]),
+)
+
+/**
+ * Replace weekday names in a cron field with their numbers.
+ * @param part - Raw day-of-week field.
+ * @returns the field with every known name token replaced; an unknown token is left for the matcher to reject.
+ */
+function normalizeWeekdays(part: string): string {
+  return part.replace(/[A-Za-z]{3}/g, token => CRON_WEEKDAY_NAMES[token.toUpperCase()] ?? token)
+}
+
 /**
  * Interval cadence in milliseconds.
  * @param cadenceValue - Configured interval in minutes; an unparsable value falls back to 30, and the result never drops below one minute.
@@ -65,7 +79,8 @@ function matchesCronPart(value: number, part: string): boolean {
 function nextCronRun(cadenceValue: string, fromTime: number, clientTimeZone?: string | undefined): number {
   const parts = cadenceValue.trim().split(/\s+/)
   if (parts.length < 5) return fromTime + 60 * 60 * 1000
-  const [minPart = '*', hourPart = '*', domPart = '*', monthPart = '*', dowPart = '*'] = parts
+  const [minPart = '*', hourPart = '*', domPart = '*', monthPart = '*', rawDowPart = '*'] = parts
+  const dowPart = normalizeWeekdays(rawDowPart)
   const start = new Date(fromTime + 60_000)
   start.setSeconds(0, 0)
 

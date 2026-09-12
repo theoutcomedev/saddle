@@ -219,9 +219,11 @@ describe('session.history projections block', () => {
   it('removes the gateway-owned Session-list unit when the gateway fiber unloads', async () => {
     const { ctx, session } = await harness(true)
     expect('sessionListMetadata' in ctx.sessionProjections.snapshot(session).values).toBe(false)
+    // The proxy registers its scheduled-task tools through this seat.
+    ctx.provide('tools', { register: () => () => {} } as never)
     const fiber = ctx.plugin(Object.assign((gatewayCtx: Context) => {
       createApiProxy(gatewayCtx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    }, { inject: ['sessions', 'agents', 'userQuestions', 'sessionProjections'] }))
+    }, { inject: ['sessions', 'agents', 'userQuestions', 'sessionProjections', 'tools'] }))
     await fiber.await()
     await vi.waitFor(() => {
       expect(ctx.sessionProjections.snapshot(session).values.sessionListMetadata)

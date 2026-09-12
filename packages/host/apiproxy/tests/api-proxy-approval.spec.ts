@@ -216,9 +216,11 @@ describe('approval pending registry', () => {
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(ApprovalService)
     let api!: ApiProxy
+    // The proxy registers its scheduled-task tools through this seat.
+    ctx.provide('tools', { register: () => () => {} } as never)
     const fiber = ctx.plugin(Object.assign((fiberCtx: Context) => {
       api = createApiProxy(fiberCtx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    }, { inject: ['sessions', 'agents', 'userQuestions', 'approval'] }))
+    }, { inject: ['sessions', 'agents', 'userQuestions', 'approval', 'tools'] }))
     await fiber.await()
     const abort = new AbortController()
     const mux = openMux(api, abort)
