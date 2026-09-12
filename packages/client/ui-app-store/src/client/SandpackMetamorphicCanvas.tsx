@@ -180,7 +180,7 @@ export function SandpackMetamorphicCanvas({
               title="Live App View"
             >
               <IconEyeOutline16 size={13} />
-              <span>Preview</span>
+              <span className={css.btnText}>Preview</span>
             </button>
             <button
               type="button"
@@ -189,7 +189,7 @@ export function SandpackMetamorphicCanvas({
               title="Inspect Virtual Source Code"
             >
               <IconCodeOutline16 size={13} />
-              <span>Code</span>
+              <span className={css.btnText}>Code</span>
             </button>
           </div>
 

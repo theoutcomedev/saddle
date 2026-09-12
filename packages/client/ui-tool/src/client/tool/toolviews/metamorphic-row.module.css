@@ -6,6 +6,7 @@
   margin: 6px 0;
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
 }
 
 .header {
@@ -113,7 +114,7 @@
   border-top: 1px solid var(--dsw-alias-border-l2);
 }
 
-@media (max-width: 600px) {
+@container (max-width: 520px) {
   .header {
     flex-direction: column;
     align-items: stretch;
@@ -135,6 +136,15 @@
 
   .previewContainer {
     height: 320px;
+  }
+}
+
+@container (max-width: 340px) {
+  .btnText {
+    display: none;
+  }
+  .actionBtn {
+    padding: 6px 4px;
   }
 }
 

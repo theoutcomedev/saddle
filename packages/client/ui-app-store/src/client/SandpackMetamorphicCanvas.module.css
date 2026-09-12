@@ -6,6 +6,7 @@
   background: var(--dsw-alias-surface-primary);
   position: relative;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .maximized {
@@ -32,6 +33,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 
 .liveBadge {
@@ -157,4 +159,44 @@
 :global(.sp-code-editor) {
   height: 100% !important;
   flex: 1 !important;
+  min-width: 0 !important;
+}
+
+:global(.sp-file-explorer) {
+  flex-shrink: 0 !important;
+}
+
+.btnText {
+  display: inline;
+}
+
+/* Container queries: seamlessly respond to dragging workbench/chat column */
+@container (max-width: 420px) {
+  .btnText {
+    display: none;
+  }
+  .toolbar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .liveBadge {
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+  .segmentBtn {
+    padding: 4px 6px;
+  }
+  :global(.sp-file-explorer) {
+    width: 110px !important;
+    min-width: 110px !important;
+  }
+}
+
+@container (max-width: 320px) {
+  .liveBadge {
+    display: none;
+  }
+  :global(.sp-file-explorer) {
+    display: none !important;
+  }
 }

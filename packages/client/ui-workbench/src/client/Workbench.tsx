@@ -316,13 +316,13 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
                 >
                   <span className={css.tabLabel}>
                     {tab.kind === 'app' ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {typeof tab.params?.appIcon === 'string' && tab.params.appIcon !== 'notepad' ? (
-                          <span style={{ fontSize: 13, lineHeight: 1 }}>{tab.params.appIcon}</span>
+                          <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{tab.params.appIcon}</span>
                         ) : (
-                          <IconListPenOutline16 size={13} />
+                          <span style={{ display: 'inline-flex', flexShrink: 0 }}><IconListPenOutline16 size={13} /></span>
                         )}
-                        <span>{paneLabel(tab.kind, t, tab)}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{paneLabel(tab.kind, t, tab)}</span>
                       </span>
                     ) : (
                       paneLabel(tab.kind, t, tab)
