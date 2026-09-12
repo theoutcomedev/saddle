@@ -45,14 +45,6 @@ const APP_CATALOG: readonly AppCatalogEntry[] = [
     tags: ['simulation', 'emergence', 'canvas', 'physics'],
     description: 'Thousands of particles of several species, each pulled or pushed by its neighbours. Edit the interaction matrix and the ecosystem reinvents itself.',
   },
-  {
-    id: 'metamorphic',
-    name: 'Metamorphic Studio',
-    category: 'AI Apps',
-    icon: '✨',
-    tags: ['metamorphic', 'live-apps', 'react', 'canvas'],
-    description: 'Live interactive React & TypeScript canvas powered by isolated browser runtime. Run apps created by Saddle agents.',
-  },
 ]
 
 function AppIcon({ size = 16, className }: { size?: number; className: string | undefined }) {
