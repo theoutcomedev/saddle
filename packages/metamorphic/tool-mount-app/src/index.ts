@@ -1,7 +1,12 @@
 /**
- * Model-facing metamorphic app mounting tool.
- * Enables the AI agent to synthesize and hot-mount live interactive React/HTML
- * applications executed inside an isolated Sandpack runtime.
+ * Model-facing metamorphic app mounting tool: the agent synthesizes an
+ * interactive app and this mounts it into the user's UI, where the client
+ * renders it inside a sandboxed iframe.
+ *
+ * The canvas it feeds is closed on purpose — React with its hooks, lucide
+ * icons, and Tailwind, compiled from one entry module — so the schema here
+ * names exactly that and nothing more. A self-contained `/index.html` is the
+ * escape hatch for everything else.
  * @module @deepseek-ai/dsh-tool-mount-app
  */
 
@@ -22,8 +27,6 @@ export interface MountAppArgs {
   target?: 'workbench' | 'chat' | 'fullscreen'
   entryFile?: string
   files: Record<string, string>
-  dependencies?: Record<string, string>
-  template?: 'react-ts' | 'react' | 'vanilla'
 }
 
 export type MountAppOutput = {
@@ -34,8 +37,6 @@ export type MountAppOutput = {
   target: 'workbench' | 'chat' | 'fullscreen'
   entryFile: string
   files: Record<string, string>
-  dependencies: Record<string, string>
-  template: 'react-ts' | 'react' | 'vanilla'
   fileCount: number
   timestamp: number
   savedDir?: string
@@ -57,19 +58,21 @@ export function apply(ctx: Context) {
       text: 'When a user asks you to build, create, or morph the UI into an interactive tool, application, or dashboard '
         + '(e.g. workout tracker, financial calculator, runway simulator, bookstore, game, data visualizer, canvas, or form), '
         + 'use the `mount_app` tool to compile and render it live. Provide complete, clean, self-contained runnable React code '
-        + 'in `/App.tsx` styled with Tailwind CSS classes. For icons, use simple inline SVGs or lucide-react. For charts and visualizations, '
-        + 'prefer rendering clean native SVG elements (<svg>, <path>, <rect>, <circle>, gradients, tooltips) directly in React rather than '
-        + 'complex heavyweight charting packages, ensuring fast zero-latency rendering without dependency resolution issues.',
+        + 'in `/App.tsx` styled with Tailwind CSS classes. The canvas provides React 18, its hooks, lucide icons and Tailwind and nothing else: '
+        + 'it resolves no npm packages, so keep the whole app in that one file, or ship a self-contained `/index.html` instead. For icons, use '
+        + 'lucide-react or inline SVG. For charts, render native SVG elements (<svg>, <path>, <rect>, <circle>, gradients, tooltips) directly in React.',
     })
   }
 
   ctx.tools.register(defineTool({
     name: 'mount_app',
     description:
-      'Mount and render a live interactive metamorphic application (React/TypeScript/HTML) directly into the user interface. '
+      'Mount and render a live interactive application (React/TypeScript, or HTML) directly into the user interface. '
       + 'Use this when the user asks to build, create, or morph the UI into an interactive app (e.g. workout tracker, financial calculator, '
-      + 'bookstore, game, data dashboard, interactive canvas, or form). The app will be compiled and executed live in the browser using a sandboxed zero-latency runtime. '
-      + 'Always provide clean, complete, runnable code in /App.tsx with Tailwind CSS utility classes. Prefer native SVG elements for charts and graphs.',
+      + 'bookstore, game, data dashboard, interactive canvas, or form). The app is compiled and executed live in the browser inside a sandboxed iframe. '
+      + 'Provide clean, complete, runnable code in /App.tsx with Tailwind CSS utility classes. The canvas serves React 18, its hooks, lucide icons and '
+      + 'Tailwind: it loads no npm package and one entry module, so do not split the app across files or reach for a charting library — render native '
+      + 'SVG instead. For anything the React path cannot express, pass a self-contained /index.html, which becomes the document itself.',
     parameters: {
       title: {
         type: 'string',
@@ -93,17 +96,9 @@ export function apply(ctx: Context) {
         type: 'object',
         additionalProperties: true,
         required: true,
-        description: 'Map of virtual file paths to their full source code content. Must include at least /App.tsx (or /index.html).',
-      },
-      dependencies: {
-        type: 'object',
-        additionalProperties: true,
-        description: 'Optional NPM dependencies (package name -> version, e.g. {"lucide-react": "^0.454.0", "recharts": "^2.13.0", "canvas-confetti": "^1.9.4"}).',
-      },
-      template: {
-        type: 'string',
-        enum: ['react-ts', 'react', 'vanilla'],
-        description: 'Sandpack template environment. Defaults to "react-ts".',
+        description: 'Map of virtual file paths to their full source code content. Include /App.tsx (the entry: a default export or an App component). '
+          + 'Extra files are saved and shown in the app\'s Code view but are not importable, so keep the app in one file; /index.html is rendered as a complete '
+          + 'standalone document instead, which is the way to ship anything the React canvas cannot express.',
       },
     },
     output: {
@@ -117,8 +112,6 @@ export function apply(ctx: Context) {
           target: { type: 'string', required: true },
           entryFile: { type: 'string', required: true },
           files: { type: 'object', additionalProperties: true, required: true },
-          dependencies: { type: 'object', additionalProperties: true, required: true },
-          template: { type: 'string', required: true },
           fileCount: { type: 'integer', required: true },
           timestamp: { type: 'number', required: true },
           savedDir: { type: 'string' },
@@ -138,7 +131,6 @@ export function apply(ctx: Context) {
       const appId = `app-${slug}-${Date.now()}`
       const target = args.target || 'workbench'
       const entryFile = typeof args.entryFile === 'string' && args.entryFile ? args.entryFile : '/App.tsx'
-      const template = args.template || 'react-ts'
 
       // Normalize virtual files: guarantee keys start with '/'
       const files: Record<string, string> = {}
@@ -153,16 +145,6 @@ export function apply(ctx: Context) {
         const firstContent = first !== undefined ? files[first] : undefined
         if (firstContent !== undefined) {
           files['/App.tsx'] = firstContent
-        }
-      }
-
-      // Default dependencies to include lucide-react if none specified
-      const dependencies: Record<string, string> = {
-        'lucide-react': '^0.454.0',
-      }
-      if (args.dependencies) {
-        for (const [pkg, ver] of Object.entries(args.dependencies)) {
-          dependencies[pkg] = ver
         }
       }
 
@@ -191,8 +173,6 @@ export function apply(ctx: Context) {
         target,
         entryFile,
         files,
-        dependencies,
-        template,
         fileCount: Object.keys(files).length,
         timestamp: Date.now(),
         ...(savedDir !== undefined ? { savedDir } : {}),

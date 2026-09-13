@@ -46,7 +46,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@codesandbox/sandpack-react": "^2.20.0",
     "clsx": "^2.0.0"
   },
   "peerDependencies": {

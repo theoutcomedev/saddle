@@ -73,8 +73,5 @@
     "lib/invariant.js",
     "lib/client.js",
     "lib/types/**/*.d.ts"
-  ],
-  "dependencies": {
-    "@codesandbox/sandpack-react": "^2.20.0"
-  }
+  ]
 }

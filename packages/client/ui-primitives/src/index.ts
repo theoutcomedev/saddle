@@ -30,6 +30,10 @@ export { Tooltip } from './Tooltip.tsx'
 export type { TooltipSide } from './Tooltip.tsx'
 export { Toast } from './Toast.tsx'
 export { writeClipboard } from './clipboard.ts'
+export {
+  buildMetamorphicSrcDoc, prepareMetamorphicEntry, METAMORPHIC_SANDBOX, METAMORPHIC_MOUNT_SOURCE,
+} from './metamorphic-runtime.ts'
+export type { PreparedEntry } from './metamorphic-runtime.ts'
 export { JsonTree } from './JsonTree.tsx'
 export type { JsonTreeProps, JsonTreeLabels } from './JsonTree.tsx'
 export { TerminalBlock, DEFAULT_TERMINAL_MAX_LINES } from './TerminalBlock.tsx'

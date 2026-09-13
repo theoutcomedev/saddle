@@ -1,6 +1,6 @@
 ---
 name: saddle-apps
-description: Build, mount, and ship interactive apps that show up in Saddle's Apps catalog and run in the Workbench pane — self-contained HTML apps that cannot trip the metamorphic compile wrapper, wired with the standard top header, Dock button, and Maximize-in-Workbench control. Use whenever asked to build an app, mount an app, add something to "Apps", make an app work in the Workbench, or fix an app that shows "Compilation Error".
+description: Build, mount, and ship interactive apps that show up in Saddle's Apps catalog and run in the Workbench pane — either React entries for the metamorphic canvas or self-contained HTML documents, wired with the standard top header, Dock button, and Maximize-in-Workbench control. Use whenever asked to build an app, mount an app, add something to "Apps", make an app work in the Workbench, or fix an app that shows "Compilation Error".
 ---
 
 # Building Apps for Saddle (Apps catalog + Workbench)
@@ -11,44 +11,42 @@ An app in Saddle has three surfaces, and getting one right does not get the othe
 2. **The Apps catalog** — the sidebar "Apps" storefront, driven by `APP_CATALOG` in `ui-app-store`.
 3. **The Workbench pane** — docked app column, or full screen, hosted by `WorkbenchAppHost` / `renderActiveApp`.
 
-This skill covers the parts that are not obvious: the compiler that rejects React entries, the escape hatch that bypasses it, and the exact wiring that makes an app look and behave like a first-party one.
+This skill covers the parts that are not obvious: exactly what the canvas serves, the escape hatch for everything it does not, and the wiring that makes an app look and behave like a first-party one.
 
 ## Non-negotiables
 
-- Ship **one self-contained `/index.html`** (vanilla JS/CSS, no imports, no CDN). This bypasses the wrapper entirely and cannot fail to compile. See *The escape hatch*.
-- Pass **exactly one key** to `mount_app`. Extra keys become real files on disk, and two keys that resolve to the same entry emit the module twice.
+- **Pick one of two shapes.** A React entry (`/App.tsx`) compiled by the canvas, or **one self-contained `/index.html`** (vanilla JS/CSS, no imports, no CDN) returned verbatim. The HTML shape cannot fail to compile; the React shape is the one that can hold real state and reuse primitives. See *What the canvas serves*.
+- Pass **exactly one key** to `mount_app`. The canvas executes one entry module; extra keys are saved and listed in the app's Code view but are not importable, and two keys that resolve to the same entry emit the module twice.
 - When you add an app to the catalog, wire **all three** paths: catalog entry, docked host, fullscreen host — plus the card icon.
 - A docked app must have **Maximize in Workbench** and must **scroll** when the pane is narrow. Both are covered below.
 - Verify from the real served bundle and, when possible, in the real GUI. Never claim a UI change works because the build succeeded.
 
-## Why React entries fail: the wrapper
+## What the canvas serves
 
-`buildMetamorphicSrcDoc(files, entryFile, title)` (in `@deepseek-ai/dsh-client-ui-app-store/lib/client.js`) builds an iframe document that loads React 18 UMD + Babel, then:
+`buildMetamorphicSrcDoc(files, entryFile, title)` — in ui-primitives'
+`metamorphic-runtime.ts`, used by both the chat card and the Workbench host —
+builds one `srcdoc` document: pinned React 18 UMD + ReactDOM + lucide + Babel
+standalone + the Tailwind CDN, a memory-backed `localStorage` for the opaque
+origin, a lucide icon proxy, and an error surface.
 
-```js
-let processedCode = ${JSON.stringify(entryCode)};
-// import rewrites:
-processedCode = processedCode.replace(/import\s+\{([^}]+)\}\s+from\s+['"]lucide-react['"];?/g, 'const { $1 } = window.__lucideProxy;');
-processedCode = processedCode.replace(/import\s+React\s*(?:,\s*\{([^}]+)\})?\s*from\s+['"]react['"];?/g, (m, g1) => g1 ? 'const { ' + g1 + ' } = React;' : '');
-processedCode = processedCode.replace(/import\s+\{([^}]+)\}\s+from\s+['"]react['"];?/g, 'const { $1 } = React;');
-// export rewrites: `export default function App` -> `function App`
-const evaluateModule = new Function(
-  'React','useState','useEffect','useMemo','useRef','useCallback','LucideIcons',
-  processedCode + '; return typeof App !== "undefined" ? App : ...'
-);
-```
+The entry module is compiled by the real compiler with the **classic** React
+runtime (`React.createElement`, never `react/jsx-runtime`) and mounted through
+a component-level error boundary. Its imports are resolved before compilation:
 
-`new Function` parameters share scope with the body. So `import { useEffect } from "react"` becomes `const { useEffect } = React;` **inside a function that already has a `useEffect` parameter**:
+| In the entry | Result |
+| --- | --- |
+| `import React`, `import { useState }`, any `react` / `react-dom` / `react/jsx-runtime` form | imports removed; `React`, `ReactDOM`, every hook and the common `React.*` members are in scope |
+| `import { Sparkles } from 'lucide-react'` | `const { Sparkles } = __saddleLucide` (lucide's icon set, rendered as SVG) |
+| `import './styles.css'` | removed |
+| `export default function App` / `export function App` / `export default Card` | mounted as the component |
+| anything else — `recharts`, `./Helper`, another package | **refused with a card naming the specifier**, instead of a parser error |
 
-```
-SyntaxError: Identifier 'useEffect' has already been declared
-```
+So a canonical React entry compiles: JSX, TypeScript annotations, hooks by name,
+and lucide icons all work. What does not exist is a module graph — one entry
+file, no package resolution — and the canvas is deliberately closed, because
+anything it loads has to come from a CDN this iframe is allowed to reach.
 
-That is the "Compilation Error" users hit. It is not your app's bug; it is any entry file that imports hooks by name. Other members of the family: `Missing initializer in const declaration` (a truncated/oddly-transformed entry), `Cannot use import statement outside a module`.
-
-If you must stay React (do not, unless asked): import **only** the default — `import React from "react"` — and call `React.useState(...)`, `React.useEffect(...)`, etc. The `new Function` scope provides exactly `React, useState, useEffect, useMemo, useRef, useCallback, LucideIcons` — **not** `useReducer`, `useContext`, `useCallback`-adjacent APIs. Icons may be imported from `lucide-react` (rewritten to a proxy).
-
-## The escape hatch (preferred)
+## The escape hatch
 
 The first line of the builder:
 
@@ -66,12 +64,12 @@ So: write the app as one HTML file. `references/app-shell.html` is a working sta
 
 ```jsonc
 // mount_app
-{ "title": "...", "files": { "/index.html": "<the whole document>" }, "entryFile": "/index.html", "template": "vanilla", "target": "workbench" }
+{ "title": "...", "files": { "/index.html": "<the whole document>" }, "entryFile": "/index.html", "target": "workbench" }
 ```
 
 - Keys become real files at `/root/<workspace>/.saddle/apps/<slug>/`. A key like `"<//App.tsx"` writes a junk file and directory — never pass placeholder keys.
 - The tool result reports **`(N files)`**. That N must equal your key count. `(2 files)` from a one-app payload means you passed a stray key, and the client will emit the entry module twice.
-- The card renders from `data.meta` (`presentationMeta`) on the tool result: `{ appId, title, description, target, entryFile, files, dependencies, template, fileCount, savedDir }`. If `files` is absent or truncated there, the card shows text and **no app at all** — verify with `scripts/read-session-log.mjs` when a mount "succeeds" but nothing renders.
+- The card renders from `data.meta` (`presentationMeta`) on the tool result: `{ appId, title, description, target, entryFile, files, fileCount, savedDir }`. If `files` is absent or truncated there, the card shows text and **no app at all** — verify with `scripts/read-session-log.mjs` when a mount "succeeds" but nothing renders.
 - Mount cards embed a snapshot of the files. **Updating the app later does not update old cards** — tell the user to use the Apps entry (or re-mount).
 
 ## Making it a first-class app (Apps + Workbench)
@@ -287,7 +285,7 @@ main { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-hei
 4. **Pointer events touch support**:
    Never check `if (e.buttons !== 0)` for pointer moves without also checking `|| e.pointerType === "touch"`. On mobile touch devices, `e.buttons` is 0 during touch moves! Always release pointer capture on both `pointerup` and `pointercancel`.
 5. **Iframe Sandbox**:
-   Always specify `sandbox="allow-scripts allow-modals allow-same-origin"` on the host iframe. Without `allow-same-origin`, pointer capture and touch gestures can fail due to opaque origin restrictions in mobile browsers.
+   The canvas mounts with `sandbox="allow-scripts allow-modals"` — `allow-same-origin` is deliberately absent so a generated app cannot reach Saddle's storage, DOM, or same-origin API. That makes the document an opaque origin: the canvas installs a memory-backed `localStorage`/`sessionStorage`, and anything you write must not assume a real one. If a pointer-heavy app misbehaves on mobile **do not restore `allow-same-origin`** — report it; the durable fix is serving the canvas from its own origin.
 6. **Stacking Context & Pointer Events**:
    Ensure `.detailsCol` has `pointer-events: auto;` and `z-index: 50;` (strictly above `.mobileBackdrop` at `z-index: 40;`) so touches and clicks are never intercepted by backdrop overlays.
 
@@ -346,7 +344,7 @@ Do not stop at "the build succeeded". In rough order of cost:
 ## Gotcha checklist
 
 - [ ] One key in `mount_app.files`; `(1 files)` in the result.
-- [ ] App is a single self-contained `/index.html` with no imports and no CDN.
+- [ ] The app is one of the two supported shapes: a single React entry (`/App.tsx`) or one self-contained `/index.html` with no imports and no CDN.
 - [ ] Catalog entry + card icon + docked host + fullscreen host all wired.
 - [ ] `params?.files` branch in `WorkbenchAppHost` left intact.
 - [ ] Header has title, maximize (docked), dock, close; Escape restores.

@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom'
 import { Button, IconCloseOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-host-app-store/remote'
 import css from './app-store.module.css'
-import { SandpackMetamorphicCanvas } from './SandpackMetamorphicCanvas.tsx'
+import { MetamorphicCanvas } from './MetamorphicCanvas.tsx'
 import { PARTICLE_LIFE_HTML } from './particle-life-app.ts'
 
 /** One installable app in the storefront catalog. */
@@ -677,12 +677,10 @@ export function WorkbenchAppHost({
   }
   if (appId === 'metamorphic' || params?.files) {
     return (
-      <SandpackMetamorphicCanvas
+      <MetamorphicCanvas
         title={params?.title ? String(params.title) : 'Metamorphic Studio'}
         description={params?.description ? String(params.description) : undefined}
         files={params?.files as Record<string, string> | undefined}
-        dependencies={params?.dependencies as Record<string, string> | undefined}
-        template={params?.template as 'react-ts' | 'react' | 'vanilla' | undefined}
         entryFile={params?.entryFile ? String(params.entryFile) : undefined}
       />
     )
@@ -720,12 +718,10 @@ export function AppsEntry({ wide = true, appStore }: { wide?: boolean; appStore:
       case 'notepad': return <NotepadApp appStore={appStore} mode="fullscreen" onClose={closeAll} />
       case 'particle-life': return <ParticleLifeApp mode="fullscreen" onClose={closeAll} />
       case 'metamorphic': return (
-        <SandpackMetamorphicCanvas
+        <MetamorphicCanvas
           title={appParams?.title ? String(appParams.title) : 'Metamorphic App'}
           description={appParams?.description ? String(appParams.description) : undefined}
           files={appParams?.files as Record<string, string> | undefined}
-          dependencies={appParams?.dependencies as Record<string, string> | undefined}
-          template={appParams?.template as 'react-ts' | 'react' | 'vanilla' | undefined}
           entryFile={appParams?.entryFile ? String(appParams.entryFile) : undefined}
           isMaximized
           onToggleMaximize={closeAll}
