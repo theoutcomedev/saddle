@@ -3,6 +3,7 @@
  */
 
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { Button, IconCloseOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DeployedAppsStore } from './apps-store.ts'
@@ -59,7 +60,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
     window.dispatchEvent(new CustomEvent('workbench:open-browser', { detail: { url, openDrawer: true } }))
   }
 
-  return (
+  return createPortal(
     <div className={css.mask} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="deployed-apps-title">
         <div className={css.header}>
@@ -206,6 +207,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

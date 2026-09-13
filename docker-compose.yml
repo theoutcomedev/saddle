@@ -79,7 +79,14 @@ services:
       # https is added beside it, where the admin password belongs. Separate
       # routers rather than one router on both entrypoints, because TLS options
       # belong to the TLS entrypoint only.
-      - "traefik.http.routers.saddle-https.rule=PathPrefix(`/`)"
+      #
+      # The https rule names the admin host explicitly: a certificate request
+      # needs a domain, and a PathPrefix-only rule gives the resolver none, which
+      # is why the first attempt served Traefik's default self-signed cert. Other
+      # hosts reach their own routers over http as they do today; giving a
+      # deployed app https means adding `tls.certresolver=le` and a Host rule to
+      # ITS router, which issues a certificate for that name.
+      - "traefik.http.routers.saddle-https.rule=Host(`91.99.165.95.sslip.io`)"
       - "traefik.http.routers.saddle-https.priority=1"
       - "traefik.http.routers.saddle-https.entrypoints=websecure"
       - "traefik.http.routers.saddle-https.tls.certresolver=le"

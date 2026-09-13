@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { Button, IconCloseOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ScheduledTasksStore } from './schedules-store.ts'
@@ -187,7 +188,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
 
   const activeCount = tasks.filter(t => t.enabled).length
 
-  return (
+  return createPortal(
     <div className={css.mask} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className={css.modal} role="dialog" aria-modal="true" aria-labelledby="schedules-title">
         <div className={css.header}>
@@ -715,6 +716,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
