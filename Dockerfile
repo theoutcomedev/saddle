@@ -4,6 +4,12 @@ WORKDIR /app
 RUN apk add --no-cache git
 RUN npm install -g pnpm
 
+# The workspace build type-checks every package, which exceeds Node's default
+# heap limit on a small host; the type surface grows with each dependency bump
+# (the pi-ai 0.85.1 release was the first to abort the build here). The build
+# stage only: the runtime stage below copies /app, not this environment.
+ENV NODE_OPTIONS=--max-old-space-size=6144
+
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm run build
