@@ -3238,6 +3238,14 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         case 'goals/resume': return Promise.resolve(goalRemotes.resume(sessionId, args.ref as FxGoalRef))
         case 'goals/complete': return Promise.resolve(goalRemotes.complete(sessionId, args.ref as FxGoalRef))
         case 'goals/clear': return Promise.resolve(goalRemotes.clear(sessionId, args.ref as FxGoalRef))
+        // The Cordis inspector reads the frame inventory on boot and syncs its
+        // inspect manifest. The fixture stands for the empty composition: no
+        // dynamic Plugins and nothing to inspect, which the panel renders as
+        // such instead of reporting a missing endpoint as an error.
+        case 'dynamicCordisRunner/inventory':
+          return Promise.resolve({ ok: true as const, value: [] })
+        case 'dynamicCordisRunner/syncInspectManifest':
+          return Promise.resolve({ ok: true as const, value: null })
         default:
           return Promise.reject(new Error(`fixture connection RPC endpoint ${JSON.stringify(endpoint)} is unavailable`))
       }
