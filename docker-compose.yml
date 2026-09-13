@@ -9,13 +9,26 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=saddle-network"
       - "--entrypoints.web.address=:80"
+      # TLS. The admin login posts the password as JSON, so an http-only origin
+      # puts it on the wire in clear text.
+      - "--entrypoints.websecure.address=:443"
+      # Let's Encrypt over the HTTP-01 challenge, which rides the web entrypoint:
+      # :80 must stay published for issuance and renewal. sslip.io resolves the
+      # public hosts this deployment serves, so no DNS work is needed.
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.storage=/acme/acme.json"
+      # Uncomment to receive expiry notices from Let's Encrypt.
+      # - "--certificatesresolvers.le.acme.email=you@example.com"
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080"
     environment:
       - DOCKER_API_VERSION=1.45
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik-acme:/acme"
     networks:
       - saddle-network
     restart: unless-stopped
@@ -60,6 +73,16 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.saddle.rule=PathPrefix(`/`)"
       - "traefik.http.routers.saddle.priority=1"
+      - "traefik.http.routers.saddle.entrypoints=web"
+      # Two routers over one service: plain http keeps working exactly as before
+      # (embedded http app panes would otherwise be blocked as mixed content) and
+      # https is added beside it, where the admin password belongs. Separate
+      # routers rather than one router on both entrypoints, because TLS options
+      # belong to the TLS entrypoint only.
+      - "traefik.http.routers.saddle-https.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.saddle-https.priority=1"
+      - "traefik.http.routers.saddle-https.entrypoints=websecure"
+      - "traefik.http.routers.saddle-https.tls.certresolver=le"
       - "traefik.http.services.saddle.loadbalancer.server.port=3080"
 
   postgres:
@@ -120,3 +143,5 @@ volumes:
   redis-data:
   saddle-data:
   saddle-root:
+  # ACME account key + issued certificates, so renewals survive recreates.
+  traefik-acme:

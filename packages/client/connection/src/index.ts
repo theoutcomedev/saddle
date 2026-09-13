@@ -67,26 +67,31 @@ export const Config: z<ConnectionConfig> = z.object({
 })
 
 /**
- * Methods gated to loopback even on a trusted-host deployment. Native dialogs
- * act on the host machine; the settings and credential domains mutate the
- * user's configuration and secret store, and READING them is equally
- * privileged — `settings.describe` returns every exposed namespace's
- * configuration and `credentials.describe` reports whether an arbitrary
- * environment-variable name is configured and where from, which is
- * reconnaissance no anonymous caller should have. `trustedHosts` is a
- * DNS-rebinding fence, explicitly not authentication, so the whole
- * configuration plane stays loopback-same-origin until a real authentication
- * layer exists. `llm.discoverModels` belongs to that plane on both counts: it
- * carries a draft credential, and it makes the HOST issue a GET to a URL the
- * caller chose and reports back the status or the parsed body — an anonymous
- * LAN caller would have a probe for whatever the host can reach and the
- * browser cannot.
+ * Methods gated to loopback even on a trusted-host deployment: the ones whose
+ * meaning is inseparable from the host machine, or whose reply is a reading of
+ * what the host can reach.
  *
- * The model catalog (`llm.providers`, `llm.models`) is deliberately NOT here:
- * it carries provider ids, display names, and model lists — no endpoints,
- * keys, or key state — and a LAN client's model picker legitimately needs it.
+ * Native dialogs and openers (`host.pickDirectory`, `host.openPath`,
+ * `agentPreset.openDocument`) act on the SERVER's desktop. A remote caller
+ * asking to open a path means "show it to me", which the Workbench pane already
+ * does; acting on the host instead is never what they meant.
+ * `llm.discoverModels` makes the HOST issue a GET to a URL the caller chose and
+ * reports the status or the parsed body back, so a non-loopback caller would
+ * hold a probe for everything the host can reach and their browser cannot.
+ *
+ * The configuration plane (`settings.*`, `credentials.*`, `agentPreset.read`,
+ * `agentPreset.copy`, `agentPreset.remove`) is deliberately NOT here: this
+ * deployment is configured from its public origin, and authentication — the
+ * admin password on every request — is the gate that replaces the loopback
+ * assumption `trustedHosts` never was. The model catalog
+ * (`llm.providers`, `llm.models`) stays reachable for the same reason.
  */
-const PRIVILEGED_METHODS = new Set<string>([])
+const PRIVILEGED_METHODS = new Set<string>([
+  'host.pickDirectory',
+  'host.openPath',
+  'agentPreset.openDocument',
+  'llm.discoverModels',
+])
 
 /**
  * Mounts the API gateway under the browser transport prefix. Every request on

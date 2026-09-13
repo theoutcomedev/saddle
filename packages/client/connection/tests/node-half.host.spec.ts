@@ -167,27 +167,35 @@ describe('connection node half', () => {
     await dispose()
   })
 
-  it('admits a declared trusted authority to the configuration plane', async () => {
+  it('pins the host-machine methods to loopback and admits a declared authority to the configuration plane', async () => {
     const { routes, dispose } = await mounted({ trustedHosts: ['harness.example'] })
-    // This deployment keeps the privileged set empty on purpose: the trust list
-    // is the fence, so a declared authority reaches the native dialogs, the
-    // settings and credential plane, and the agent-preset roster. The
-    // deployment's own authentication protects them, and the untrusted shape is
-    // still refused before the bridge runs (asserted above).
+    // Loopback-only: the methods that act on the server's desktop or make the
+    // host fetch a caller-chosen URL. A declared authority is still refused.
     for (const method of [
-      'host.pickDirectory', 'host.openPath',
+      'host.pickDirectory', 'host.openPath', 'agentPreset.openDocument', 'llm.discoverModels',
+    ]) {
+      const denied = fakeResponse()
+      await routes[0]!.handler(
+        fakeRequest({ host: 'harness.example' }, `${API_PATH}/${method}`),
+        denied.response,
+      )
+      expect([method, denied.state.status, denied.state.body]).toEqual([method, 403, 'forbidden'])
+    }
+    // The configuration plane and the model catalog pass the fence: this
+    // deployment is configured from its public origin and authenticates every
+    // request, which is the gate trustedHosts never was. 404 is the carrier's
+    // answer for a path the empty proxy has no method for.
+    for (const method of [
       'settings.describe', 'settings.openDocument', 'settings.update', 'settings.replace', 'settings.mutate',
       'credentials.describe', 'credentials.set', 'credentials.unset',
-      'llm.discoverModels',
-      'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
+      'agentPreset.read', 'agentPreset.copy', 'agentPreset.remove',
+      'llm.providers', 'llm.models',
     ]) {
       const passed = fakeResponse()
       await routes[0]!.handler(
         fakeRequest({ host: 'harness.example' }, `${API_PATH}/${method}`),
         passed.response,
       )
-      // 404 is the carrier's answer for a path the empty proxy has no method
-      // for: proof the fence let the request through.
       expect([method, passed.state.status]).toEqual([method, 404])
     }
     await dispose()
@@ -454,7 +462,7 @@ describe('connection node half over a real HTTP server', () => {
     })
   }
 
-  it('admits a declared LAN authority to every method, over real HTTP', async () => {
+  it('splits the loopback-only methods from the configuration plane for a declared LAN authority, over real HTTP', async () => {
     // The fence's input is a real IncomingMessage parsed by Node from the
     // wire, not a hand-assembled object: the Host header a LAN browser sends
     // is exactly what decides loopback-only here, so the boundary is asserted
@@ -462,16 +470,21 @@ describe('connection node half over a real HTTP server', () => {
     const { routes, dispose } = await mounted({ trustedHosts: ['harness.example'] })
     const { port, close } = await serve(routes)
     try {
-      // One declared authority, every method: the configuration plane, the
-      // native dialogs, the agent-preset roster, and the model catalog all
-      // reach the carrier (404 is the empty proxy's answer — the fence passed).
-      // Authenticating the caller is the deployment's job, not this fence's.
+      // The host-machine methods stay loopback-only: a declared authority is
+      // refused even over a real parsed request.
+      for (const method of [
+        'host.pickDirectory', 'host.openPath', 'agentPreset.openDocument', 'llm.discoverModels',
+      ]) {
+        expect([method, await call(port, method, 'harness.example')]).toEqual([method, 403])
+      }
+      // Everything else reaches the carrier — the configuration plane the
+      // deployment serves from its public origin, the roster reads and writes,
+      // and the model catalog. 404 is the empty proxy's answer; authenticating
+      // the caller is the deployment's job, not this fence's.
       for (const method of [
         'settings.describe', 'settings.openDocument', 'settings.update', 'settings.replace', 'settings.mutate',
         'credentials.describe', 'credentials.set', 'credentials.unset',
-        'host.pickDirectory', 'host.openPath',
-        'llm.discoverModels',
-        'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
+        'agentPreset.read', 'agentPreset.copy', 'agentPreset.remove',
         'llm.providers', 'llm.models', 'agentPreset.list', 'agentPreset.select',
       ]) {
         expect([method, await call(port, method, 'harness.example')]).toEqual([method, 404])
