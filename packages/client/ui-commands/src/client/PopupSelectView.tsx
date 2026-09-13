@@ -51,7 +51,9 @@ export function PopupSelectView({ popup, t }: PopupSelectViewProps) {
   // the browser never scrolls the active row into view — do it here.
   useEffect(() => {
     if (active === null) return
-    cardRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
+    const selectedRow = cardRef.current?.querySelector('[aria-selected="true"]')
+    // jsdom (the unit and assembled lanes) has no scrollIntoView on elements.
+    if (typeof selectedRow?.scrollIntoView === 'function') selectedRow.scrollIntoView({ block: 'nearest' })
   }, [active])
 
   // Focus ownership: the search input grabs on open, and ANY outside

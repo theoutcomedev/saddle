@@ -130,7 +130,11 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
   const activeTabRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    activeTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    // jsdom (the assembled lane) has no scrollIntoView on elements; browsers all do.
+    const activeTab = activeTabRef.current
+    if (typeof activeTab?.scrollIntoView === 'function') {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    }
   }, [activeId])
 
   const openPane = useCallback((kind: WorkbenchPaneKind, params?: Record<string, unknown>): void => {
