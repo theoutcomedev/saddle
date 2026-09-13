@@ -69,19 +69,22 @@ import { REPO_ROOT, requireDist } from './support.ts'
 
 // Host-side web e2e cannot import a browser package: doing so would pull that
 // package's complete TS project into this graph. Mirrored from
-// packages/client/ui-settings-models/src/onboarding-copy.ts; drift makes the
-// default pre-acknowledgement stop suppressing the notice and fails loudly.
+// packages/client/ui-settings-models/src/onboarding-copy.ts, and the mirror is
+// checked against that source by welcome-notice-mirror.spec.ts: the
+// acknowledgement is compared for exact equality, so a stale version here
+// silently stops suppressing the notice and its mask then swallows the clicks
+// every recorded scenario makes.
 // import {
 //   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE,
 //   WELCOME_NOTICE_VERSION, WELCOME_NOTICE_COPY,
 // } from '@deepseek-ai/dsh-client-ui-settings-models'
 export const WELCOME_NOTICE_SETTINGS_NAMESPACE = 'ui-onboarding'
 export const WELCOME_NOTICE_ACK_FIELD = 'welcomeNoticeVersion'
-export const WELCOME_NOTICE_VERSION = '2026-08-13.1'
+export const WELCOME_NOTICE_VERSION = '2026-08-26.1'
 export const WELCOME_NOTICE_COPY = {
   zh: {
-    title: '内测声明',
-    body: 'DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。',
+    title: 'Saddle OS 开发者预览版',
+    body: '欢迎来到 Saddle OS。我们的多态 UI 引擎目前正处于高速迭代的开发者预览阶段。系统核心 API 和动态生成组件将在未来几个月内快速演进。\n\n我们期待与您一起打破软件边界，共同构建未来的智能交互体验。准备好掌控一切了吗？',
     continueLabel: '继续',
   },
 } as const

@@ -228,7 +228,9 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await ensureSeedOpen(page)
     await page.getByRole('tab', { name: 'Trajectory' }).click()
     await page.waitForTimeout(100)
-    const overlayLayout = await page.getByRole('table').evaluate((table) => {
+    // Scope to the conversation: the workbench dock always mounts a files pane,
+    // whose directory table would otherwise make the role locator ambiguous.
+    const overlayLayout = await page.locator('[data-conversation-scroll]').getByRole('table').evaluate((table) => {
       const host = table.closest('[data-conversation-scroll]')
       const seat = host?.querySelector('[data-composer-seat]') ?? null
       const pane = table.parentElement
@@ -256,7 +258,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     })
     // Turn rules partition the ledger without restoring a separate header row.
     await expect.poll(() => page.locator('tr[data-turn-start="true"]').count(), { timeout: 15_000 }).toBe(2)
-    await expect.poll(() => page.getByRole('columnheader').count(), { timeout: 10_000 }).toBe(0)
+    await expect.poll(() => page.locator('[data-conversation-scroll]').getByRole('columnheader').count(), { timeout: 10_000 }).toBe(0)
     await page.locator('tr[data-kind="tool"]').first().click()
     const details = page.getByRole('complementary', { name: 'Event details' })
     await expect.poll(() => details.count(), { timeout: 10_000 }).toBe(1)
@@ -288,38 +290,31 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await details.getByRole('button', { name: 'Close details' }).click()
   }, 60_000)
 
-  it.skipIf(MODE === 'record')('downloads through the Session Header and /export with one dialog', async () => {
+  it.skipIf(MODE === 'record')('downloads through the session row menu and /export with one dialog', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-navigation-export'))
     await ensureSeedOpen(page)
-    const exportButton = page.getByRole('button', { name: 'Session log' })
-    expect(await exportButton.isDisabled()).toBe(false)
-    const header = exportButton.locator('xpath=ancestor::header[1]')
-    const [buttonBox, headerBox] = await Promise.all([
-      exportButton.boundingBox(), header.boundingBox(),
-    ])
-    if (buttonBox === null || headerBox === null) {
-      throw new Error('Session Header export geometry is unavailable')
-    }
-    expect(headerBox.x + headerBox.width - (buttonBox.x + buttonBox.width)).toBeLessThanOrEqual(32)
-    const responsePromise = page.waitForResponse(response =>
-      response.request().method() === 'HEAD'
-      && new URL(response.url()).pathname === '/api/session.export', { timeout: 30_000 })
-    const downloadPromise = page.waitForEvent('download', { timeout: 30_000 })
-    await exportButton.click()
-    const response = await responsePromise
-    expect(response.status()).toBe(200)
-    const download = await downloadPromise
-    expect(download.suggestedFilename()).toMatch(/^dsh-session-.+\.zip$/)
-    const dialog = page.getByRole('dialog', { name: 'Session download started' })
-    await dialog.waitFor({ timeout: 30_000 })
-    // The real host streamed the ZIP; its root entry is the persisted log
-    // text verbatim (the assembled seam: real route, real persistence read).
+    // Affordance 1: the sidebar session row menu. The header button this
+    // scenario used to drive is gone (session-log-export's HeaderAction renders
+    // only the dialog now), and the menu's Export is a plain anchor download:
+    // the same route and filename, with no dialog and no HEAD preflight.
+    // Treeitem 0 is the workspace group header; the seeded session is the row
+    // under it, whose verbs are hover-revealed.
+    const sessionRow = page.locator('[role="treeitem"]').nth(1)
+    await sessionRow.waitFor({ timeout: 15_000 })
+    await sessionRow.hover()
+    await sessionRow.getByRole('button', { name: /Session actions for/ }).click({ force: true })
+    const menuDownloadPromise = page.waitForEvent('download', { timeout: 30_000 })
+    await page.getByRole('menuitem', { name: 'Session log' }).click()
+    const download = await menuDownloadPromise
+    expect(download.suggestedFilename()).toMatch(/^dsh-session-.+[.]zip$/)
+    expect(await page.getByRole('dialog', { name: 'Session download started' }).count()).toBe(0)
+    // The real host streamed the ZIP; its root entry is the persisted log text
+    // verbatim (the assembled seam: real route, real persistence read).
     const files = unzipSync(await readFile(await download.path()))
     expect(Object.keys(files)).toEqual(['session.jsonl'])
     const content = strFromU8(files['session.jsonl'] as Uint8Array)
-    expect(content.split('\n')[0]).toContain(SEED_ID)
+    expect(content.split(String.fromCharCode(10))[0]).toContain(SEED_ID)
     expect(content).toContain('FIRST_DONE')
-    await dialog.getByText('Close', { exact: true }).click()
 
     const observer = await newEnglishPage(browser)
     const observerTripwire = watchConsole(observer)
@@ -397,7 +392,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await expect.poll(() => page.locator('tr[data-timeline-focus]').count(), { timeout: 10_000 }).toBe(0)
   }, 60_000)
 
-  it.skipIf(MODE === 'record')('bash and file-path rows leave the default details column closed', async () => {
+  it.skipIf(MODE === 'record')('bash rows leave the default details column closed; file-path rows reveal the workbench', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-navigation-details'))
     await ensureSeedOpen(page)
     const bashRow = page.locator('[data-sample="bash"]').first()
@@ -412,7 +407,8 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     // details either — the expanded terminal card is read in place.
     await page.locator('[data-sample="bash"] ~ div [data-terminal] [class*="_copyButton_"]').first().click()
     await expect.poll(() => frame.getAttribute('data-details-collapsed'), { timeout: 5_000 }).toBe('true')
-    // Read summaries are host-open file links; they also must not open details.
+    // Read summaries are host-open file links: they open the path on the host and
+    // reveal the workbench, whose files pane is where the file is shown.
     const fileLink = page.locator('[data-variant="read"] button').first()
     await fileLink.waitFor({ timeout: 10_000 })
     const openPath = vi.spyOn(scaffold.ctx.apiProxy.host, 'openPath')
@@ -422,7 +418,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
       }))
     try {
       await fileLink.click()
-      await expect.poll(() => frame.getAttribute('data-details-collapsed'), { timeout: 5_000 }).toBe('true')
+      await expect.poll(() => frame.getAttribute('data-details-open'), { timeout: 5_000 }).toBe('true')
     } finally {
       openPath.mockRestore()
     }
