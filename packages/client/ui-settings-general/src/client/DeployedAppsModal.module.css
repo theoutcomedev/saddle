@@ -28,12 +28,14 @@
 .header {
   flex: none;
   display: flex;
-  align-items: flex-start;
+  /* Title and controls share one optical line, as on the Scheduled Tasks modal;
+     top-aligning them left the icons sitting above the title's baseline. */
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   height: 54px;
   /* Left edge aligns with the content cards (both use 24px). */
-  padding: 20px 14px 8px 24px;
+  padding: 12px 14px 12px 24px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
@@ -305,9 +307,8 @@
   }
   .header {
     height: auto;
-    padding-top: max(20px, env(safe-area-inset-top));
-    padding-left: max(24px, env(safe-area-inset-left));
-    padding-right: max(14px, env(safe-area-inset-right));
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   }
   .content {
     padding-bottom: max(24px, env(safe-area-inset-bottom));
