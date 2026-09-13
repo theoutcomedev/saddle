@@ -9,7 +9,7 @@ import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
-import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
+import { getBuiltinModels, getBuiltinProviders } from '@earendil-works/pi-ai/providers/all'
 import { createModels, getSupportedThinkingLevels } from '@earendil-works/pi-ai'
 import type { Api, Model, OpenAICompletionsCompat, Provider } from '@earendil-works/pi-ai'
 import { resolveProfiles } from '../src/config.ts'
@@ -637,7 +637,7 @@ describe('per-model reasoning efforts', () => {
   it('narrows a catalog model’s levels in place', () => {
     const [catalogModel] = getBuiltinModels('deepseek')
     if (catalogModel === undefined) throw new Error('the installed catalog ships no deepseek model')
-    expect(getSupportedThinkingLevels(catalogModel as Model<Api>)).toEqual(['off', 'high', 'max'])
+    expect(getSupportedThinkingLevels(catalogModel as Model<Api>)).toEqual(['off', 'low', 'high', 'max'])
 
     const model = modelOf({
       deepseek: { models: [{ id: catalogModel.id, reasoningEfforts: { off: null, high: 'high' } }] },
@@ -763,6 +763,22 @@ describe('compat switches', () => {
     return new Map(models.map(model => [model.id, model]))
   }
 
+  /**
+   * One installed route whose catalog ships both OpenAI protocols, so a
+   * route-level switch must land on one protocol's models without invalidating
+   * the other's. The route is discovered rather than named because which
+   * catalogs ship the mix changes between pi-ai releases.
+   */
+  function mixedProtocolRoute(): { route: string; completions: Model<Api>; responses: Model<Api> } {
+    for (const route of getBuiltinProviders()) {
+      const catalog = getBuiltinModels(route) as readonly Model<Api>[]
+      const completions = catalog.find(model => model.api === 'openai-completions')
+      const responses = catalog.find(model => model.api === 'openai-responses')
+      if (completions !== undefined && responses !== undefined) return { route, completions, responses }
+    }
+    throw new Error('the installed catalog ships no route with both OpenAI protocols')
+  }
+
   it('applies route switches to every openai-completions model, entries winning per field', () => {
     const models = modelsOf({
       'acme-gateway': {
@@ -796,19 +812,14 @@ describe('compat switches', () => {
   })
 
   it('skips models of other protocols on a mixed route instead of failing them', () => {
-    // xai ships both completions and responses models, so a route-level switch
-    // must land on the former without invalidating the latter.
-    const catalog = getBuiltinModels('xai') as readonly Model<Api>[]
-    const completions = catalog.find(model => model.api === 'openai-completions')
-    const responses = catalog.find(model => model.api === 'openai-responses')
-    if (completions === undefined || responses === undefined) throw new Error('xai no longer ships a mixed catalog')
+    const { route, completions, responses } = mixedProtocolRoute()
 
     const models = modelsOf({
-      xai: {
+      [route]: {
         compat: { supportsReasoningEffort: false },
         models: [{ id: completions.id }, { id: responses.id }],
       },
-    }, 'xai')
+    }, route)
 
     expect((models.get(completions.id)?.compat as OpenAICompletionsCompat).supportsReasoningEffort).toBe(false)
     expect(models.get(responses.id)?.compat).toEqual(responses.compat)
@@ -877,18 +888,15 @@ describe('compat switches', () => {
   })
 
   it('lands each route switch only on the models whose protocol declares it', () => {
-    const catalog = getBuiltinModels('xai') as readonly Model<Api>[]
-    const completions = catalog.find(model => model.api === 'openai-completions')
-    const responses = catalog.find(model => model.api === 'openai-responses')
-    if (completions === undefined || responses === undefined) throw new Error('xai no longer ships a mixed catalog')
+    const { route, completions, responses } = mixedProtocolRoute()
 
     const models = modelsOf({
-      xai: {
+      [route]: {
         // Both protocols take the first switch; only completions takes the second.
         compat: { supportsDeveloperRole: false, thinkingFormat: 'openai' },
         models: [{ id: completions.id }, { id: responses.id }],
       },
-    }, 'xai')
+    }, route)
 
     const onCompletions = models.get(completions.id)?.compat as OpenAICompletionsCompat
     expect(onCompletions.supportsDeveloperRole).toBe(false)

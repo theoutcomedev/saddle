@@ -738,6 +738,36 @@ describe('toStreamChunks', () => {
     })
   })
 
+  it('keeps a provider error when the caller has not aborted', async () => {
+    const error = assistant({ stopReason: 'error', errorMessage: 'boom', usage: usage(1, 0) })
+    const chunks = await collect(toStreamChunks(
+      feed({ type: 'error', reason: 'error', error }),
+      undefined,
+      new AbortController().signal,
+    ))
+    expect(chunks.at(-1)).toEqual({
+      type: 'finish',
+      reason: { kind: 'error', failure: { message: 'boom', code: 'PI_AI_ERROR' } },
+    })
+  })
+
+  it('reports the caller\'s abort over a terminal event pi-ai calls an error', async () => {
+    // A call cancelled before it reaches the provider comes back as an error
+    // event whose message is the abort reason, which is not a provider failure.
+    const error = assistant({ stopReason: 'error', errorMessage: 'already stopped', usage: usage(1, 0) })
+    const controller = new AbortController()
+    controller.abort('already stopped')
+    const chunks = await collect(toStreamChunks(
+      feed({ type: 'error', reason: 'error', error }),
+      undefined,
+      controller.signal,
+    ))
+    expect(chunks.at(-1)).toEqual({
+      type: 'finish',
+      reason: { kind: 'aborted', failure: { message: 'already stopped', code: 'ABORTED' } },
+    })
+  })
+
   it('rejects a stream that ends without done or error', async () => {
     await expect(collect(toStreamChunks(feed({ type: 'start', partial: assistant() }))))
       .rejects.toThrow(/without done\/error/)
@@ -761,6 +791,28 @@ describe('mapStopReason / mapUsage', () => {
     ['aborted', { kind: 'aborted', failure: { message: 'pi-ai stream aborted', code: 'ABORTED' } }],
   ] as const)('maps %s', (stopReason, expected) => {
     expect(mapStopReason(assistant({ stopReason, content: [{ type: 'text', text: 'ok' }] }))).toEqual(expected)
+  })
+
+  it('reports the stop reasons the harness cannot continue', () => {
+    // pi-ai 0.85 added both to the stop-reason union. A deferred response only
+    // arrives when the caller asked for a durable handle, and a pending one is
+    // a stream that ended mid-turn; neither is a finished turn here.
+    expect(mapStopReason(assistant({ stopReason: 'deferred', content: [{ type: 'text', text: 'ok' }] })))
+      .toEqual({
+        kind: 'error',
+        failure: {
+          message: 'model "deepseek-v4-flash" deferred its response, which this harness cannot resume',
+          code: 'DEFERRED_RESPONSE',
+        },
+      })
+    expect(mapStopReason(assistant({ stopReason: 'pending', content: [{ type: 'text', text: 'ok' }] })))
+      .toEqual({
+        kind: 'error',
+        failure: {
+          message: 'model "deepseek-v4-flash" ended the stream without a settled stop reason',
+          code: 'UNSETTLED_RESPONSE',
+        },
+      })
   })
 
   it('classifies a completed stop with no content as an EMPTY_RESPONSE error', () => {

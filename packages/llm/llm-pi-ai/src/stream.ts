@@ -112,7 +112,45 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
       const text = message.errorMessage ?? 'pi-ai stream error'
       return { kind: 'error', failure: { message: text, code: classifyPiAiError(text) } }
     }
+    // Unreachable while the adapter asks for no durable handle
+    // (`SimpleStreamOptions.deferred`), the only way a provider returns one.
+    // The arm exists because the stop-reason union requires an answer, and
+    // treating a resumable response as a finished turn would silently
+    // truncate it.
+    case 'deferred': return {
+      kind: 'error',
+      failure: {
+        message: `model "${message.model}" deferred its response, which this harness cannot resume`,
+        code: 'DEFERRED_RESPONSE',
+      },
+    }
+    // Not a completion state: a terminal event carrying it means the provider
+    // closed the stream mid-turn without reporting how the turn ended.
+    case 'pending': return {
+      kind: 'error',
+      failure: {
+        message: `model "${message.model}" ended the stream without a settled stop reason`,
+        code: 'UNSETTLED_RESPONSE',
+      },
+    }
   }
+}
+
+/**
+ * Honor the caller's own abort over pi-ai's classification of a terminal event.
+ *
+ * A request cancelled before it reaches the provider comes back as an ordinary
+ * `error` event whose message is the abort reason, so its `stopReason` no
+ * longer says `aborted`. The caller's signal is the fact that decides it —
+ * the same rule the adapter already applies to an error it catches rather than
+ * receives.
+ * @param reason - the reason mapped from the terminal event.
+ * @param callerSignal - the caller's own signal, when the request carried one.
+ * @returns the mapped reason, or the abort it actually was.
+ */
+function honorCallerAbort(reason: FinishReason, callerSignal: AbortSignal | undefined): FinishReason {
+  if (reason.kind !== 'error' || callerSignal?.aborted !== true) return reason
+  return { kind: 'aborted', failure: { message: reason.failure.message, code: 'ABORTED' } }
 }
 
 /**
@@ -121,12 +159,15 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
  * `finish` chunks (the harness protocol's other error-delivery style).
  * @param events - one assistant turn's pi-ai event stream.
  * @param contextWindow - resolved catalog capacity for usage-based overflow detection.
+ * @param callerSignal - the caller's own signal; an abort it has already
+ *   raised outranks a terminal event pi-ai reports as a provider error.
  * @returns the harness chunks, ending with `usage` then `finish`; throws
  *   `LlmError` (`STREAM_CLOSED`) if the source ends without a terminal event.
  */
 export async function* toStreamChunks(
   events: AsyncIterable<AssistantMessageEvent>,
   contextWindow?: number,
+  callerSignal?: AbortSignal,
 ): AsyncGenerator<StreamChunk> {
   // pi-ai contentIndex ↔ our block index map 1:1 (both count blocks from 0
   // in stream order), but we track ids per index for tool calls.
@@ -192,7 +233,7 @@ export async function* toStreamChunks(
         yield { type: 'usage', usage: mapUsage(event.message.usage) }
         yield {
           type: 'finish',
-          reason: mapStopReason(event.message, contextWindow),
+          reason: honorCallerAbort(mapStopReason(event.message, contextWindow), callerSignal),
           replayState: toPiReplayState(event.message),
         }
         return
@@ -200,7 +241,7 @@ export async function* toStreamChunks(
         // In-stream error delivery (pi-ai's style) → error finish chunk
         // (the harness's other sanctioned error path besides throwing).
         yield { type: 'usage', usage: mapUsage(event.error.usage) }
-        yield { type: 'finish', reason: mapStopReason(event.error, contextWindow) }
+        yield { type: 'finish', reason: honorCallerAbort(mapStopReason(event.error, contextWindow), callerSignal) }
         return
       // no default: AssistantMessageEvent is pi-ai's closed union; a new
       // event type should fail compilation here via tsc's exhaustiveness

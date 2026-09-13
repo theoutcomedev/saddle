@@ -100,6 +100,7 @@ const THINKING_FORMAT_GATE: Record<PiAiThinkingFormat, true> = {
   'deepseek': true,
   'openrouter': true,
   'together': true,
+  'baseten': true,
   'zai': true,
   'qwen': true,
   'chat-template': true,
@@ -141,6 +142,7 @@ export type PiAiChatTemplateVar = Extract<ChatTemplateKwargValue, { $var: string
 const CHAT_TEMPLATE_VAR_GATE: Record<PiAiChatTemplateVar, true> = {
   'thinking.enabled': true,
   'thinking.effort': true,
+  'thinking.budget': true,
 }
 
 /** The request-state placeholders a profile may name. */
@@ -234,6 +236,15 @@ const COMPLETIONS_COMPAT_GATE = {
   sendSessionAffinityHeaders: 'withhold',
   deferredToolsMode: 'withhold',
   sessionAffinityFormat: 'withhold',
+  // 0.85.1 fields. Each describes a capability the harness's request assembly
+  // never varies with, or a server-side routing/scheduling knob, so it starts
+  // withheld: offering one means documenting its profile field and its wire
+  // effect, which waits for the deployment that needs it.
+  supportsFinishReason: 'withhold',
+  chatTemplateArgs: 'withhold',
+  thinkingTokenBudgetField: 'withhold',
+  supportsThinkingTokenBudget: 'withhold',
+  vllmPriority: 'withhold',
 } as const satisfies Record<keyof OpenAICompletionsCompat, CompatDisposition>
 
 /** Disposition of every `OpenAIResponsesCompat` field; a drift gate like the one above. */
@@ -245,6 +256,9 @@ const RESPONSES_COMPAT_GATE = {
   supportsOpenAIGrammarTools: 'withhold',
   supportsToolSearch: 'withhold',
   supportsExplicitPromptCacheMode: 'withhold',
+  // 0.85.1 fields, withheld for the reason above.
+  supportsAdditionalTools: 'withhold',
+  supportsMaxOutputTokens: 'withhold',
 } as const satisfies Record<keyof OpenAIResponsesCompat, CompatDisposition>
 
 /** Disposition of every `AnthropicMessagesCompat` field; a drift gate like the one above. */
@@ -258,6 +272,9 @@ const ANTHROPIC_COMPAT_GATE = {
   supportsStrictTools: 'offer',
   sendSessionAffinityHeaders: 'withhold',
   supportsToolReferences: 'withhold',
+  // 0.85.1 fields, withheld for the reason above.
+  supportsMidConvoEffort: 'withhold',
+  allowedFallbackModels: 'withhold',
 } as const satisfies Record<keyof AnthropicMessagesCompat, CompatDisposition>
 
 /** Disposition of every `BedrockCompat` field; a drift gate like the one above. */
