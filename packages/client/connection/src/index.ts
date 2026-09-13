@@ -29,6 +29,48 @@ export const name = 'client-connection'
 /** Headroom for RPC JSON fields around aggregate base64 image payloads. */
 const REQUEST_ENVELOPE_HEADROOM_BYTES = 1024 * 1024
 
+/**
+ * Largest model-discovery payload that may be inspected for an endpoint. A
+ * discovery draft is a handful of short strings; a body declared larger than
+ * this is refused rather than copied for the check.
+ */
+const MAX_DISCOVERY_PROBE_BYTES = 64 * 1024
+
+/**
+ * Whether one `llm.discoverModels` request can leave the host at all.
+ *
+ * The pinned half of this method is the one carrying an endpoint: the adapter
+ * asks the HOST to GET a URL the caller chose — with the route's stored
+ * credential attached — and reports what it saw, which is a probe for anything
+ * the host can reach and the browser cannot. A request naming no endpoint never
+ * gets there: the adapter answers from its installed catalog or refuses before
+ * any fetch, and it resolves the stored credential only past that point.
+ * @param request - the buffered /api request, envelope included.
+ * @returns true when the payload names no endpoint for the host to fetch.
+ */
+async function discoveryWithoutEndpoint(request: Request): Promise<boolean> {
+  const declared = Number(request.headers.get('content-length') ?? '0')
+  // A chunked body declares nothing; it stays bounded by the bridge's own
+  // buffering cap instead of being refused here.
+  if (Number.isFinite(declared) && declared > MAX_DISCOVERY_PROBE_BYTES) return false
+  try {
+    const envelope: unknown = await request.clone().json()
+    if (typeof envelope !== 'object' || envelope === null) return false
+    const payload = (envelope as { payload?: unknown }).payload
+    const endpoint = (value: unknown): unknown =>
+      typeof value === 'object' && value !== null ? (value as { baseURL?: unknown }).baseURL : undefined
+    // Either spelling of the draft counts as carrying one: the check refuses,
+    // it never grants.
+    for (const baseURL of [endpoint(payload), endpoint(envelope)]) {
+      if (typeof baseURL === 'string' && baseURL.length > 0) return false
+    }
+    return true
+  } catch {
+    // An unreadable body is not evidence that it is harmless.
+    return false
+  }
+}
+
 function assertImageBodyCapacity(ctx: Context, maxRequestBodyBytes: number): void {
   const attachments = ctx.get('attachments')
   if (attachments === undefined) return
@@ -77,7 +119,10 @@ export const Config: z<ConnectionConfig> = z.object({
  * does; acting on the host instead is never what they meant.
  * `llm.discoverModels` makes the HOST issue a GET to a URL the caller chose and
  * reports the status or the parsed body back, so a non-loopback caller would
- * hold a probe for everything the host can reach and their browser cannot.
+ * hold a probe for everything the host can reach and their browser cannot. Only
+ * that half is pinned: a discovery request naming no endpoint is answered from
+ * the installed catalog inside this process, so a deployment may ask for its
+ * model list from its own origin (see {@link discoveryWithoutEndpoint}).
  *
  * The configuration plane (`settings.*`, `credentials.*`, `agentPreset.read`,
  * `agentPreset.copy`, `agentPreset.remove`) is deliberately NOT here: this
@@ -120,7 +165,11 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
       if (method !== undefined
         && PRIVILEGED_METHODS.has(method)
         && !isTrustedApiRequest(request, [])) {
-        return new Response('forbidden', { status: 403 })
+        // Discovery splits along its own payload: the catalog half is a read of
+        // this process's registry, the endpoint half is a fetch this host makes
+        // on the caller's behalf.
+        const catalogRead = method === 'llm.discoverModels' && await discoveryWithoutEndpoint(request)
+        if (!catalogRead) return new Response('forbidden', { status: 403 })
       }
       if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {
         return new Response('upgrade required', {

@@ -201,6 +201,38 @@ describe('connection node half', () => {
     await dispose()
   })
 
+  it('admits the catalog half of model discovery from a declared authority, and only that half', async () => {
+    const { routes, dispose } = await mounted({ trustedHosts: ['harness.example'] })
+    const call = async (payload: Record<string, unknown>): Promise<{ status?: number; body?: unknown }> => {
+      const recorded = fakeResponse()
+      await routes[0]!.handler(fakePost({ host: 'harness.example' }, `${API_PATH}/llm.discoverModels`, {
+        type: 'client-request',
+        rpcId: RpcId('rpc-discovery'),
+        method: 'llm.discoverModels',
+        payload,
+      }), recorded.response)
+      return recorded.state
+    }
+
+    // A draft naming no endpoint is answered from the installed catalog inside
+    // the host, so the deployment's own origin may ask for its model list.
+    expect((await call({ settingsNs: 'llm-pi-ai', provider: 'anthropic' })).status).not.toBe(403)
+    // A draft naming an endpoint asks the HOST to fetch a caller-chosen URL with
+    // the route's stored credential: loopback only, whatever the authority.
+    const withEndpoint = await call({
+      settingsNs: 'llm-pi-ai', provider: 'anthropic', baseURL: 'https://gateway.example/v1',
+    })
+    expect(withEndpoint).toMatchObject({ status: 403, body: 'forbidden' })
+    // An unreadable envelope is not evidence of a harmless request.
+    const malformed = fakeResponse()
+    await routes[0]!.handler(
+      fakeRawPost({ host: 'harness.example' }, `${API_PATH}/llm.discoverModels`, 'not json'),
+      malformed.response,
+    )
+    expect(malformed.state).toMatchObject({ status: 403, body: 'forbidden' })
+    await dispose()
+  })
+
   it('passes loopback and declared-authority requests through to the bridge', async () => {
     const { routes, dispose } = await mounted({ trustedHosts: ['harness.example:3080', '192.168.1.5'] })
     // Loopback, no browser markers (curl shape): the fence passes; the carrier
