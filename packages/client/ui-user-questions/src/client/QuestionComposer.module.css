@@ -281,8 +281,13 @@
 .badge {
   padding: 0 6px;
   border-radius: 6px;
-  background: var(--dsw-specific-sidebar-nav-item-active-accent);
-  color: #ffffff;
+  /* A business-state surface with the primary label. The badge used to fill
+     with the sidebar's accent rung and paint white on it: that rung is a
+     near-white cream in the light sheet, so the marker was invisible there.
+     This pair reads in every palette — the creative themes raise the label and
+     leave this rung at its neutral value. */
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-label-primary);
   font-size: 11px;
   line-height: 18px;
   font-weight: 600;
