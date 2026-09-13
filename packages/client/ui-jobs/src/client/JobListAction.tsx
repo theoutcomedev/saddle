@@ -164,7 +164,8 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
                 <li
                   key={job.id}
                   className={`${live ? css.row : `${css.row} ${css.rowSettled}`} ${css.rowClickable}`}
-                  role="button"
+                  // Stays a list item: the row is focusable and answers Enter and
+                  // Space, and the list keeps its pronunciation.
                   tabIndex={0}
                   title="View job details"
                   onClick={() => {

@@ -13,7 +13,8 @@ const MARGIN = 12
 /** Dynamic safe clearance from the top of the viewport (protects against colliding with header / hamburger icon). */
 function getTopClearance(): number {
   if (typeof window === 'undefined') return MARGIN
-  const isMobile = window.matchMedia('(max-width: 720px)').matches
+  // jsdom (the unit lane) implements no matchMedia: no coarse viewport to clear.
+  const isMobile = window.matchMedia?.('(max-width: 720px)').matches === true
   if (!isMobile) return MARGIN
 
   const headerEl = document.querySelector('[data-slot="conversation.header"]')

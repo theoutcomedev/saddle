@@ -73,7 +73,9 @@ export function PopupSelectView({ popup, t }: PopupSelectViewProps) {
   // On mobile touch devices, suppress autofocus so the virtual keyboard does not pop up automatically.
   useEffect(() => {
     if (state.open && state.confirming === null) {
-      if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+      // A coarse pointer means a touch keyboard is about to cover the rows;
+      // jsdom (the unit lane) implements no matchMedia, which reads as fine.
+      if (window.matchMedia?.('(pointer: coarse)').matches === true) {
         return
       }
       searchRef.current?.focus()

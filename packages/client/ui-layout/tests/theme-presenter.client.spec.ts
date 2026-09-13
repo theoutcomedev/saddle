@@ -17,6 +17,9 @@ function snapshot(colorScheme: 'light' | 'dark', tokens: Record<string, string> 
   return { preference: colorScheme, active, themes: [active], revision: 1 }
 }
 
+/** One animation frame: the presenter publishes theme-color metadata inside rAF. */
+const nextFrame = (): Promise<void> => new Promise((resolve) => { requestAnimationFrame(() => { resolve() }) })
+
 function clearThemePresentation(): void {
   document.head.querySelectorAll('meta[name="theme-color"], style[data-theme-presenter-test]').forEach((node) => { node.remove() })
 }
@@ -42,25 +45,28 @@ beforeEach(() => {
 afterEach(clearThemePresentation)
 
 describe('ThemePresenter', () => {
-  it('light scheme sets root color-scheme and leaves the dark attribute absent', () => {
+  it('light scheme sets root color-scheme and leaves the dark attribute absent', async () => {
     const presenter = new ThemePresenter()
     presenter.apply(snapshot('light'))
     expect(document.documentElement.style.colorScheme).toBe('light')
     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
+    await nextFrame()
     expect(themeColorMeta()?.content).toBe(LIGHT_THEME_COLOR)
   })
 
-  it('dark scheme sets root color-scheme, the attribute, and metadata; switching to light updates one node', () => {
+  it('dark scheme sets root color-scheme, the attribute, and metadata; switching to light updates one node', async () => {
     const presenter = new ThemePresenter()
     presenter.apply(snapshot('dark'))
     const meta = themeColorMeta()
     expect(document.documentElement.style.colorScheme).toBe('dark')
     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(true)
+    await nextFrame()
     expect(meta?.content).toBe(DARK_THEME_COLOR)
     presenter.apply(snapshot('light'))
     expect(document.documentElement.style.colorScheme).toBe('light')
     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
     expect(themeColorMeta()).toBe(meta)
+    await nextFrame()
     expect(meta?.content).toBe(LIGHT_THEME_COLOR)
     expect(document.head.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1)
   })

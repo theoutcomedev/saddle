@@ -13,7 +13,7 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-agent-preset/client'
-import { AgentPresetLabel } from '../src/client/AgentPresetLabel.tsx'
+import { AgentPresetLabelDesktop, AgentPresetLabelMobile } from '../src/client/AgentPresetLabel.tsx'
 import type { AgentPresetLabelInjected } from '../src/client/AgentPresetLabel.tsx'
 import { AgentPresetRow } from '../src/client/AgentPresetRow.tsx'
 import type { AgentPresetRowInjected } from '../src/client/AgentPresetRow.tsx'
@@ -140,6 +140,8 @@ function declareConversation(slots: SlotRegistry): () => void {
     name: 'conversation',
     children: {
       'conversation.hero.agentPreset': { kind: 'single', scope: 'root' },
+      // The mobile label fills the composer dock; the desktop label the header.
+      'conversation.composer.dock': { kind: 'list', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
@@ -315,7 +317,9 @@ describe('ui-agent-preset apply', () => {
     const chip = slots.entries('conversation.hero.agentPreset')[0]!
     expect(chip.component).toBe(AgentPresetSeat)
     const label = slots.entries('conversation.session.header.actions')[0]!
-    expect(label.component).toBe(AgentPresetLabel)
+    expect(label.component).toBe(AgentPresetLabelDesktop)
+    const dock = slots.entries('conversation.composer.dock')[0]!
+    expect(dock.component).toBe(AgentPresetLabelMobile)
     expect(label.options).toMatchObject({ id: 'agent-preset', order: -10 })
     await fiber.dispose()
     expect(slots.entries('conversation.hero.agentPreset')).toHaveLength(0)

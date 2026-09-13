@@ -89,7 +89,9 @@ export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, 
   useEffect(() => {
     if (!state.introduce || !ready) return
     const characters = Array.from(label)
-    if (characters.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // jsdom (the unit lane) implements no matchMedia; absent means no stated
+    // preference, which the stagger is free to run.
+    if (characters.length === 0 || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true) {
       introduced()
       return
     }
