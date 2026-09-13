@@ -27,4 +27,9 @@ ENV NODE_ENV=production
 EXPOSE 3080
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["pm2-runtime", "--node-args=--expose-internals", "apps/cli/src/bin.ts", "--interpreter", "tsx", "--", "web", "--port", "3080", "--host", "0.0.0.0", "--trusted-host", "91.99.165.95"]
+# The authorities the /api browser-trust fence accepts beyond loopback. The
+# public hostname this deployment is reached by has to be named explicitly: with
+# the raw address alone every API call over the domain answers 403 while the
+# shell still loads, which reads as a broken feature rather than a missing
+# declaration. Set SADDLE_TRUSTED_HOSTS to change them without editing the image.
+CMD ["sh", "-c", "exec pm2-runtime --node-args=--expose-internals apps/cli/src/bin.ts --interpreter tsx -- web --port 3080 --host 0.0.0.0 --trusted-host ${SADDLE_TRUSTED_HOSTS:-91.99.165.95 91.99.165.95.sslip.io}"]

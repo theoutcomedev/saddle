@@ -47,6 +47,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - SADDLE_SERVER_IP=${SADDLE_SERVER_IP:-auto}
       - HOST_PUBLIC_IP=${HOST_PUBLIC_IP:-auto}
+      # Authorities the /api trust fence accepts beyond loopback. The domain must
+      # be listed: the fence refuses any other Host, so a missing entry 403s
+      # every API call over it while static assets keep loading.
+      - SADDLE_TRUSTED_HOSTS=${SADDLE_TRUSTED_HOSTS:-91.99.165.95 91.99.165.95.sslip.io}
       - STEEL_BROWSER_URL=${STEEL_BROWSER_URL:-http://saddle-steel:3000}
       # BYOK and billing protection flags
       - ENFORCE_BILLING_GATE=true
