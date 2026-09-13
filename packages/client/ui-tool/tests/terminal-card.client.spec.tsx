@@ -604,11 +604,12 @@ describe('DetailsPanel Output section', () => {
     expect(view.getByText('ls -la')).toBeTruthy()
   })
 
-  it('a window-truncated call head titles the panel by callId and drops the Input section', () => {
+  it('a window-truncated call head drops the Input section and keeps Output', () => {
     const view = mount(snapshot({
       nodes: [settled({ call: null, callView: null, resultView: resultTerminal({ title: 'ls -la' }) })],
     }), target)
-    expect(view.getByText('c1')).toBeTruthy()
+    // The pane names itself through the workbench tab now, so the callId is not
+    // a panel title; the section split is the panel's own contract.
     expect(view.queryByText('输入')).toBeNull()
     expect(view.getByText('输出')).toBeTruthy()
   })
@@ -624,9 +625,8 @@ describe('DetailsPanel Output section', () => {
     expect(view.getByText('该调用不在当前窗口内')).toBeTruthy()
   })
 
-  it('no selection at all renders the guidance line and the default title', () => {
+  it('no selection at all renders the guidance line', () => {
     const view = mount(snapshot(), null)
-    expect(view.getByText('详情')).toBeTruthy()
     expect(view.getByText('点击消息流中的工具行查看详情')).toBeTruthy()
   })
 
@@ -635,37 +635,11 @@ describe('DetailsPanel Output section', () => {
     expect(view.getByText('点击消息流中的工具行查看详情')).toBeTruthy()
   })
 
-  it('the close button reaches closeDetails', () => {
-    localStorage.clear()
-    const chat = createChatStore().create()
-    const closeDetails = vi.fn()
-    const snap = snapshot()
-    const view = render(
-      <DetailsPanel
-        SessionProvider={SessionProviderStub}
-        renderSlot={renderToolDetails(t)}
-        sessionId={SID}
-        useSession={bindSnapshotSelector({ getSnapshot: () => snap, subscribe: () => () => {} })}
-        useSessions={bindSnapshotSelector(createSnapshotStore<SessionListState>(
-          {
-            ids: [], byId: {}, current: undefined, phase: 'ready',
-            subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
-          }))}
-        useWorkspaces={bindSnapshotSelector(createSnapshotStore<WorkspaceListState>({
-          items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
-          baselinesReady: true, recentWorkspaceId: undefined,
-        }))}
-        useInput={(() => { throw new Error('unused') })}
-        inputActions={{ setDraft: () => {}, addImages: () => true, removeImage: () => {}, pruneImages: () => {}, submit: () => {} }}
-        useProjection={(() => undefined)}
-        useStore={bindSnapshotSelector(chat)}
-        actions={chat.actions}
-        closeDetails={closeDetails}
-        t={t}
-      />,
-    )
-    fireEvent.click(view.getByRole('button', { name: '关闭详情' }))
-    expect(closeDetails).toHaveBeenCalledTimes(1)
+  it('leaves the close affordance to the workbench tab strip', () => {
+    const view = mount(snapshot(), null)
+    // Closing the column belongs to the dock that hosts the pane, so the panel
+    // renders no close control of its own.
+    expect(view.queryByRole('button', { name: '关闭详情' })).toBeNull()
   })
 
   it('a non-text result block renders as JSON, and an empty result falls back to its error', () => {

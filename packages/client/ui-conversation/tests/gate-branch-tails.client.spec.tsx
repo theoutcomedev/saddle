@@ -146,7 +146,8 @@ describe('render branch tails', () => {
         t={t}
       />,
     )
-    expect(view.getByText('详情')).toBeTruthy()
+    // The pane names itself through the workbench tab, so the copy under test is
+    // the out-of-window guidance, not a panel-owned title.
     expect(view.getByText('该调用不在当前窗口内')).toBeTruthy()
   })
 
@@ -204,8 +205,7 @@ describe('render branch tails', () => {
       />,
     )
     // Conversation resolves the selected sub-call and hands its complete
-    // frozen block to the Tool-owned details seat.
-    expect(view.getByText('read')).toBeTruthy()
+    // frozen block to the Tool-owned details seat, which renders the name.
     expect(view.getByTestId('tool-details-seat')).toBeTruthy()
     expect(owners).toHaveLength(1)
     expect(owners[0]?.block).toMatchObject({

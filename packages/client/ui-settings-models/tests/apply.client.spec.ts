@@ -154,7 +154,30 @@ describe('ui-settings-models apply', () => {
   })
 
   it('keeps remote-browser acknowledgement in process memory', async () => {
-    const b = await bench(false)
+    // Host persistence now covers a remote browser too, so the wire answers the
+    // settings read the row performs; the acknowledgement stays local regardless.
+    const b = await bench(false, {
+      describe: () => Promise.resolve({
+        rpcId: 'r',
+        // The welcome notice reads its own namespace; an empty value leaves the
+        // notice unacknowledged without ever leaving the browser.
+        result: {
+          ok: true as const,
+          value: {
+            writable: true,
+            hasDocument: false,
+            namespaces: [{
+              ns: WELCOME_NOTICE_SETTINGS_NAMESPACE,
+              schema: {},
+              value: {},
+              applies: 'live' as const,
+              secrets: [],
+              revision: 1,
+            }],
+          },
+        },
+      }),
+    })
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const entry = b.slots.entries('settings.onboarding')

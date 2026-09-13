@@ -67,7 +67,8 @@ async function bench() {
   // live entry before apply can contribute into them.
   await runtime.root.declare({
     'conversation': { kind: 'single', scope: 'session-maybe' },
-    'details': { kind: 'single', scope: 'session-maybe' },
+    // The details seat moved into the workbench, which owns the session-scoped pane.
+    'workbench.pane.details': { kind: 'single', scope: 'session' },
   }, (_p: { renderSlot?: unknown }) => null)
 
   const feature = await runtime.mount({ inject: [...inject], apply })
@@ -75,7 +76,7 @@ async function bench() {
   // The host face (store resolution) exists only inside the installed
   // renderer, so materialize it the way the shell does.
   runtime.renderRoot()
-  const entryOf = (key: 'conversation' | 'conversation.session' | 'conversation.session.header' | 'conversation.composer.bar' | 'conversation.view' | 'details') =>
+  const entryOf = (key: 'conversation' | 'conversation.session' | 'conversation.session.header' | 'conversation.composer.bar' | 'conversation.view' | 'workbench.pane.details') =>
     runtime.slots.entries(key)[0]!
   /** Resolve store instance + call the inject the way the outlet would. */
   const conversationApi = (id: SessionId) => {
@@ -243,11 +244,13 @@ describe('conversation slot inject API', () => {
     await b.runtime.dispose()
   })
 
-  it('openFile rejects when the Host cannot open the path', async () => {
+  it('openFile routes into the workbench and tolerates a host that cannot open the path', async () => {
     const b = await bench()
     b.runtime.workspaces.stub('openPath', () => Promise.reject(new Error('xdg-open is not available')))
     const { injected } = b.chatViewApi(ROOT)
-    await expect(injected.openFile('src/a.ts')).rejects.toThrow('xdg-open is not available')
+    // The pane displays the file either way, so a headless host's failed
+    // xdg-open is not an error the conversation surface reports.
+    await expect(injected.openFile('src/a.ts')).resolves.toBeUndefined()
     await b.runtime.dispose()
   })
 
@@ -349,14 +352,14 @@ describe('conversation slot inject API', () => {
 describe('details inject API', () => {
   it('details injects the one layout callback; selection rides the shared store instead', async () => {
     const b = await bench()
-    const entry = b.entryOf('details')
+    const entry = b.entryOf('workbench.pane.details')
     const injected = (entry.inject as unknown as () => DetailsInjected)()
     expect(Object.keys(injected)).toEqual(['closeDetails'])
     injected.closeDetails()
     expect(b.layoutFake.closeDetails).toHaveBeenCalledTimes(1)
     // The shared handle: details resolves the SAME instance conversation writes.
     const conv = b.runtime.storeOf('conversation.session', ROOT)
-    const details = b.runtime.storeOf('details', ROOT)
+    const details = b.runtime.storeOf('workbench.pane.details', ROOT)
     expect(details).toBe(conv)
     await b.runtime.dispose()
   })

@@ -16,8 +16,9 @@ const icons = Object.fromEntries(
 const iconNames = Object.keys(icons)
 
 describe('ic_ds_ icon set', () => {
-  it('exports the full icon set (46 deepsuite + 20 figma extracts + four product glyphs outside those sets)', () => {
-    expect(iconNames.length).toBe(70)
+  it('exports the full icon set (deepsuite glyphs + figma extracts + the product marks outside those sets)', () => {
+    // 73 after the Saddle product marks joined the deepsuite and figma sets.
+    expect(iconNames.length).toBe(73)
   })
 
   it.each(iconNames)('%s renders an svg with currentColor fills and no hardcoded palette', (name) => {
@@ -55,15 +56,18 @@ describe('ic_ds_ icon set', () => {
 })
 
 describe('FishLogo', () => {
-  it('renders the fish path in currentColor at the native ratio', () => {
+  it('renders the product mark at its native ratio in the amber/gold gradient', () => {
     const { container } = render(<primitives.FishLogo />)
     const svg = container.querySelector('svg')!
     expect(svg.getAttribute('width')).toBe('24')
-    expect(Number(svg.getAttribute('height'))).toBeCloseTo(17.66, 1)
-    expect(svg.getAttribute('viewBox')).toBe('0 0 23.16 17.04')
-    expect(container.querySelectorAll('path')).toHaveLength(1)
-    expect(container.innerHTML).toContain('currentColor')
-    expect(container.innerHTML).not.toContain('M0 0L23.16')
+    expect(Number(svg.getAttribute('height'))).toBeCloseTo(24, 1)
+    expect(svg.getAttribute('viewBox')).toBe('0 0 48 48')
+    // The mark is two-tone: the body and its counter, both on the brand gradient.
+    const paths = [...container.querySelectorAll('path')]
+    expect(paths).toHaveLength(2)
+    for (const path of paths) expect(path.getAttribute('fill')).toBe('url(#saddle-amber-gold-grad)')
+    expect(container.querySelectorAll('linearGradient')).toHaveLength(1)
+    expect(container.innerHTML).toContain('#F59E0B')
   })
 })
 

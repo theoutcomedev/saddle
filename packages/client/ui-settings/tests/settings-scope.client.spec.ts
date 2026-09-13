@@ -452,7 +452,7 @@ describe('SettingsScopeBinder.bind', () => {
     expect(theme.getSnapshot()).toMatchObject({ revision: 1 })
   })
 
-  it('binds a remote browser in memory mode without starting a settings read', async () => {
+  it('binds a remote browser to host persistence, so WAN configuration reads the host', async () => {
     const describeCall = vi.fn()
     const wire = { settings: { describe: describeCall } }
     const mirror = new SettingsDescribeMirror(wire as never, 'memory')
@@ -468,7 +468,9 @@ describe('SettingsScopeBinder.bind', () => {
       },
     })
     await fiber.await()
-    expect(scope.getSnapshot()).toMatchObject({ status: 'unavailable', mode: 'memory', writable: false })
+    // The binder names host persistence for every browser: the scope opens in
+    // loading and settles once the host's pushed section arrives.
+    expect(scope.getSnapshot()).toMatchObject({ status: 'loading', mode: 'host', writable: false })
     await fiber.dispose()
     expect(describeCall).not.toHaveBeenCalled()
   })

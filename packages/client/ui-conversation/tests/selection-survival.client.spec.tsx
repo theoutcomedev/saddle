@@ -22,17 +22,19 @@ async function bench() {
     'conversation': { kind: 'single', scope: 'session-maybe' },
     'conversation.session': { kind: 'single', scope: 'session' },
     'conversation.session.header': { kind: 'single', scope: 'session' },
-    'details': { kind: 'single', scope: 'session-maybe' },
+    // The details seat moved from the session-maybe 'details' hole to the
+    // workbench's session-scoped pane, which is what production registers.
+    'workbench.pane.details': { kind: 'single', scope: 'session' },
   }, (_p: { renderSlot?: unknown }) => null)
   runtime.slots.register({ name: 'conversation.session', store: chat }, () => null)
   runtime.slots.register({ name: 'conversation.session.header', store: chat }, () => null)
-  runtime.slots.register({ name: 'details', store: chat }, () => null)
+  runtime.slots.register({ name: 'workbench.pane.details', store: chat }, () => null)
   runtime.renderRoot() // materializes the host face storeOf resolves through
   return { runtime, chat }
 }
 
 /** Resolve the store instance the renderer would hand a slot's component for a session. */
-function storeFor(b: Awaited<ReturnType<typeof bench>>, slot: 'conversation.session' | 'details', sessionId: SessionId) {
+function storeFor(b: Awaited<ReturnType<typeof bench>>, slot: 'conversation.session' | 'workbench.pane.details', sessionId: SessionId) {
   return b.runtime.storeOf(slot, sessionId) as ChatInstance
 }
 
@@ -45,7 +47,7 @@ describe('selection survives on the store seat', () => {
     const b = await bench()
 
     const conv = storeFor(b, 'conversation.session', sid('s1'))
-    const details = storeFor(b, 'details', sid('s1'))
+    const details = storeFor(b, 'workbench.pane.details', sid('s1'))
     conv.actions.select({ turnSeq: 3, callId: 'c1' })
     expect(details.store.getSnapshot().selection).toEqual({ turnSeq: 3, callId: 'c1' })
     // Identity, not just value: the shared handle resolves one instance per scope key.

@@ -29,7 +29,12 @@ describe('SidebarRoot.module.css', () => {
   it('shares and cancels the wide shell trailing padding structurally', () => {
     const root = declarations('.root')
     expect(root?.get('--dsh-sidebar-inline-padding')).toBe('12px')
-    expect(root?.get('padding')).toBe('6px var(--dsh-sidebar-inline-padding)')
+    // The shell insets by the device safe areas on top of the inline padding,
+    // so a notched phone keeps the rail clear of the home indicator.
+    expect(root?.get('padding')).toBe(
+      'calc(6px + var(--safe-top, 0px)) calc(var(--dsh-sidebar-inline-padding) + var(--safe-right, 0px)) '
+      + 'calc(6px + var(--safe-bottom, 0px)) calc(var(--dsh-sidebar-inline-padding) + var(--safe-left, 0px))',
+    )
     expect(declarations('.regionArea')?.get('margin-left')).toBe('-4px')
     expect(declarations('.regionArea')?.get('padding-left')).toBe('4px')
     expect(declarations('.regionArea')?.get('margin-right')).toBe(

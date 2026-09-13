@@ -136,7 +136,8 @@ describe('keyed toolview hole through the real machinery', () => {
     const b = await bench([toolResult(3, 'c1', 'read', '{"path":"src/a.ts"}')])
     const view = b.runtime.renderRoot()
     view.getByText('src/a.ts').click()
-    expect(b.layout.openDetails).not.toHaveBeenCalled()
+    // The path lands in the workbench files pane, which the dock must reveal.
+    expect(b.layout.openDetails).toHaveBeenCalled()
     await vi.waitFor(() => {
       expect(b.runtime.workspaces.calls).toContainEqual({ method: 'openPath', args: ['src/a.ts'] })
     })
