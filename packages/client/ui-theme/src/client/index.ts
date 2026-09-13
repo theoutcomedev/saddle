@@ -139,11 +139,28 @@ const CHAT_CONTENT_TOKENS: ThemeTokens = Object.freeze({
   '--dsw-alias-border-l4': 'var(--dsw-alias-border-l2)',
   '--dsw-alias-interactive-bg-active': 'var(--dsw-alias-interactive-bg-hover-solid)',
 })
+
+/**
+ * The floating preview card (sidebar session and Workspace hover). The light
+ * and dark sheets fix the figma card's neutral surface and label ramp; the
+ * creative themes point those tokens at their own elevations so the card sits
+ * in the palette instead of over it.
+ */
+const HOVER_CARD_TOKENS: ThemeTokens = Object.freeze({
+  '--dsw-specific-hovercard-bg': 'var(--dsw-alias-bg-layer-3)',
+  '--dsw-specific-hovercard-label': 'var(--dsw-alias-label-primary)',
+  '--dsw-specific-hovercard-label-secondary': 'var(--dsw-alias-label-secondary)',
+  '--dsw-specific-hovercard-label-tertiary': 'var(--dsw-alias-label-tertiary)',
+})
+
+/** Every colour the creative themes derive rather than name themselves. */
+const CREATIVE_TOKENS: ThemeTokens = Object.freeze({ ...CHAT_CONTENT_TOKENS, ...HOVER_CARD_TOKENS })
+
 const BUILTIN_THEMES: readonly ThemeDefinition[] = Object.freeze([
   Object.freeze({ id: 'light', colorScheme: 'light' as const, tokens: Object.freeze({}) }),
   Object.freeze({ id: 'dark', colorScheme: 'dark' as const, tokens: Object.freeze({}) }),
   Object.freeze({ id: 'palomino', colorScheme: 'light' as const, tokens: Object.freeze({
-    ...CHAT_CONTENT_TOKENS,
+    ...CREATIVE_TOKENS,
     '--dsw-alias-bg-base': '#FAF6EE',
     '--dsw-alias-bg-layer-1': '#FAF6EE',
     '--dsw-alias-bg-layer-2': '#F4EDE0',
@@ -174,7 +191,7 @@ const BUILTIN_THEMES: readonly ThemeDefinition[] = Object.freeze([
     '--dsw-alias-border-l2-darkmode-thin': 'rgba(54, 40, 25, 0.14)',
   }) }),
   Object.freeze({ id: 'chestnut', colorScheme: 'dark' as const, tokens: Object.freeze({
-    ...CHAT_CONTENT_TOKENS,
+    ...CREATIVE_TOKENS,
     '--dsw-alias-bg-base': '#2D1B12',
     '--dsw-alias-bg-layer-1': '#3A261C',
     '--dsw-alias-bg-layer-2': '#463024',
@@ -203,7 +220,7 @@ const BUILTIN_THEMES: readonly ThemeDefinition[] = Object.freeze([
     '--dsw-alias-border-l2-darkmode-thin': 'rgba(255, 255, 255, 0.10)',
   }) }),
   Object.freeze({ id: 'friesian', colorScheme: 'dark' as const, tokens: Object.freeze({
-    ...CHAT_CONTENT_TOKENS,
+    ...CREATIVE_TOKENS,
     '--dsw-alias-bg-base': '#000000',
     '--dsw-alias-bg-layer-1': '#090909',
     '--dsw-alias-bg-layer-2': '#121212',
@@ -232,7 +249,7 @@ const BUILTIN_THEMES: readonly ThemeDefinition[] = Object.freeze([
     '--dsw-alias-border-l2-darkmode-thin': 'rgba(255, 255, 255, 0.10)',
   }) }),
   Object.freeze({ id: 'roan', colorScheme: 'dark' as const, tokens: Object.freeze({
-    ...CHAT_CONTENT_TOKENS,
+    ...CREATIVE_TOKENS,
     '--dsw-alias-bg-base': '#1A202C',
     '--dsw-alias-bg-layer-1': '#222A38',
     '--dsw-alias-bg-layer-2': '#2D3748',
@@ -262,7 +279,7 @@ const BUILTIN_THEMES: readonly ThemeDefinition[] = Object.freeze([
   }) }),
   // Bay: deep mahogany-red dark theme — the rich wine-dark coat of a classic bay horse.
   Object.freeze({ id: 'bay', colorScheme: 'dark' as const, tokens: Object.freeze({
-    ...CHAT_CONTENT_TOKENS,
+    ...CREATIVE_TOKENS,
     '--dsw-alias-bg-base': '#1A0808',
     '--dsw-alias-bg-layer-1': '#2A1010',
     '--dsw-alias-bg-layer-2': '#3A1818',
@@ -292,7 +309,7 @@ const BUILTIN_THEMES: readonly ThemeDefinition[] = Object.freeze([
   }) }),
   // Dapple: silver-blue slate dark theme — the cool dapple-grey horse coat.
   Object.freeze({ id: 'dapple', colorScheme: 'dark' as const, tokens: Object.freeze({
-    ...CHAT_CONTENT_TOKENS,
+    ...CREATIVE_TOKENS,
     '--dsw-alias-bg-base': '#0E1520',
     '--dsw-alias-bg-layer-1': '#162030',
     '--dsw-alias-bg-layer-2': '#1E2D42',

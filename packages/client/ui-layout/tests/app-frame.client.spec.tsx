@@ -297,6 +297,32 @@ describe('AppFrame — narrow-viewport auto-collapse', () => {
     expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
   })
 
+  it('opening a session dismisses the narrow drawer, blank Sessions included', () => {
+    frameWidth = 980
+    const { frame, instance, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+
+    selectedSession.current = 's-next' as SessionId
+    act(() => { rerenderFrame() })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+
+    // New Session from the drawer is blank: the drawer still leaves with it.
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+    selectedSession.current = 's-blank' as SessionId
+    selectedSessionBlank.current = true
+    act(() => { rerenderFrame() })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+  })
+
+  it('a wide sidebar stays open when the session changes', () => {
+    const { frame, rerenderFrame } = mountFrame()
+    selectedSession.current = 's-next' as SessionId
+    act(() => { rerenderFrame() })
+    expect(tracks(frame)).toEqual([280, 0])
+  })
+
   it('a wide-closed preference re-expands at the contract default while narrow', () => {
     frameWidth = 1920
     const { frame, instance } = mountFrame()

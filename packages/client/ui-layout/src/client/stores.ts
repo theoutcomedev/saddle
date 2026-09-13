@@ -30,6 +30,7 @@ type LayoutActions = {
   setSidebar: (draft: LayoutState, px: number) => void
   setDetails: (draft: LayoutState, px: number) => void
   toggleSidebar: (draft: LayoutState) => void
+  closeSidebar: (draft: LayoutState) => void
   setNarrow: (draft: LayoutState, narrow: boolean) => void
   openDetails: (draft: LayoutState) => void
   closeDetails: (draft: LayoutState) => void
@@ -58,6 +59,10 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
         if (d.narrow) d.narrowExpanded = !d.narrowExpanded
         else d.sidebar = d.sidebar === 0 ? SIDEBAR_DEFAULT : 0
       },
+      // Opening a session the drawer is covering dismisses it. The wide sidebar
+      // is a column beside the conversation, not an overlay over it, so its
+      // preference and its drag width both survive.
+      closeSidebar: (d) => { if (d.narrow) d.narrowExpanded = false },
       // Crossing the breakpoint in either direction drops the override: the
       // narrow default is auto-collapsed, the wide state is the preference.
       setNarrow: (d, narrow: boolean) => {

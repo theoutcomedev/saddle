@@ -97,6 +97,20 @@ describe('createLayoutStore', () => {
     expect(store.getSnapshot().narrowExpanded).toBe(true)
   })
 
+  it('closeSidebar dismisses the narrow drawer and leaves the wide preference alone', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setNarrow(true)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+    actions.closeSidebar()
+    expect(store.getSnapshot()).toMatchObject({ narrowExpanded: false, sidebar: SIDEBAR_DEFAULT })
+
+    // Wide: the sidebar is a column, not a drawer — nothing closes.
+    actions.setNarrow(false)
+    actions.closeSidebar()
+    expect(store.getSnapshot()).toMatchObject({ sidebar: SIDEBAR_DEFAULT, narrowExpanded: false })
+  })
+
   it('does not persist panel geometry', () => {
     const first = createLayoutStore().create()
     first.actions.setSidebar(400)

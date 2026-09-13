@@ -108,6 +108,19 @@ function AppFrameInner({
     lastSession.current = detailsSession
   }, [actions, detailsSession])
 
+  // The selected id (blank Sessions included): opening one from the narrow
+  // drawer dismisses the drawer, which is an overlay covering exactly the
+  // conversation it just replaced. The wide sidebar is unaffected.
+  const currentSession = useSessions(s => s.current)
+  const lastOpened = useRef(currentSession)
+  useLayoutEffect(() => {
+    if (currentSession === undefined) return
+    if (lastOpened.current !== undefined && lastOpened.current !== currentSession) {
+      actions.closeSidebar()
+    }
+    lastOpened.current = currentSession
+  }, [actions, currentSession])
+
   // Track the frame's own box (not the window): rAF-throttled ResizeObserver.
   useEffect(() => {
     const el = frameRef.current

@@ -34,6 +34,21 @@ describe('ThemeRuntime', () => {
       .toEqual(['light', 'dark', 'palomino', 'chestnut', 'friesian', 'roan', 'bay', 'dapple'])
   })
 
+  it('creative palettes repaint the hover card from their own elevations; light and dark keep the neutral one', () => {
+    const { theme } = make()
+    const tokensOf = (id: string) => theme.getTheme().themes.find(t => t.id === id)!.tokens
+    expect(tokensOf('light')).not.toHaveProperty('--dsw-specific-hovercard-bg')
+    expect(tokensOf('dark')).not.toHaveProperty('--dsw-specific-hovercard-bg')
+    for (const id of ['palomino', 'chestnut', 'friesian', 'roan', 'bay', 'dapple']) {
+      expect(tokensOf(id)).toMatchObject({
+        '--dsw-specific-hovercard-bg': 'var(--dsw-alias-bg-layer-3)',
+        '--dsw-specific-hovercard-label': 'var(--dsw-alias-label-primary)',
+        '--dsw-specific-hovercard-label-secondary': 'var(--dsw-alias-label-secondary)',
+        '--dsw-specific-hovercard-label-tertiary': 'var(--dsw-alias-label-tertiary)',
+      })
+    }
+  })
+
   it('setTheme switches, writes through the scope, republishes, and keeps DOM untouched', () => {
     const { theme, events, host } = make()
     theme.setTheme('dark')
