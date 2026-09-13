@@ -145,7 +145,7 @@ function diagnosticCard(title: string, detail: string): string {
 }
 
 /** Embed a value as a JavaScript literal inside a script element. */
-function literal(value: string): string {
+function literal(value: unknown): string {
   // `</script` inside a literal would end the element early.
   return JSON.stringify(value).replace(/<\/(script)/gi, '<\\/$1')
 }
@@ -249,20 +249,27 @@ const BOOTSTRAP = `    // An opaque origin has no storage; an app that persists 
         var strokeWidth = options.strokeWidth === undefined ? 2 : options.strokeWidth;
         var rest = Object.assign({}, options);
         delete rest.size; delete rest.color; delete rest.className; delete rest.strokeWidth;
-        var iconDef = window.lucide && window.lucide.icons
-          && (window.lucide.icons[iconName] || window.lucide.icons[iconName.toLowerCase()]);
+        var icons = (window.lucide && window.lucide.icons) || {};
+        var entry = icons[iconName]
+          || icons[iconName.charAt(0).toUpperCase() + iconName.slice(1)];
+        // lucide has shipped both shapes: the legacy [tag, attrs, children]
+        // tuple and the bare children array. A shim that knows only the first
+        // turns the second into createElement(undefined) and React refuses to
+        // render the whole app.
+        var nodes = Array.isArray(entry) && typeof entry[0] === 'string' ? entry[2] : entry;
+        var children = (nodes || []).filter(Array.isArray).map(function (item, index) {
+          return React.createElement(item[0], Object.assign({ key: index }, item[1]));
+        });
         var base = {
           width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color,
           strokeWidth: strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', className: className,
         };
-        if (!iconDef) {
-          return React.createElement('svg', Object.assign(base, rest),
-            React.createElement('circle', { cx: 12, cy: 12, r: 8 }));
+        if (children.length === 0) {
+          // An icon name this lucide build does not ship still has to render
+          // something: a plain placeholder beats a blank canvas.
+          children = [React.createElement('circle', { key: 'fallback', cx: 12, cy: 12, r: 8 })];
         }
-        var children = (iconDef[2] || []).map(function (item, index) {
-          return React.createElement(item[0], Object.assign({ key: index }, item[1]));
-        });
-        return React.createElement('svg', Object.assign(base, iconDef[1], rest), children);
+        return React.createElement('svg', Object.assign(base, rest), children);
       };
     };
     window.__saddleLucide = new Proxy({}, {
@@ -391,9 +398,9 @@ ${METAMORPHIC_MOUNT_SOURCE}
 
   <script>
     (function () {
-      var blockers = ${literal(JSON.stringify(blockers))};
+      var blockers = ${literal(blockers)};
       if (blockers.length > 0) {
-        document.getElementById('root').innerHTML = JSON.parse(blockers).join('');
+        document.getElementById('root').innerHTML = blockers.join('');
         window.__saddle_booted = true;
         return;
       }
