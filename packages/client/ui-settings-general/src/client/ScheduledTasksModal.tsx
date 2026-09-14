@@ -202,7 +202,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                   onClick={() => store.closeLogs()}
                   title="Back to task list"
                 >
-                  ← Back to Tasks
+                  ← Back
                 </Button>
                 <h2 id="schedules-title" className={clsx(css.title, css.titleTruncated)} title={`Run History: ${activeLogs.taskName}`}>
                   Run History: {activeLogs.taskName}
@@ -217,7 +217,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                   onClick={() => setActiveTab('list')}
                   title="Back to task list"
                 >
-                  ← All Tasks
+                  ← Back
                 </Button>
                 <h2 id="schedules-title" className={`${css.title} ${css.titleCenter}`}>New Scheduled Task</h2>
               </>
