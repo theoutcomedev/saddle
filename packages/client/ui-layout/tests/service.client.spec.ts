@@ -1,12 +1,14 @@
+// @vitest-environment jsdom
 /**
- * LayoutController behavior: the cross-plugin panel-action face. Geometry
- * lives in the entry store (layout-store.spec.ts) — here we assert the
- * delegation contract: attachPanels wiring, the three actions forwarding, the
- * unwired fail-loud, and re-attach overwriting a stale action set.
+ * The two cross-plugin faces: ctx.layout (panel transitions plus the one call a
+ * layout makes) and ctx.device (what the browser says). Geometry lives in the
+ * store spec — here the contract is delegation, the unwired fail-loud, the
+ * re-attach overwrite, and the attributes the device publishes.
  */
 import { describe, expect, it, vi } from 'vitest'
-import { LayoutController } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
+import { DeviceController, LayoutController } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
 import type { PanelActions } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
+import { DEFAULT_SHELL } from '@deepseek-ai/dsh-client-ui-layout/src/client/shell.ts'
 
 function fakePanels(): PanelActions {
   return {
@@ -14,8 +16,10 @@ function fakePanels(): PanelActions {
     setDetails: vi.fn(),
     toggleSidebar: vi.fn(),
     closeSidebar: vi.fn(),
-    hideSidebar: vi.fn(),
-    setNarrow: vi.fn(),
+    openSidebarSheet: vi.fn(),
+    closeSidebarSheet: vi.fn(),
+    setDevice: vi.fn(),
+    setShell: vi.fn(),
     openDetails: vi.fn(),
     closeDetails: vi.fn(),
     toggleDetails: vi.fn(),
@@ -23,48 +27,43 @@ function fakePanels(): PanelActions {
 }
 
 describe('LayoutController', () => {
-  it('forwards the three panel actions to the attached set', () => {
+  it('forwards the pane transitions to the attached set', () => {
     const service = new LayoutController()
     const panels = fakePanels()
     service.attachPanels(panels)
-
-    service.toggleSidebar()
     service.openDetails()
     service.closeDetails()
-
-    expect(panels.toggleSidebar).toHaveBeenCalledTimes(1)
+    service.toggleDetails()
     expect(panels.openDetails).toHaveBeenCalledTimes(1)
     expect(panels.closeDetails).toHaveBeenCalledTimes(1)
-    expect(panels.setSidebar).not.toHaveBeenCalled()
-    expect(panels.setDetails).not.toHaveBeenCalled()
+    expect(panels.toggleDetails).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks the published device answer which form the sidebar toggle takes', () => {
+    document.documentElement.setAttribute('data-panes', 'sheet')
+    try {
+      const service = new LayoutController()
+      const panels = fakePanels()
+      service.attachPanels(panels)
+      service.toggleSidebar()
+      expect(panels.toggleSidebar).toHaveBeenCalledWith(true)
+    } finally {
+      document.documentElement.removeAttribute('data-panes')
+    }
+  })
+
+  it('applies a shell specification in one call', () => {
+    const service = new LayoutController()
+    const panels = fakePanels()
+    service.attachPanels(panels)
+    service.applyShell(DEFAULT_SHELL)
+    expect(panels.setShell).toHaveBeenCalledWith(DEFAULT_SHELL)
   })
 
   it('fails loud before the root entry wired its actions', () => {
     const service = new LayoutController()
-    expect(() => { service.toggleSidebar() }).toThrow(/panel actions not wired/)
     expect(() => { service.openDetails() }).toThrow(/panel actions not wired/)
-    expect(() => { service.closeDetails() }).toThrow(/panel actions not wired/)
-  })
-
-  it('arranges both panels in one write, resolving each shape to its own width', () => {
-    // A mode names shapes, not numbers: the width contract lives in columns.ts,
-    // and closing must use the close action because the width setter clamps a
-    // 0 up to the pane's open minimum.
-    const service = new LayoutController()
-    const panels = fakePanels()
-    service.attachPanels(panels)
-
-    service.setPanels({ sidebar: 'closed', details: 'wide' })
-    // Closing the sidebar is its own write: the drawer-dismiss action leaves a
-    // wide sidebar's preference alone.
-    expect(panels.hideSidebar).toHaveBeenCalledTimes(1)
-    expect(panels.closeSidebar).not.toHaveBeenCalled()
-    expect(panels.setDetails).toHaveBeenCalledWith(560)
-
-    service.setPanels({ sidebar: 'default', details: 'closed' })
-    expect(panels.setSidebar).toHaveBeenCalledWith(280)
-    expect(panels.closeDetails).toHaveBeenCalledTimes(1)
-    expect(panels.setDetails).toHaveBeenCalledTimes(1)
+    expect(() => { service.applyShell(DEFAULT_SHELL) }).toThrow(/panel actions not wired/)
   })
 
   it('re-attach overwrites the stale action set (entry re-register)', () => {
@@ -73,10 +72,65 @@ describe('LayoutController', () => {
     const fresh = fakePanels()
     service.attachPanels(stale)
     service.attachPanels(fresh)
+    service.closeDetails()
+    expect(stale.closeDetails).not.toHaveBeenCalled()
+    expect(fresh.closeDetails).toHaveBeenCalledTimes(1)
+  })
+})
 
-    service.toggleSidebar()
+describe('DeviceController', () => {
+  it('classifies the window it starts in and publishes the answer', () => {
+    window.innerWidth = 390
+    window.innerHeight = 844
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} }))
+    const root = document.createElement('div')
+    const device = new DeviceController(root)
+    expect(device.facts().class).toBe('phone')
+    expect(root.getAttribute('data-device')).toBe('phone')
+    expect(root.getAttribute('data-panes')).toBe('sheet')
+  })
 
-    expect(stale.toggleSidebar).not.toHaveBeenCalled()
-    expect(fresh.toggleSidebar).toHaveBeenCalledTimes(1)
+  it('hands the same facts to the store through the wiring hook', () => {
+    const root = document.createElement('div')
+    const device = new DeviceController(root)
+    const setFacts = vi.fn()
+    device.attachStore(setFacts)
+    expect(setFacts).toHaveBeenCalledWith(device.facts())
+  })
+
+  it('reads the window it is constructed in, marking the root element', () => {
+    window.innerWidth = 1440
+    window.innerHeight = 900
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }))
+    const root = document.createElement('div')
+    const device = new DeviceController(root)
+    expect(device.facts().sheetPanes).toBe(false)
+    expect(root.getAttribute('data-panes')).toBe('dock')
+  })
+
+  it('tells its followers about a change, and stops when they leave', () => {
+    window.innerWidth = 1440
+    window.innerHeight = 900
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }))
+    const device = new DeviceController(document.createElement('div'))
+    const seen: string[] = []
+    const unwatch = device.watch((facts) => { seen.push(facts.class) })
+    const stop = device.start()
+    window.innerWidth = 390
+    window.innerHeight = 844
+    window.dispatchEvent(new Event('resize'))
+    expect(seen).toEqual(['phone'])
+    unwatch()
+    window.innerWidth = 1440
+    window.dispatchEvent(new Event('resize'))
+    expect(seen).toEqual(['phone'])
+    stop()
+  })
+
+  it('starts and stops watching without a window', () => {
+    const device = new DeviceController(null)
+    const stop = device.start()
+    expect(typeof stop).toBe('function')
+    stop()
   })
 })

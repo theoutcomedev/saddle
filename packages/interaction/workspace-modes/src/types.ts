@@ -18,7 +18,16 @@
  * on; naming both "mode" makes them indistinguishable in a header that shows
  * one of each.
  */
-export type WorkspaceLayoutId = 'default' | 'focus' | 'zen'
+export type WorkspaceLayoutId =
+  | 'default'
+  | 'capture'
+  | 'read'
+  | 'focus'
+  | 'zen'
+  | 'workbench'
+  | 'counter'
+  | 'studio'
+  | 'wall'
 
 /** One session's recorded layout, and the event that recorded it. */
 export interface WorkspaceLayoutState {

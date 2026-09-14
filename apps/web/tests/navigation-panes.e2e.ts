@@ -544,6 +544,77 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     expect(await composer.inputValue()).toBe('half-written draft')
   }, 60_000)
 
+  it.skipIf(MODE === 'record')('a phone gets phone layouts, and Read takes the composer away', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-device-phone'))
+    // The seed opens on a desktop viewport, then the window becomes a phone: the
+    // device model follows the resize, which is what makes one shell serve both.
+    await ensureSeedOpen(page)
+    const composer = page.locator('[data-composer-seat]')
+    expect(await composer.count()).toBe(1)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect.poll(() => page.locator('html').getAttribute('data-device'), { timeout: 5_000 }).toBe('phone')
+    await expect.poll(() => page.locator('html').getAttribute('data-panes'), { timeout: 5_000 }).toBe('sheet')
+    // A sheet device has no sidebar column at all.
+    expect(await page.locator('[class*="sidebarCol"]').count()).toBe(0)
+
+    // The Layout row lives in the session-list sheet on a phone, so the person
+    // opens the sheet first — the row is not floating chrome.
+    await page.locator('[class*="mobileHamburger"]').first().click()
+    await page.getByRole('button', { name: 'Layout', exact: true }).first().click()
+    const dialog = page.getByRole('dialog', { name: 'Workspace layout' })
+    await dialog.waitFor({ timeout: 5_000 })
+    // The picker lists this device's jobs, not a universal list of adjectives.
+    expect(await dialog.innerText()).toContain('Capture')
+    expect(await dialog.innerText()).toContain('Read')
+    expect(await dialog.innerText()).not.toContain('Studio')
+
+    await dialog.getByRole('button', { name: /Read/ }).first().click()
+    await expect.poll(() => composer.count(), { timeout: 5_000 }).toBe(0)
+    // Something has to bring it back, and it says what it does.
+    // Exactly the word: an expandable disclosure row in the transcript also
+    // answers to a loose name match, and that row is not the composer's return.
+    const reply = page.getByRole('button', { name: 'Reply', exact: true })
+    expect(await reply.count()).toBe(1)
+
+    await page.locator('[class*="mobileHamburger"]').first().click()
+    await page.getByRole('button', { name: 'Layout', exact: true }).first().click()
+    await page.getByRole('dialog', { name: 'Workspace layout' }).getByRole('button', { name: /Capture/ }).first().click()
+    await expect.poll(() => composer.count(), { timeout: 5_000 }).toBe(1)
+    expect(await composer.locator('textarea').first().inputValue()).toBe('')
+  }, 60_000)
+
+  it.skipIf(MODE === 'record')('a tablet in portrait opens the pane as a sheet instead of dropping it', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-device-tablet-portrait'))
+    await ensureSeedOpen(page)
+    await page.setViewportSize({ width: 834, height: 1112 })
+    await expect.poll(() => page.locator('html').getAttribute('data-panes'), { timeout: 5_000 }).toBe('sheet')
+
+    await page.locator('[class*="mobileHamburger"]').first().click()
+    await page.getByRole('button', { name: 'Layout', exact: true }).first().click()
+    await page.getByRole('dialog', { name: 'Workspace layout' }).getByRole('button', { name: /Focus/ }).first().click()
+
+    // The defect this pins: the pane used to be refused here, with no signal.
+    await expect.poll(() => page.locator('[data-details-sheet]').count(), { timeout: 5_000 }).toBe(1)
+    expect(await page.locator('[data-details-sheet]').first().isVisible()).toBe(true)
+  }, 60_000)
+
+  it.skipIf(MODE === 'record')('a tablet in landscape docks the pane beside the work', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-device-tablet-landscape'))
+    await ensureSeedOpen(page)
+    await page.setViewportSize({ width: 1194, height: 834 })
+    await expect.poll(() => page.locator('html').getAttribute('data-panes'), { timeout: 5_000 }).toBe('dock')
+
+    await page.getByRole('button', { name: 'Layout', exact: true }).first().click()
+    await page.getByRole('dialog', { name: 'Workspace layout' }).getByRole('button', { name: /Workbench/ }).first().click()
+
+    const frame = page.locator('[class*="frame"]').first()
+    await expect.poll(async () => await frame.evaluate(el => getComputedStyle(el).gridTemplateColumns), { timeout: 5_000 })
+      .toContain('px')
+    expect(await page.locator('[data-details-sheet]').count()).toBe(0)
+    expect(await frame.getAttribute('data-details-open')).toBe('true')
+  }, 60_000)
+
   it.skipIf(MODE === 'record')('keeps the recorded fixture inventory exact', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'seed.jsonl', 'search-results.expected.md', 'trajectory.expected.md',

@@ -4,9 +4,10 @@
  * active layout comes from the shared layouts face.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkspaceLayoutId } from '@deepseek-ai/dsh-workspace-modes/client'
+import { layoutsFor } from './catalogue.ts'
 import { LayoutGlyph } from './LayoutGlyph.tsx'
 import { LayoutsModal } from './LayoutsModal.tsx'
 import type { LayoutsInjected } from './index.ts'
@@ -29,6 +30,10 @@ export type LayoutsButtonProps =
 export function LayoutsButton({ wide = true, useLayouts, apply, t }: LayoutsButtonProps) {
   const [open, setOpen] = useState(false)
   const active = useLayouts(state => state.active)
+  const device = useLayouts(state => state.device)
+  // The list is this device's jobs, and the device can change under the row: a
+  // window dragged into a phone's band must stop offering desk shapes.
+  const offered = useMemo(() => layoutsFor(device), [device])
   const label = t('layouts.row')
 
   return (
@@ -45,6 +50,7 @@ export function LayoutsButton({ wide = true, useLayouts, apply, t }: LayoutsButt
       </button>
       <LayoutsModal
         open={open}
+        offered={offered}
         active={active}
         t={t}
         onSelect={(layout: WorkspaceLayoutId) => { apply(layout); setOpen(false) }}

@@ -7,6 +7,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import type { DeviceClass } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { WorkspaceLayoutId } from '@deepseek-ai/dsh-workspace-modes/client'
 import { LayoutsButton, type LayoutsButtonProps } from '../src/client/LayoutsButton.tsx'
 import { zh } from '../src/client/locales.ts'
@@ -15,8 +16,8 @@ afterEach(cleanup)
 
 const t = makeTranslate(zh)
 
-function harness(active: WorkspaceLayoutId = 'default') {
-  const state = { active, previous: 'default' as WorkspaceLayoutId }
+function harness(active: WorkspaceLayoutId = 'default', device: DeviceClass = 'desktop') {
+  const state = { active, device, remembered: {} }
   const apply = vi.fn()
   const props = {
     t,
@@ -52,6 +53,15 @@ describe('LayoutsButton', () => {
     expect(screen.getByRole('button', { name: /专注/ }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: /禅写/ }).getAttribute('aria-pressed')).toBe('false')
     expect(screen.getByText('当前')).toBeDefined()
+  })
+
+  it('lists the jobs of the device in front of the person', () => {
+    render(<LayoutsButton {...harness('default', 'phone').props} />)
+    fireEvent.click(screen.getByRole('button', { name: '布局' }))
+    expect(screen.getByText('速记')).toBeDefined()
+    expect(screen.getByText('阅读')).toBeDefined()
+    // A phone is not a small desk: no workroom shape belongs in its list.
+    expect(screen.queryByText('工作间')).toBeNull()
   })
 
   it('collapses to a glyph-labelled control on the sidebar rail', () => {

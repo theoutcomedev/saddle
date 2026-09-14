@@ -19,6 +19,8 @@ import css from './Workbench.module.css'
 export interface WorkbenchInjected {
   /** Close the details column (layout geometry stays with ctx.layout). */
   closeDetails: () => void
+  /** True when this device cannot dock panes, so they open as sheets over the work. */
+  panesAreSheets: () => boolean
   /** Open the details column (no-op when already open). */
   openDetails: () => void
 }
@@ -85,13 +87,16 @@ function renderPane(tab: OpenTab | undefined, renderSlot: WorkbenchProps['render
  * @param props - runtime share, declared pane slots, locale, inject face.
  * @returns the workbench element.
  */
-export function Workbench({ renderSlot, t, openDetails, closeDetails }: WorkbenchProps) {
+export function Workbench({ renderSlot, t, openDetails, closeDetails, panesAreSheets }: WorkbenchProps) {
   const [tabs, setTabs] = useState<OpenTab[]>(() => [{ id: 'files', kind: 'files' }])
   const [activeId, setActiveId] = useState('files')
   const [addOpen, setAddOpen] = useState(false)
   const [fullscreen, setFullscreen] = useState(() => {
     try {
-      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      // A device that cannot dock panes starts the workbench un-maximized:
+      // maximizing is a wide-screen choice, asked from the shell's device model
+      // rather than guessed from a width here.
+      if (panesAreSheets()) {
         return false
       }
       return localStorage.getItem('saddle:workbench:maximized') === 'true'
@@ -222,12 +227,10 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
       const custom = event as CustomEvent<{ url?: string; openDrawer?: boolean }>
       if (custom.detail?.url) {
         openPane('browser', { url: custom.detail.url })
-        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
-        // Desktop opens the dock beside the conversation. On mobile the drawer
-        // opens only when the caller asks (a tapped app link).
-        if (!isMobile || custom.detail.openDrawer === true) {
-          openDetails()
-        }
+        // The pane is always revealed: the caller dispatched this from a gesture
+        // (a clicked link, a tapped app), so the site the person asked for is
+        // what they should be looking at, docked or as a sheet.
+        openDetails()
       }
     }
     window.addEventListener('workbench:open-browser', onOpenBrowser)

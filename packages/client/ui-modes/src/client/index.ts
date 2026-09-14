@@ -2,16 +2,15 @@
  * Workspace layouts, browser half. One promise: the screen fits the work, the
  * device, and the moment, and getting there costs neither state nor a reload.
  *
- * Three surfaces share one face: a headless applier in the root overlay that
- * arranges the shell from this device class's remembered layout, the Layout row
- * in the sidebar that lets a person choose, and the header chip that shows what
- * is in force and leaves it in one click. The agent's own switches reach the
- * shell through the `workspaceLayout` session projection, which the chip
- * consumes; everything else here is derived from the catalogue.
+ * Three surfaces share one face: the Layout row in the sidebar, the picker it
+ * opens (scoped to the jobs this device actually has), and the header chip that
+ * shows what is in force and leaves it in one click. A headless applier in the
+ * root overlay applies this device class's remembered layout on load, and the
+ * agent's own switches arrive through the `workspaceLayout` session projection.
  *
- * The vocabulary is "layout", never "mode": the same header carries the
- * session's agent preset, which is what the assistant may do. Two concepts
- * called "mode" in one row is the confusion this naming exists to prevent.
+ * The device class comes from the shell's device model (`ctx.device`), never
+ * from a ladder of this package's own: that is how the shell ended up with five
+ * disagreeing thresholds.
  */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
@@ -20,7 +19,7 @@ import type { WorkspaceLayoutId } from '@deepseek-ai/dsh-workspace-modes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the ui-conversation SlotMap merge (the header action seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-// Type-only: pulls the ui-layout SlotMap merge (the root overlay seat) and the ILayout face.
+// Type-only: pulls the ui-layout Context merge (ctx.device) and the service faces.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the ui-sidebar SlotMap merge (the footer action row seat).
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -30,9 +29,8 @@ import { LayoutApplier } from './LayoutApplier.tsx'
 import { LayoutChip } from './LayoutChip.tsx'
 import { LayoutsButton } from './LayoutsButton.tsx'
 import { LAYOUT_ATTRIBUTE, applyLayout } from './apply.ts'
-import { createLayoutsStore, deviceClassOf } from './store.ts'
+import { createLayoutsStore } from './store.ts'
 import { en, zh, type LayoutsKey } from './locales.ts'
-import './layouts-chrome.module.css'
 
 export type { LayoutsKey } from './locales.ts'
 
@@ -49,30 +47,36 @@ const NS = 'layouts'
 /** Injected business face shared by every layout surface. */
 export interface LayoutsInjected {
   hooks: {
-    /** This device class's layout memory bound by the renderer as useLayouts. */
+    /** The layout memory bound by the renderer as useLayouts. */
     layouts: ReturnType<ReturnType<typeof createLayoutsStore>['create']>['store']
   }
   /**
-   * Arrange the shell for one layout and remember it for this device class.
+   * Arrange the shell for one layout and remember it for the current device class.
    * @param layout - the layout to show.
    */
   apply: (layout: WorkspaceLayoutId) => void
 }
 
-/** Required services: the slot registry, the panel-action face, and the locale registry. */
-export const inject = ['slots', 'layout', 'locale']
+/** Required services: the slot registry, the panel-action face, the device model, and the locale registry. */
+export const inject = ['slots', 'layout', 'device', 'locale']
 
 /**
- * Client plugin body: instantiate this device class's layout memory, then
- * register the applier, the chip, and the sidebar row over it.
+ * Client plugin body: instantiate the layout memory and follow the device class,
+ * then register the applier, the chip, and the sidebar row over it.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-modes: dictionaries')
 
-  // The framework does not own this store: a layout is not per session or per
-  // pane, and its identity is the device class it was chosen on.
-  const layouts = createLayoutsStore().create(deviceClassOf(window.innerWidth))
+  const layouts = createLayoutsStore().create()
+  // The device class is followed rather than captured: one shell serves a phone
+  // and a laptop, so which remembered layout is in force changes with the same
+  // facts that change the shell's placements.
+  ctx.effect(() => {
+    layouts.actions.setDeviceClass(ctx.device.facts().class)
+    return ctx.device.watch((facts) => { layouts.actions.setDeviceClass(facts.class) })
+  }, 'ui-modes: device class')
+
   const injected = (): LayoutsInjected => ({
     hooks: { layouts: layouts.store },
     apply: (layout: WorkspaceLayoutId) => {
@@ -83,7 +87,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.effect(() => () => {
     document.documentElement.removeAttribute(LAYOUT_ATTRIBUTE)
-  }, 'ui-modes: shell attribute')
+  }, 'ui-modes: layout attribute')
 
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',

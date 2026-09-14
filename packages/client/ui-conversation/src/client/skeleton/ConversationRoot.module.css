@@ -3,6 +3,40 @@
    this fills its cell. Figma: Header 39:27730 (83px two-row), tabs 13px with
    a 2px active bar. */
 
+/* A layout that takes the composer away ("read", "counter", "wall") leaves this
+   in its place: the one control that brings it back, where the composer was. */
+.composerReveal {
+  position: absolute;
+  right: 16px;
+  bottom: calc(16px + var(--safe-bottom, 0px));
+  z-index: 20;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.composerReveal:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* Density: the layout says how much air the reading surface gets. */
+:global([data-density='roomy']) .scrollBody {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+:global([data-density='compact']) .scrollBody {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .root {
   position: relative;
   display: flex;

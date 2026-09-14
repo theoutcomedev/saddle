@@ -32,66 +32,71 @@
   }
 }
 
-@media (max-width: 768px) {
-  .frame {
-    display: flex;
-  }
-  .sidebarCol {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: var(--sidebar-width);
-    z-index: 50;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.2);
-    left: calc(-1 * var(--sidebar-width));
-    /* Transition width just like grid tracks */
-    transition: width var(--ds-transition-duration-slow) var(--ds-ease-in-out), left var(--ds-transition-duration-slow) var(--ds-ease-in-out);
-  }
-  .centerCol {
-    flex: 1;
-    width: 100%;
-    margin-left: 0;
-  }
-  .frame:not([data-sidebar-collapsed]) .sidebarCol {
-    left: 0;
-  }
-  .detailsCol {
-    position: absolute;
-    top: 40px; /* Leave a little space at top to show it's a drawer */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100% !important;
-    z-index: 50;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
-    transform: translateY(100%);
-    transition: transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);
-    background: var(--dsw-alias-bg-base);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    overflow: hidden;
-  }
-  .frame[data-details-collapsed] .detailsCol {
-    display: none !important;
-    pointer-events: none !important;
-    transform: translateY(100%) !important;
-  }
-  .frame:not([data-details-collapsed]) .detailsCol {
-    display: block !important;
-    transform: translateY(0);
-    pointer-events: auto !important;
-  }
-  .frame:not([data-details-collapsed]) .detailsCol:has([class*="rootFullscreen"]),
-  :global(body[data-workbench-fullscreen]) .frame:not([data-details-collapsed]) .detailsCol {
-    top: 0 !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-    transform: none !important;
-    z-index: 100 !important;
-  }
-  .handle {
-    display: none !important;
-  }
+/* Device-driven layout, not a width guess: the device controller publishes
+   whether panes can dock (device.ts), and every rule below keys on that answer.
+   The four old @media(max-width:768px) decisions lived here and disagreed with
+   three JavaScript thresholds elsewhere. */
+:global(html[data-panes='sheet']) .frame {
+  display: flex;
+}
+
+:global(html[data-panes='sheet']) .centerCol {
+  flex: 1;
+  width: 100%;
+  margin-left: 0;
+}
+
+:global(html[data-panes='sheet']) .handle {
+  display: none !important;
+}
+
+/* ── the sheet forms ───────────────────────────────────────────────────────
+   A surface this device cannot dock (or a layout that asked for a sheet) is an
+   overlay over the work rather than a column beside it. The width matches
+   SIDEBAR_SHEET in columns.ts. */
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.sidebarSheet {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(86vw, 320px);
+  z-index: 50;
+  background: var(--dsw-alias-bg-base);
+  border-right: 1px solid var(--dsw-alias-border-l2);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.detailsSheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 40px;
+  z-index: 50;
+  background: var(--dsw-alias-bg-base);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+/* A fullscreen workbench pane takes the sheet too — it is the same surface. */
+.detailsSheet:has([class*="rootFullscreen"]),
+:global(body[data-workbench-fullscreen]) .detailsSheet {
+  top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .sidebarCol {
@@ -205,8 +210,7 @@
 .mobileHamburger {
   display: none;
 }
-@media (max-width: 768px) {
-  .frame[data-sidebar-collapsed] .mobileHamburger {
+:global(html[data-panes='sheet']) .frame[data-sidebar-collapsed] .mobileHamburger {
     display: flex;
     position: absolute;
     /* Respect iOS notch safe area */
@@ -222,7 +226,6 @@
     z-index: 60;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    color: var(--dsw-alias-text-p1);
-  }
+  cursor: pointer;
+  color: var(--dsw-alias-text-p1);
 }

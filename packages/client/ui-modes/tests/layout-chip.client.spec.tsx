@@ -21,9 +21,9 @@ const t = makeTranslate(zh)
 interface Instruction { layout: WorkspaceLayoutId; at: number }
 
 function harness(active: WorkspaceLayoutId = 'default') {
-  let state = { active, previous: 'default' as WorkspaceLayoutId }
+  let state = { active, device: 'desktop' as const, remembered: {} }
   let projection: Instruction | undefined
-  const apply = vi.fn((layout: WorkspaceLayoutId) => { state = { active: layout, previous: state.active } })
+  const apply = vi.fn((layout: WorkspaceLayoutId) => { state = { ...state, active: layout } })
   const props = {
     t,
     apply,
