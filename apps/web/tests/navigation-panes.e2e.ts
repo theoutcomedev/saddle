@@ -407,8 +407,9 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     // details either — the expanded terminal card is read in place.
     await page.locator('[data-sample="bash"] ~ div [data-terminal] [class*="_copyButton_"]').first().click()
     await expect.poll(() => frame.getAttribute('data-details-collapsed'), { timeout: 5_000 }).toBe('true')
-    // Read summaries are host-open file links: they open the path on the host and
-    // reveal the workbench, whose files pane is where the file is shown.
+    // Read summaries are file links: they reveal the workbench, whose files pane
+    // is where the file is shown. The Host opener belongs to that pane's own
+    // control, so the chat gesture must not reach it.
     const fileLink = page.locator('[data-variant="read"] button').first()
     await fileLink.waitFor({ timeout: 10_000 })
     const openPath = vi.spyOn(scaffold.ctx.apiProxy.host, 'openPath')
@@ -419,6 +420,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     try {
       await fileLink.click()
       await expect.poll(() => frame.getAttribute('data-details-open'), { timeout: 5_000 }).toBe('true')
+      expect(openPath).not.toHaveBeenCalled()
     } finally {
       openPath.mockRestore()
     }

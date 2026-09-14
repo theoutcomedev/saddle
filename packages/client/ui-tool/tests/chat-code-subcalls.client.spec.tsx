@@ -266,7 +266,7 @@ describe('run_code sub-calls through the real chat machinery', () => {
     expect(nested).not.toBeNull()
   })
 
-  it('a file sub-row click opens the host path and reveals the workbench; bash sub-rows do not', async () => {
+  it('a file sub-row click reveals the workbench without opening a host application; bash sub-rows do not', async () => {
     const parent = 'call-64'
     const subCalls = [
       subCall(11, parent, 1, 'read', { path: 'notes/demo.txt' }, 'ok'),
@@ -277,9 +277,7 @@ describe('run_code sub-calls through the real chat machinery', () => {
     view.getByText('notes/demo.txt').click()
     // The workbench files pane is where the path is shown, so the dock opens with it.
     expect(b.layout.openDetails).toHaveBeenCalled()
-    await vi.waitFor(() => {
-      expect(b.workspaces.openPath).toHaveBeenCalledWith('notes/demo.txt')
-    })
+    expect(b.workspaces.openPath).not.toHaveBeenCalled()
     view.getByText('List notes').click()
     // A bash sub-row is not a file: the dock count stays where the file left it.
     expect(b.layout.openDetails).toHaveBeenCalledTimes(1)

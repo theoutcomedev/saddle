@@ -399,18 +399,13 @@ export function apply(ctx: Context): void {
           layout.openDetails()
         },
         fileMentions: owner => ctx.get('chatFileMentions')?.forClosing(owner),
-        openFile: async (path) => {
+        openFile: (path) => {
           const cwd = sessions.list.getSnapshot().byId[sessionId]?.cwd
           const resolved = resolveWorkspacePath(cwd, path)
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('workbench:open-file', { detail: { path: resolved } }))
           }
           layout.openDetails()
-          try {
-            await workspaces.openPath(resolved)
-          } catch {
-            // Headless / containerised hosts fail xdg-open; Workbench displays the file
-          }
         },
         loadOlder: () => { void scoped.loadOlder() },
         loadImage: attachment => conversation.resolveImage(sessionId, attachment),

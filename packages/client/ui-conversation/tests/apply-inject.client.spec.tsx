@@ -234,23 +234,21 @@ describe('conversation slot inject API', () => {
     await b.runtime.dispose()
   })
 
-  it('openFile (chat view face) resolves against session cwd and calls workspaces.openPath', async () => {
+  it('openFile (chat view face) resolves against session cwd and routes into the workbench pane', async () => {
     const b = await bench()
     const { injected } = b.chatViewApi(ROOT)
-    await injected.openFile('src/a.ts')
-    await vi.waitFor(() => {
-      expect(b.runtime.workspaces.calls).toContainEqual({ method: 'openPath', args: ['/proj/src/a.ts'] })
-    })
-    await b.runtime.dispose()
-  })
-
-  it('openFile routes into the workbench and tolerates a host that cannot open the path', async () => {
-    const b = await bench()
-    b.runtime.workspaces.stub('openPath', () => Promise.reject(new Error('xdg-open is not available')))
-    const { injected } = b.chatViewApi(ROOT)
-    // The pane displays the file either way, so a headless host's failed
-    // xdg-open is not an error the conversation surface reports.
-    await expect(injected.openFile('src/a.ts')).resolves.toBeUndefined()
+    const opened: unknown[] = []
+    const listener = (event: Event): void => { opened.push((event as CustomEvent).detail) }
+    window.addEventListener('workbench:open-file', listener)
+    try {
+      injected.openFile('src/a.ts')
+      expect(opened).toEqual([{ path: '/proj/src/a.ts' }])
+    } finally {
+      window.removeEventListener('workbench:open-file', listener)
+    }
+    // The pane is the destination: the chat gesture never asks the Host to hand
+    // the path to an OS application.
+    expect(b.runtime.workspaces.calls.some(call => call.method === 'openPath')).toBe(false)
     await b.runtime.dispose()
   })
 

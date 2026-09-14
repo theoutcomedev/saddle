@@ -1276,8 +1276,8 @@ export function FilesPane({
               <button
                 type="button"
                 className={css.ghost}
-                aria-label={t('workbench.browser.open')}
-                title="Open with system default app"
+                aria-label={t('workbench.files.openExternal')}
+                title={t('workbench.files.openExternal')}
                 onClick={() => { void openPath(selectedFile) }}
               >
                 <IconLinkOutline16 size={14} />

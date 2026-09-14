@@ -149,19 +149,18 @@ describe('web e2e: a finished turn ends with the files it produced', () => {
     expect(await showFolder.count()).toBe(1)
     expect(await page.getByText('Produced', { exact: true }).count()).toBe(1)
 
+    // The folder action reveals the files pane at the session workspace root;
+    // the Host opener is that pane's own control, not part of this gesture.
     const openPath = vi.spyOn(scaffold.ctx.apiProxy.host, 'openPath')
       .mockImplementation(async (request, _signal) => ({
         rpcId: request.rpcId,
         result: { ok: true, value: { opened: true as const } },
       }))
+    const frame = page.locator('[class*="frame"]').first()
     try {
-      const [response] = await Promise.all([
-        page.waitForResponse(response => new URL(response.url()).pathname === '/api/host.openPath'),
-        showFolder.click({ clickCount: 1 }),
-      ])
-      expect(response.status()).toBe(200)
-      expect(openPath).toHaveBeenCalledTimes(1)
-      expect(openPath.mock.calls[0]![0].payload).toEqual({ path: `${scaffold.workspaceCwd}/.` })
+      await showFolder.click({ clickCount: 1 })
+      await expect.poll(() => frame.getAttribute('data-details-open'), { timeout: 5_000 }).toBe('true')
+      expect(openPath).not.toHaveBeenCalled()
     } finally {
       openPath.mockRestore()
     }

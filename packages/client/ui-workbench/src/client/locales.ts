@@ -27,6 +27,7 @@ export const zh = {
   'workbench.browser.frameBlockedTitle': '此网页限制在面板中直接嵌入',
   'workbench.browser.frameBlockedDesc': '该站点设置了安全头（X-Frame-Options 或 Content-Security-Policy），阻止在 iframe 中展示。',
   'workbench.browser.openNewTab': '在新标签页打开',
+  'workbench.files.openExternal': '用系统默认应用打开',
 } as const
 
 /** English dictionary, key-identical to the Chinese source of truth. */
@@ -53,6 +54,7 @@ export const en: Record<WorkbenchKey, string> = {
   'workbench.browser.frameBlockedTitle': 'Site does not allow in-frame display',
   'workbench.browser.frameBlockedDesc': 'This website sent security headers (X-Frame-Options or CSP frame-ancestors) preventing embedded viewing.',
   'workbench.browser.openNewTab': 'Open in new tab',
+  'workbench.files.openExternal': 'Open with system default app',
 }
 
 /** Key domain of the `workbench` namespace (zh is the source of truth). */
