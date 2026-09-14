@@ -1,4 +1,4 @@
-/* Active-mode chip: static chrome plus one exit control. */
+/* Active-layout chip: static chrome, the row's own glyph, one exit control. */
 
 .chip {
   display: inline-flex;
@@ -6,7 +6,7 @@
   gap: 6px;
   max-width: 220px;
   height: 24px;
-  padding: 0 2px 0 9px;
+  padding: 0 2px 0 8px;
   box-sizing: border-box;
   border-radius: 999px;
   background: var(--dsw-alias-interactive-bg-hover);
@@ -16,14 +16,11 @@
   white-space: nowrap;
 }
 
-/* A mode is a state, not a warning: the mark carries the same weight as the
-   chip's label, and the state colour stays out of it. */
-.mark {
+/* The mark matches the sidebar row that set the layout, so the chip is
+   learnable rather than a second unlabelled pill in the header. */
+.glyph {
   flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--dsw-alias-label-tertiary);
+  opacity: 0.75;
 }
 
 .name {

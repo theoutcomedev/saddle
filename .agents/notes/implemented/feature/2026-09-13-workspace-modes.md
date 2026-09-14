@@ -1,4 +1,4 @@
-# Agent Note: Workspace modes: one mechanism, three entrances, one record
+# Agent Note: Workspace layouts: one mechanism, three entrances, one record
 
 Status: implemented
 
@@ -18,9 +18,11 @@ The agent could not change the shape at all, which is backwards for a product wh
 
 **Memory is per device class.** The active mode persists under a store scope key of `phone` / `tablet` / `desktop`, so a reload restores the shape that device class left, and a phone and a laptop may disagree.
 
-**Three entrances, one face.** The Modes row in the sidebar footer (beside Deployments and Scheduled Tasks), the active-mode chip in the session header whose exit is one click, and the model's `set_workspace_mode` tool. All three call the same injected `apply`.
+**Three entrances, one face.** The Modes row in the sidebar footer (beside Deployments and Scheduled Tasks), the active-mode chip in the session header whose exit is one click, and the model's `set_workspace_layout` tool. All three call the same injected `apply`.
 
-**The agent's entrance is a log event, not a setting.** `@deepseek-ai/dsh-workspace-modes` owns the tool and the `workspace/mode` event; the host folds it into a `workspaceMode` session projection carrying `{ mode, at }`, where `at` is the recording event's sequence. The chip consumes each instruction once, by sequence: two requests for the same mode are two instructions ("put me back in zen mode" works after an exit), while an instruction already consumed can never undo the person's exit. A person's own switch writes the store directly and never round-trips through the log.
+**The agent's entrance is a log event, not a setting.** `@deepseek-ai/dsh-workspace-modes` owns the tool and the `workspace/layout` event; the host folds it into a `workspaceLayout` session projection carrying `{ layout, at }`, where `at` is the recording event's sequence. The chip consumes each instruction once, by sequence: two requests for the same mode are two instructions ("put me back in zen mode" works after an exit), while an instruction already consumed can never undo the person's exit. A person's own switch writes the store directly and never round-trips through the log.
+
+**The vocabulary is layout, not mode.** The product already calls an agent preset a mode — what the assistant may do — and the header showed one as a pill. Naming this the same thing put two identically named chips in one header and two rows sharing a word in one sidebar, which is a naming defect a person cannot work around. Everything visible says **layout**: the sidebar row, the picker title, the chip, the tool (`set_workspace_layout`), the session event (`workspace/layout`), and the projection (`workspaceLayout`); the plain layout is `default` rather than `standard`, so the word that collided with the Standard preset is gone. Package names stay as they shipped — the renames that matter are the ones a person reads.
 
 **The agent may apply a mode itself** — not only on an explicit request. Four rails hold in the same change: it always names what it applied (tool result plus the chip), the exit is one click and is never undone by the entering instruction, a switch costs no state, and an instruction recorded in a session nobody is looking at takes effect when that session is opened.
 
@@ -32,6 +34,8 @@ The agent could not change the shape at all, which is backwards for a product wh
 
 **The agent restricted to suggesting.** Rejected by the product owner: the agent may switch. The rails above are what make that safe — an unnamed rearrangement, or one that costs state, is the failure this decision had to avoid.
 
+**Calling both concepts a mode.** The design brief calls these modes, so the first build did too, and the shipped header then showed "Standard mode" (the preset) beside "Standard mode" (the layout) as two chips a reader could not tell apart. Renaming the concept was cheaper than annotating it.
+
 **Driving the arrangement from a mode-owned CSS class instead of the layout store.** CSS cannot close a grid track that the concession solver owns, and a second geometry authority would have fought the existing one on every resize. The mode writes through the same actions the drag handles use.
 
 **A pre-change snapshot for undo.** Reverting to a remembered shape would have made "leave this mode" mean "restore whatever was there", which is wrong for a mode whose exit is also its definition of standard; the plain mode is the shell's own default shape.
@@ -40,7 +44,7 @@ The agent could not change the shape at all, which is backwards for a product wh
 
 The shell now has a shape vocabulary instead of one layout: three modes ship (standard, focus, zen), and the next ones are catalogue entries rather than features. The arrangement survives a reload per device class, and the agent can change it — with the record in the session log, so a replay, a second tab, and a cold read agree.
 
-What is given up: a draft mode cannot change the shell's content (all three rearrange panels and measure), modes do not stack, and Focus is not yet a sub-state of another mode; leaving a mode restores the shell default rather than a remembered arrangement; and a mode's arrangement is not verified host-side, so a client that is not running applies the pending request the next time it loads.
+The vocabulary was corrected after the first deploy, when the collision became visible in the running app: the feature is a layout everywhere a person can read it, and the package names are the only place the old word survives. What is given up: a draft layout cannot change the shell's content (all three rearrange panels and measure), modes do not stack, and Focus is not yet a sub-state of another mode; leaving a mode restores the shell default rather than a remembered arrangement; and a mode's arrangement is not verified host-side, so a client that is not running applies the pending request the next time it loads.
 
 ## Related
 

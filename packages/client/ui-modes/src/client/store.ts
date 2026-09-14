@@ -1,15 +1,15 @@
 /**
- * Per-device-class mode memory. A phone and a laptop are allowed to want
- * different shapes, so the remembered mode is keyed by device class: the
+ * Per-device-class layout memory. A phone and a laptop are allowed to want
+ * different shapes, so the remembered layout is keyed by device class: the
  * store's own scope key, which `defineStore` appends to its persist name.
- * Nothing else about a mode is stored — the arrangement is derived from the
+ * Nothing else about a layout is stored — the arrangement is derived from the
  * catalogue, so a recipe change reaches every device on its next load.
  */
 import { defineStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { WorkspaceModeId } from '@deepseek-ai/dsh-workspace-modes/client'
-import { DEFAULT_MODE } from './catalogue.ts'
+import type { WorkspaceLayoutId } from '@deepseek-ai/dsh-workspace-modes/client'
+import { DEFAULT_LAYOUT } from './catalogue.ts'
 
-/** The device classes a mode is remembered for. */
+/** The device classes a layout is remembered for. */
 export type DeviceClass = 'phone' | 'tablet' | 'desktop'
 
 /**
@@ -25,34 +25,34 @@ export function deviceClassOf(viewportWidth: number): DeviceClass {
   return 'desktop'
 }
 
-/** One device class's remembered mode. */
-export interface ModesState {
-  /** The mode this device class shows. */
-  active: WorkspaceModeId
-  /** The mode it showed before, so the last switch is one step back. */
-  previous: WorkspaceModeId
+/** One device class's remembered layout. */
+export interface LayoutsState {
+  /** The layout this device class shows. */
+  active: WorkspaceLayoutId
+  /** The layout it showed before, so the last switch is one step back. */
+  previous: WorkspaceLayoutId
 }
 
 /**
- * Create the modes store handle. The framework does not own this store — a
- * mode is not per session or per pane — so `apply` instantiates it once with
+ * Create the layouts store handle. The framework does not own this store — a
+ * layout is not per session or per pane — so `apply` instantiates it once with
  * the device class as its scope key.
  * @returns the store handle (spec + factory + persistence in one).
  */
-export function createModesStore() {
+export function createLayoutsStore() {
   return defineStore({
-    persist: 'dsh.workspaceModes.v1',
-    init: (): ModesState => ({ active: DEFAULT_MODE, previous: DEFAULT_MODE }),
+    persist: 'dsh.workspaceLayouts.v1',
+    init: (): LayoutsState => ({ active: DEFAULT_LAYOUT, previous: DEFAULT_LAYOUT }),
     actions: {
       /**
        * Remember a switch.
        * @param draft - the state being written.
-       * @param mode - the mode now active; a repeat of the active mode is not a switch.
+       * @param layout - the layout now active; a repeat of the active layout is not a switch.
        */
-      setActive: (draft: ModesState, mode: WorkspaceModeId) => {
-        if (draft.active === mode) return
+      setActive: (draft: LayoutsState, layout: WorkspaceLayoutId) => {
+        if (draft.active === layout) return
         draft.previous = draft.active
-        draft.active = mode
+        draft.active = layout
       },
     },
   })

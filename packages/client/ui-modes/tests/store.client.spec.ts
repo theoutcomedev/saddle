@@ -4,7 +4,7 @@
  * and the fact that one device class cannot overwrite another's shape.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createModesStore, deviceClassOf } from '../src/client/store.ts'
+import { createLayoutsStore, deviceClassOf } from '../src/client/store.ts'
 
 beforeEach(() => { localStorage.clear() })
 
@@ -19,25 +19,25 @@ describe('deviceClassOf', () => {
   })
 })
 
-describe('the modes store', () => {
-  it('remembers the switch and the mode it left', () => {
-    const store = createModesStore().create('desktop')
+describe('the layouts store', () => {
+  it('remembers the switch and the layout it left', () => {
+    const store = createLayoutsStore().create('desktop')
     store.actions.setActive('zen')
-    expect(store.getSnapshot()).toEqual({ active: 'zen', previous: 'standard' })
+    expect(store.getSnapshot()).toEqual({ active: 'zen', previous: 'default' })
   })
 
   it('does not treat a repeated request as a switch', () => {
     // Otherwise the chip's one-click exit would leave a trail of fake history.
-    const store = createModesStore().create('desktop')
+    const store = createLayoutsStore().create('desktop')
     store.actions.setActive('zen')
     store.actions.setActive('zen')
-    expect(store.getSnapshot()).toEqual({ active: 'zen', previous: 'standard' })
+    expect(store.getSnapshot()).toEqual({ active: 'zen', previous: 'default' })
   })
 
   it('keeps one memory per device class', () => {
-    createModesStore().create('phone').actions.setActive('zen')
-    expect(createModesStore().create('phone').getSnapshot().active).toBe('zen')
+    createLayoutsStore().create('phone').actions.setActive('zen')
+    expect(createLayoutsStore().create('phone').getSnapshot().active).toBe('zen')
     // The laptop is allowed to disagree with the phone.
-    expect(createModesStore().create('desktop').getSnapshot().active).toBe('standard')
+    expect(createLayoutsStore().create('desktop').getSnapshot().active).toBe('default')
   })
 })

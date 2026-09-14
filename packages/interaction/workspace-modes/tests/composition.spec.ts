@@ -1,6 +1,6 @@
 // Proves the model-facing surface through the REAL Loader and the real tool
-// runtime: the description names every mode the catalogue accepts, a call
-// writes exactly one `workspace/mode` event carrying the mode it reported, an
+// runtime: the description names every layout the catalogue accepts, a call
+// writes exactly one `workspace/layout` event carrying the layout it reported, an
 // id outside the catalogue is refused at the boundary, and a caller with no
 // owning session is refused rather than silently no-opped.
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -18,7 +18,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as WorkspaceModes from '@deepseek-ai/dsh-workspace-modes'
-import { WORKSPACE_MODES, WORKSPACE_MODE_PURPOSES } from '../src/catalogue.ts'
+import { WORKSPACE_LAYOUTS, WORKSPACE_LAYOUT_PURPOSES } from '../src/catalogue.ts'
 
 let root: string | undefined
 let context: Context | undefined
@@ -32,7 +32,7 @@ afterEach(async () => {
 
 function agent(ctx: Context): Agent {
   const scope = ctx.plugin(() => {})
-  const id = SessionId('workspace-mode-agent')
+  const id = SessionId('workspace-layout-agent')
   const session = Session.create(id)
   const value: Agent = {
     id, options: {}, session, inbox: new Inbox(session, { inserted: () => {}, discarded: () => {}, claimed: () => {} }),
@@ -54,7 +54,7 @@ function resultText(result: { content: { type: string; text?: string }[] }): str
  * @returns the booted context.
  */
 async function boot(): Promise<Context> {
-  root = await mkdtemp(join(tmpdir(), 'dsh-workspace-modes-loader-'))
+  root = await mkdtemp(join(tmpdir(), 'dsh-workspace-layouts-loader-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
     "- name: '@deepseek-ai/dsh-agent'",
@@ -87,30 +87,30 @@ async function boot(): Promise<Context> {
   return ctx
 }
 
-describe('set_workspace_mode through real Loader composition', () => {
-  it('describes every mode the catalogue accepts', async () => {
+describe('set_workspace_layout through real Loader composition', () => {
+  it('describes every layout the catalogue accepts', async () => {
     const ctx = await boot()
-    const description = ctx.tools.schemas().find(s => s.name === 'set_workspace_mode')?.description ?? ''
-    for (const mode of WORKSPACE_MODES) {
-      expect(description).toContain(`- ${mode}: ${WORKSPACE_MODE_PURPOSES[mode]}`)
+    const description = ctx.tools.schemas().find(s => s.name === 'set_workspace_layout')?.description ?? ''
+    for (const layout of WORKSPACE_LAYOUTS) {
+      expect(description).toContain(`- ${layout}: ${WORKSPACE_LAYOUT_PURPOSES[layout]}`)
     }
   }, 30_000)
 
-  it('writes one workspace/mode event carrying the mode it reported', async () => {
+  it('writes one workspace/layout event carrying the layout it reported', async () => {
     const ctx = await boot()
     const owner = agent(ctx)
     const result = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('set-mode-zen'),
-      name: 'set_workspace_mode',
-      arguments: { mode: 'zen' },
+      callId: CallId('set-layout-zen'),
+      name: 'set_workspace_layout',
+      arguments: { layout: 'zen' },
       agent: owner,
     })
     expect(result.isError).toBe(false)
-    expect(resultText(result)).toContain('Workspace mode set to zen')
-    const recorded = owner.session.events.filter(event => event.type === 'workspace/mode')
+    expect(resultText(result)).toContain('Workspace layout set to zen')
+    const recorded = owner.session.events.filter(event => event.type === 'workspace/layout')
     expect(recorded).toHaveLength(1)
-    expect(recorded[0]?.data).toEqual({ mode: 'zen' })
+    expect(recorded[0]?.data).toEqual({ layout: 'zen' })
   }, 30_000)
 
   it('refuses an id outside the catalogue', async () => {
@@ -118,22 +118,22 @@ describe('set_workspace_mode through real Loader composition', () => {
     const owner = agent(ctx)
     const result = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('set-mode-bogus'),
-      name: 'set_workspace_mode',
-      arguments: { mode: 'cinema' },
+      callId: CallId('set-layout-bogus'),
+      name: 'set_workspace_layout',
+      arguments: { layout: 'cinema' },
       agent: owner,
     })
     expect(result.isError).toBe(true)
-    expect(owner.session.events.some(event => event.type === 'workspace/mode')).toBe(false)
+    expect(owner.session.events.some(event => event.type === 'workspace/layout')).toBe(false)
   }, 30_000)
 
   it('refuses a caller with no owning session', async () => {
     const ctx = await boot()
     const result = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('set-mode-ownerless'),
-      name: 'set_workspace_mode',
-      arguments: { mode: 'focus' },
+      callId: CallId('set-layout-ownerless'),
+      name: 'set_workspace_layout',
+      arguments: { layout: 'focus' },
     })
     expect(result.isError).toBe(true)
     expect(resultText(result)).toContain('requires an owning agent session')
