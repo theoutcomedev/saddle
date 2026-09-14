@@ -141,7 +141,7 @@ export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsM
                         className={css.openBtn}
                         onClick={(event) => { openInWorkbenchOnMobile(app.url, event); onClose() }}
                       >
-                        Open App ↗
+                        Open
                       </a>
                       <Button
                         variant="outline"
