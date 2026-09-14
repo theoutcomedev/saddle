@@ -23,11 +23,19 @@ function declarations(selector: string): string[] {
   return (rule[1] ?? '').split(';').map(part => part.trim()).filter(Boolean)
 }
 
-describe('AgentPresetLabel.module.css chip', () => {
-  it('pads the chip on both sides of its icon and name', () => {
+describe('AgentPresetLabel.module.css label', () => {
+  it('declares no resting fill', () => {
+    // The fill the rule once asked for (--dsw-alias-fill-tsp-secondary) is
+    // undefined, so it resolved to transparent. The label is not a control:
+    // every clickable chip in this header fills on hover instead, and the
+    // new-session preset chip is likewise unfilled at rest.
+    expect(declarations('.label').some(part => part.startsWith('background'))).toBe(false)
+  })
+
+  it('pads the label on both sides of its icon and name', () => {
     // `padding: 0 2px 0 0` left the icon against the rounded left corner and the
-    // name against the right one, so the chip read as a clipped box.
-    expect(declarations('.label')).toContain('padding: 0 8px')
+    // name against the right one, so the box read as a clipped chip.
+    expect(declarations('.label')).toContain('padding: 0 4px')
   })
 
   it('keeps the chip one line tall and unbroken', () => {
