@@ -31,6 +31,7 @@ type LayoutActions = {
   setDetails: (draft: LayoutState, px: number) => void
   toggleSidebar: (draft: LayoutState) => void
   closeSidebar: (draft: LayoutState) => void
+  hideSidebar: (draft: LayoutState) => void
   setNarrow: (draft: LayoutState, narrow: boolean) => void
   openDetails: (draft: LayoutState) => void
   closeDetails: (draft: LayoutState) => void
@@ -63,6 +64,11 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       // is a column beside the conversation, not an overlay over it, so its
       // preference and its drag width both survive.
       closeSidebar: (d) => { if (d.narrow) d.narrowExpanded = false },
+      // The wide sidebar's closed state is a preference write, not a dismissal:
+      // closeSidebar above only puts the narrow drawer away, because a column
+      // beside the conversation is dismissed by its own toggle. A workspace mode
+      // asks for an arrangement, so it needs the state itself.
+      hideSidebar: (d) => { d.sidebar = 0; d.narrowExpanded = false },
       // Crossing the breakpoint in either direction drops the override: the
       // narrow default is auto-collapsed, the wide state is the preference.
       setNarrow: (d, narrow: boolean) => {

@@ -388,6 +388,12 @@
       config:
         allowParallelInProgress: true
 
+    # set_workspace_mode: the model rearranges the person's screen — which
+    # panels are out, how much room they take, how wide the reading measure is.
+    # The browser half (ui-modes) applies it and shows the way back out.
+    - id: workspace-modes
+      name: '@deepseek-ai/dsh-workspace-modes'
+
     # Persisted same-session goals reach the model and the slash menu here; the
     # domain, driver, and `/goal` command are above.
     - id: tool-goal

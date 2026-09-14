@@ -26,7 +26,10 @@ export type AppFrameProps =
 
 /** Center column grid item (session-body building block). */
 function CenterColumn(props: { children?: ReactNode }) {
-  return <div className={css.centerCol}>{props.children}</div>
+  // `data-conversation-column` is the stable hook shell-level styles key on
+  // (a workspace mode holding the column to a reading measure); the class name
+  // is this package's private detail.
+  return <div className={css.centerCol} data-conversation-column="">{props.children}</div>
 }
 
 /** Details column grid item; width 0 keeps the subtree mounted (never unmount on close). */

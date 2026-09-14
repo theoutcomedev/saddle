@@ -39,6 +39,8 @@ export const DETAILS_MIN = 300
 export const DETAILS_MAX = 2400
 /** Details width before any user drag. */
 export const DETAILS_DEFAULT = 360
+/** Details width a mode asks for when it wants the pane beside the work, not under it. */
+export const DETAILS_WIDE = 560
 
 /**
  * Clamp a panel width into its contract range.

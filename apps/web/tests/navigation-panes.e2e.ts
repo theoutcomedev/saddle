@@ -511,6 +511,39 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('NAVIGATION_OK')
   }, 60_000)
 
+  it.skipIf(MODE === 'record')('a workspace mode rearranges the real columns and keeps the draft', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-workspace-modes'))
+    // The mode mechanism's acceptance: the shell's own grid really changes, the
+    // panels really close, the draft in the composer survives, and the chip both
+    // names the mode and leaves it in one click.
+    await ensureSeedOpen(page)
+    const frame = page.locator('[class*="frame"]').first()
+    const columns = async (): Promise<string> => await frame.evaluate(
+      element => getComputedStyle(element).gridTemplateColumns)
+    const plainColumns = await columns()
+
+    const composer = page.locator('[data-composer-seat] textarea').first()
+    await composer.fill('half-written draft')
+
+    await page.getByRole('button', { name: 'Modes', exact: true }).click()
+    await page.getByRole('button', { name: /Zen Writer/ }).click()
+
+    await expect.poll(() => page.locator('html').getAttribute('data-workspace-mode'), { timeout: 5_000 })
+      .toBe('zen')
+    await expect.poll(columns, { timeout: 5_000 }).not.toBe(plainColumns)
+    expect(await frame.getAttribute('data-details-collapsed')).toBe('true')
+    expect(await frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+    // Nothing was remounted to get here: the draft is the same text in the same
+    // textarea.
+    expect(await composer.inputValue()).toBe('half-written draft')
+
+    await page.getByRole('button', { name: 'Leave Zen Writer' }).click()
+    await expect.poll(() => page.locator('html').getAttribute('data-workspace-mode'), { timeout: 5_000 })
+      .toBe('standard')
+    await expect.poll(columns, { timeout: 5_000 }).toBe(plainColumns)
+    expect(await composer.inputValue()).toBe('half-written draft')
+  }, 60_000)
+
   it.skipIf(MODE === 'record')('keeps the recorded fixture inventory exact', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'seed.jsonl', 'search-results.expected.md', 'trajectory.expected.md',

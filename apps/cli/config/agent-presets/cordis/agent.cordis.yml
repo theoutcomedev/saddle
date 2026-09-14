@@ -231,6 +231,13 @@
   config:
     allowParallelInProgress: true
 
+# set_workspace_mode: rearrange the person's screen for the shape the work or
+# the request wants — which panels are out, how much room they take, how wide
+# the reading measure is. It applies at once for the session in view, and the
+# person leaves it with one click.
+- id: workspace-modes
+  name: '@deepseek-ai/dsh-workspace-modes'
+
 # The `web` service and its search provider stay in the host composition; only
 # the model-facing tool is per-session.
 - id: tool-web

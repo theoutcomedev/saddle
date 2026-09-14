@@ -334,6 +334,12 @@
     - id: ui-plan
       name: '@deepseek-ai/dsh-client-ui-plan'
 
+    # Workspace modes: the shell arrangement that fits the work and the device,
+    # chosen from the sidebar's Modes row, shown as a chip in the session
+    # header, and reachable by the agent through its own tool.
+    - id: ui-modes
+      name: '@deepseek-ai/dsh-client-ui-modes'
+
     - id: ui-user-questions
       name: '@deepseek-ai/dsh-client-ui-user-questions'
 
@@ -469,6 +475,9 @@
   disabled: true
 
 - id: tool-todo
+  disabled: true
+
+- id: workspace-modes
   disabled: true
 
 - id: tool-web

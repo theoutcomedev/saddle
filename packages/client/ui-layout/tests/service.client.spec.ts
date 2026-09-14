@@ -14,6 +14,7 @@ function fakePanels(): PanelActions {
     setDetails: vi.fn(),
     toggleSidebar: vi.fn(),
     closeSidebar: vi.fn(),
+    hideSidebar: vi.fn(),
     setNarrow: vi.fn(),
     openDetails: vi.fn(),
     closeDetails: vi.fn(),
@@ -43,6 +44,27 @@ describe('LayoutController', () => {
     expect(() => { service.toggleSidebar() }).toThrow(/panel actions not wired/)
     expect(() => { service.openDetails() }).toThrow(/panel actions not wired/)
     expect(() => { service.closeDetails() }).toThrow(/panel actions not wired/)
+  })
+
+  it('arranges both panels in one write, resolving each shape to its own width', () => {
+    // A mode names shapes, not numbers: the width contract lives in columns.ts,
+    // and closing must use the close action because the width setter clamps a
+    // 0 up to the pane's open minimum.
+    const service = new LayoutController()
+    const panels = fakePanels()
+    service.attachPanels(panels)
+
+    service.setPanels({ sidebar: 'closed', details: 'wide' })
+    // Closing the sidebar is its own write: the drawer-dismiss action leaves a
+    // wide sidebar's preference alone.
+    expect(panels.hideSidebar).toHaveBeenCalledTimes(1)
+    expect(panels.closeSidebar).not.toHaveBeenCalled()
+    expect(panels.setDetails).toHaveBeenCalledWith(560)
+
+    service.setPanels({ sidebar: 'default', details: 'closed' })
+    expect(panels.setSidebar).toHaveBeenCalledWith(280)
+    expect(panels.closeDetails).toHaveBeenCalledTimes(1)
+    expect(panels.setDetails).toHaveBeenCalledTimes(1)
   })
 
   it('re-attach overwrites the stale action set (entry re-register)', () => {

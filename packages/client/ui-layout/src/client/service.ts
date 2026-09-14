@@ -10,9 +10,23 @@
  */
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import type { createLayoutStore } from './stores.ts'
+import { DETAILS_DEFAULT, DETAILS_WIDE, SIDEBAR_DEFAULT, SIDEBAR_MAX } from './columns.ts'
 
 /** The layout store's bound action set (framework-baked, draft params peeled). */
 export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
+
+/**
+ * One panel's place in a workspace mode, named rather than measured: the
+ * width contract stays here, so a caller arranges panels without inventing
+ * numbers, and every mode is expressed in the same three words.
+ */
+export type PanelShape = 'closed' | 'default' | 'wide'
+
+/** Both panels at once, as a mode asks for them. */
+export interface PanelArrangement {
+  sidebar: PanelShape
+  details: PanelShape
+}
 
 /**
  * The outward layout face (`ctx.layout`): the panel transitions other
@@ -29,6 +43,30 @@ export interface ILayout {
   closeDetails(): void
   /** Toggle the details panel (closed ⟷ contract default width). */
   toggleDetails(): void
+  /** Arrange both panels in one write (the workspace-mode gesture). */
+  setPanels(arrangement: PanelArrangement): void
+}
+
+/**
+ * Write one panel's shape through the store's declared actions. Closing has
+ * its own action because the width setter clamps into the panel's open range:
+ * a width of 0 there would reopen the panel at its minimum.
+ * @param shape - the requested shape.
+ * @param write - the panel's close and width writes.
+ * @param base - the panel's contract default width.
+ * @param wide - the panel's wide rung.
+ */
+function writeShape(
+  shape: PanelShape,
+  write: { close: () => void; set: (px: number) => void },
+  base: number,
+  wide: number,
+): void {
+  if (shape === 'closed') {
+    write.close()
+    return
+  }
+  write.set(shape === 'wide' ? wide : base)
 }
 
 /** Cross-plugin panel-action face (ctx.layout). */
@@ -64,6 +102,15 @@ export class LayoutController implements ILayout {
   /** Toggle the details panel (closed ⟷ contract default width). */
   toggleDetails(): void {
     this.#require().toggleDetails()
+  }
+
+  /** Arrange both panels in one write (the workspace-mode gesture). */
+  setPanels(arrangement: PanelArrangement): void {
+    const panels = this.#require()
+    const sidebar = { close: () => { panels.hideSidebar() }, set: (px: number) => { panels.setSidebar(px) } }
+    const details = { close: () => { panels.closeDetails() }, set: (px: number) => { panels.setDetails(px) } }
+    writeShape(arrangement.sidebar, sidebar, SIDEBAR_DEFAULT, SIDEBAR_MAX)
+    writeShape(arrangement.details, details, DETAILS_DEFAULT, DETAILS_WIDE)
   }
 
   #require(): PanelActions {
