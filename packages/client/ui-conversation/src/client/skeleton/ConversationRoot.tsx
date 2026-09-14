@@ -15,8 +15,7 @@ export type ConversationRootProps = ConversationSlotProps
 
 export function ConversationRoot({
   sessionId, useSession, useSessions, useWorkspaces, useInput, useComposerBlock,
-  renderSlot, renderSlotChain, selectWorkspace, toggleWorkbench, detailsOpen,
-  composer: composerShape, header: headerLevel, t,
+  renderSlot, renderSlotChain, selectWorkspace, toggleWorkbench, detailsOpen, t,
 }: ConversationRootProps) {
   const openState = useSession(s => s.openState)
   const composerPhase = useSession(s => s.composerPhase)
@@ -30,12 +29,6 @@ export function ConversationRoot({
   // send; its reason is already localized by whoever raised it.
   const composerBlock = useComposerBlock(block => block)
 
-  // A layout may take the composer away entirely ("read", "counter", "wall").
-  // The surface is then absent until the person asks for it, which is what makes
-  // those layouts different from a preference: something disappears from the
-  // screen. `requestedComposer` is that ask, and it is local view state.
-  const [requestedComposer, setRequestedComposer] = useState(false)
-  const composerHidden = composerShape === 'none' && !requestedComposer
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingWorkspaceId, setPendingWorkspaceId] = useState<WorkspaceId | undefined>()
   const pickerAnchor = useRef<HTMLButtonElement>(null)
@@ -185,13 +178,8 @@ export function ConversationRoot({
   // only `.composerStack`: overlay:true renders those as siblings, and sticky
   // on the fallback alone would leave Question/Approval panels at the content
   // end off-screen when the user is not pinned to the floor.
-  const composerSeat = composerHidden ? null : (
-    <div
-      ref={seatResizeRef}
-      className={css.composerSeat}
-      data-composer-seat=""
-      data-composer-shape={composerShape ?? 'full'}
-    >
+  const composerSeat = (
+    <div ref={seatResizeRef} className={css.composerSeat} data-composer-seat="">
       {composer}
     </div>
   )
@@ -211,20 +199,11 @@ export function ConversationRoot({
           </button>
         </div>
       )}
-      {renderSlot('conversation.session.header', { detailsOpen, compact: headerLevel === 'compact' })}
+      {renderSlot('conversation.session.header', { detailsOpen })}
       <div className={css.scrollBody} data-conversation-scroll="">
         {renderSlot('conversation.session', {})}
         {composerSeat}
       </div>
-      {composerHidden && (
-        <button
-          type="button"
-          className={css.composerReveal}
-          onClick={() => { setRequestedComposer(true) }}
-        >
-          {t('chat.reply')}
-        </button>
-      )}
     </div>
   )
 }

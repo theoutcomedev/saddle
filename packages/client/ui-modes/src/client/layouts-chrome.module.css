@@ -1,0 +1,14 @@
+/* Shell-level consequences of a layout.
+   Every rule keys on the attribute applyLayout writes, so what a layout looks
+   like lives beside the layout's entry in the catalogue instead of inside the
+   components a layout rearranges. The hooks are data attributes the shell
+   already publishes: a layout must not depend on another package's class names. */
+
+/* Zen Writer: hold the conversation column to a reading measure, centred in
+   whatever width the panel solve left over. Below the measure the column keeps
+   its own width, so a phone is unaffected. */
+:global(html[data-workspace-layout='zen']) :global([data-conversation-column]) {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+}

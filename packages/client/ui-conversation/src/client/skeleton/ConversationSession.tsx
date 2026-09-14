@@ -66,7 +66,7 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  */
 export function ConversationSessionHeader({
   sessionId, useSession, useSessions, useStore, actions,
-  renderSlot, views, open, toggleWorkbench, detailsOpen, compact, t,
+  renderSlot, views, open, toggleWorkbench, detailsOpen, t,
 }: ConversationSessionHeaderProps) {
   useSyncExternalStore(views.subscribe, views.version)
   const tabs = views.list()
@@ -84,10 +84,7 @@ export function ConversationSessionHeader({
     >
       {!hideChrome && (
         <>
-          {/* A compact layout keeps the title row and gives the tab row's height
-              back to the work: the tabs are a desktop affordance, and a phone
-              reached through the title's own menu instead. */}
-          <div className={clsx(css.titleRow, compact && css.titleRowCompact)}>
+          <div className={css.titleRow}>
             <div className={css.titleCluster}>
               <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
                 {ancestry.map((summary, index) => {
@@ -157,7 +154,7 @@ export function ConversationSessionHeader({
               )}
             </div>
           </div>
-          {tabs.length > 1 && !compact && (
+          {tabs.length > 1 && (
             <div className={css.tabs} role="tablist">
               {tabs.map(viewTab => (
                 <button

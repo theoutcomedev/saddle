@@ -1,30 +1,27 @@
 /**
- * Applying a layout: one call into the shell's layout service, plus the
- * attribute that names the active layout.
- *
- * The service stores the specification and the frame resolves it against the
- * device (shell.ts), so this module never touches a width, a breakpoint, or the
- * layout — and a layout this device cannot render literally is still honoured by
- * the shell rather than dropped. The attribute is here because the *layout id* is
- * this package's vocabulary, while placement is the shell's.
+ * Applying a layout: two writes into facts that already exist — the layout
+ * service's panel arrangement and the attribute the layout styles key on.
+ * Nothing here mounts, unmounts, or reloads anything, which is what lets a
+ * draft, a scroll position, and running work survive the switch.
  */
 import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { WorkspaceLayoutId } from '@deepseek-ai/dsh-workspace-modes/client'
-import { LAYOUTS } from './catalogue.ts'
+import { LAYOUT_ARRANGEMENTS } from './catalogue.ts'
 
 /**
- * Attribute on the root element naming the active layout, for styles and for a
- * person reading the DOM to see what the app applied.
+ * Attribute on the root element naming the active layout. One home for the
+ * shell-level layout fact: the stylesheet beside this module reads it, and a
+ * person debugging a layout reads the same value the app applied.
  */
 export const LAYOUT_ATTRIBUTE = 'data-workspace-layout'
 
 /**
- * Apply one layout to the shell.
- * @param layout - the layout to apply.
+ * Arrange the shell for one layout.
+ * @param layout - the layout to arrange for.
  * @param service - the layout service face (`ctx.layout`).
  * @param root - the element carrying the layout attribute, or null outside a document.
  */
 export function applyLayout(layout: WorkspaceLayoutId, service: ILayout, root: Element | null): void {
-  service.applyShell(LAYOUTS[layout].spec)
+  service.setPanels(LAYOUT_ARRANGEMENTS[layout])
   root?.setAttribute(LAYOUT_ATTRIBUTE, layout)
 }

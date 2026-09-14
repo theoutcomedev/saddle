@@ -1,62 +1,26 @@
 /**
- * The root entry's transient layout store: the panel geometry, the shell
- * specification the active layout asked for, and the device facts everything
- * else is resolved against.
- *
- * Panel geometry is plain widths in px (0 = closed) and stays the person's
- * (drag) state. The shell specification is the *layout's* state: placements,
- * chrome, composer shape, density and measure. Device facts are neither: they
- * are what the browser says, written here so a pure component can read them
- * through its one store share without a context.
- *
- * The sheet form of the sidebar has its own open flag (`sidebarSheetOpen`):
- * a phone's session list is an overlay, not a column, so "open" cannot be a
- * width. Module level exports the factory only — a module-level handle would
- * pin the store's identity in the module cache (a de-facto singleton surviving
- * plugin reloads).
+ * The root entry's transient layout store: panel geometry as plain widths in
+ * px (0 = closed). Module level exports the factory only — a module-level
+ * handle would pin the store's identity in the module
+ * cache (a de-facto singleton surviving plugin reloads). register() receives
+ * the factory (exclusive use: the framework instantiates per entry), AppFrame
+ * derives its PropsStore share from the return type, and the service face
+ * receives the bound actions through the registration's inject hook.
  */
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
 import {
-  clampWidth, DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN, DETAILS_WIDE,
+  clampWidth, DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
   SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
 } from './columns.ts'
-import { classifyDevice, type DeviceFacts } from './device.ts'
-import { DEFAULT_SHELL, type ShellSpec } from './shell.ts'
 
 /**
- * Layout state: the two panel widths (0 = closed), the sidebar's sheet flag,
- * the active shell specification, and the device facts in front of the person.
- * `sheetPanes` lives on the device facts, not here — the shell asks the device
- * what it can dock instead of remembering a breakpoint it crossed.
+ * Layout store state: panel width preferences in px (0 = closed), plus the
+ * narrow-viewport pair — `narrow` mirrors AppFrame's breakpoint reading
+ * (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick semantics, and
+ * `narrowExpanded` is the manual override that re-expands the auto-collapsed
+ * sidebar over the squeezed center without rewriting the width preference.
  */
-export interface LayoutState {
-  /** Wide sidebar preference in px (0 = closed). */
-  sidebar: number
-  /** Details width in px (0 = closed). */
-  details: number
-  /** Open state of the sidebar's sheet form (the narrow overlay). */
-  sidebarSheetOpen: boolean
-  /**
-   * True once the person has asked for a surface the active layout removed.
-   * The spec decides what is available; a gesture overrides a removal, so a
-   * layout can be minimal without making a click do nothing.
-   */
-  surfaceRequested: boolean
-  /** What the active layout asked the shell to be. */
-  shell: ShellSpec
-  /** What the browser says about this device. */
-  device: DeviceFacts
-}
-
-/**
- * The device facts at store creation, so the first render is already right.
- * @returns the classified facts for the current window.
- */
-function initialDevice(): DeviceFacts {
-  if (typeof window === 'undefined') return classifyDevice(1440, 900, false)
-  const coarse = window.matchMedia?.('(pointer: coarse)')?.matches === true
-  return classifyDevice(window.innerWidth, window.innerHeight, coarse)
-}
+type LayoutState = { sidebar: number; details: number; narrow: boolean; narrowExpanded: boolean }
 
 /**
  * Annotation twin of the actions literal below (the export needs a declared
@@ -65,74 +29,64 @@ function initialDevice(): DeviceFacts {
 type LayoutActions = {
   setSidebar: (draft: LayoutState, px: number) => void
   setDetails: (draft: LayoutState, px: number) => void
-  toggleSidebar: (draft: LayoutState, sheetPanes: boolean) => void
+  toggleSidebar: (draft: LayoutState) => void
   closeSidebar: (draft: LayoutState) => void
-  openSidebarSheet: (draft: LayoutState) => void
-  closeSidebarSheet: (draft: LayoutState) => void
-  setDevice: (draft: LayoutState, facts: DeviceFacts) => void
-  setShell: (draft: LayoutState, spec: ShellSpec) => void
+  hideSidebar: (draft: LayoutState) => void
+  setNarrow: (draft: LayoutState, narrow: boolean) => void
   openDetails: (draft: LayoutState) => void
   closeDetails: (draft: LayoutState) => void
   toggleDetails: (draft: LayoutState) => void
 }
 
 /**
- * Create the layout panel store handle.
+ * Create the layout panel store handle. The preference IS the width, so
+ * closing a panel forgets its drag width — reopening restores the contract
+ * default. Actions are the complete write set: drag writes clamp
+ * into the panel's contract range and never cross the open/closed line;
+ * open/close transitions write 0 / the default explicitly. Below the
+ * auto-collapse breakpoint (AppFrame feeds setNarrow) the sidebar toggle
+ * flips the narrowExpanded override instead of the preference.
  * @returns the store handle (spec + type + identity + factory in one).
  */
-export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions> {
+export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutActions>  {
   const handle = defineStore({
-    init: (): LayoutState => ({
-      sidebar: SIDEBAR_DEFAULT,
-      details: 0,
-      sidebarSheetOpen: false,
-      surfaceRequested: false,
-      shell: DEFAULT_SHELL,
-      device: initialDevice(),
-    }),
+    init: (): LayoutState => ({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
       setDetails: (d, px: number) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },
-      // Docking devices close and open a column; sheet devices open and close an
-      // overlay. The caller supplies which, because the device knows and a store
-      // remembering a crossed breakpoint was how the two answers drifted apart.
-      toggleSidebar: (d, sheetPanes: boolean) => {
-        if (sheetPanes) d.sidebarSheetOpen = !d.sidebarSheetOpen
+      // Narrow toggles flip only the override: the width preference survives
+      // untouched, so re-widening restores the pre-squeeze layout.
+      toggleSidebar: (d) => {
+        if (d.narrow) d.narrowExpanded = !d.narrowExpanded
         else d.sidebar = d.sidebar === 0 ? SIDEBAR_DEFAULT : 0
-        d.surfaceRequested = true
       },
-      // "The sidebar is not showing" is one state with two forms, so one action
-      // covers both: a layout asking for none, and a person dismissing the
-      // drawer that was over the work.
-      closeSidebar: (d) => { d.sidebar = 0; d.sidebarSheetOpen = false; d.surfaceRequested = false },
-      openSidebarSheet: (d) => { d.sidebarSheetOpen = true; d.surfaceRequested = true },
-      closeSidebarSheet: (d) => { d.sidebarSheetOpen = false },
-      setDevice: (d, facts: DeviceFacts) => {
-        if (d.device.class === facts.class && d.device.orientation === facts.orientation
-          && d.device.input === facts.input && d.device.sheetPanes === facts.sheetPanes
-          && d.device.width === facts.width && d.device.height === facts.height) return
-        d.device = facts
+      // Opening a session the drawer is covering dismisses it. The wide sidebar
+      // is a column beside the conversation, not an overlay over it, so its
+      // preference and its drag width both survive.
+      closeSidebar: (d) => { if (d.narrow) d.narrowExpanded = false },
+      // The wide sidebar's closed state is a preference write, not a dismissal:
+      // closeSidebar above only puts the narrow drawer away, because a column
+      // beside the conversation is dismissed by its own toggle. A workspace mode
+      // asks for an arrangement, so it needs the state itself.
+      hideSidebar: (d) => { d.sidebar = 0; d.narrowExpanded = false },
+      // Crossing the breakpoint in either direction drops the override: the
+      // narrow default is auto-collapsed, the wide state is the preference.
+      setNarrow: (d, narrow: boolean) => {
+        if (d.narrow === narrow) return
+        d.narrow = narrow
+        d.narrowExpanded = false
       },
-      // Applying a layout writes the specification AND the openness it implies:
-      // a layout that names a surface means it to be seen, and one that says
-      // "none" means the surface is out of the way until the person asks.
-      setShell: (d, spec: ShellSpec) => {
-        d.shell = spec
-        d.surfaceRequested = false
-        // A layout names what is on screen and where it sits; the person's own
-        // toggles stay theirs afterwards.
-        const sidebarVisible = spec.sidebar !== 'none' && spec.sidebarShown
-        d.sidebarSheetOpen = sidebarVisible && spec.sidebar === 'sheet'
-        d.sidebar = sidebarVisible && spec.sidebar === 'column' ? SIDEBAR_DEFAULT : 0
-        d.details = spec.details !== 'none' && spec.detailsShown
-          ? (spec.detailsWidth === 'wide' ? DETAILS_WIDE : DETAILS_DEFAULT)
-          : 0
+      // The dock and the sidebar drawer are alternative full-height surfaces on a
+      // narrow viewport: opening the dock closes the drawer instead of stacking
+      // one over the other.
+      openDetails: (d) => {
+        if (d.details === 0) d.details = DETAILS_DEFAULT
+        if (d.narrow) d.narrowExpanded = false
       },
-      openDetails: (d) => { d.details = d.details === 0 ? DETAILS_DEFAULT : d.details; d.surfaceRequested = true },
-      closeDetails: (d) => { d.details = 0; d.surfaceRequested = false },
+      closeDetails: (d) => { d.details = 0 },
       toggleDetails: (d) => {
-        d.details = d.details === 0 ? DETAILS_DEFAULT : 0
-        d.surfaceRequested = true
+        if (d.details === 0) d.details = DETAILS_DEFAULT
+        else d.details = 0
       },
     },
   })

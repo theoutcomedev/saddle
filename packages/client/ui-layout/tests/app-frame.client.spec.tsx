@@ -17,7 +17,6 @@ import { AppFrame } from '@deepseek-ai/dsh-client-ui-layout/src/client/AppFrame.
 import type { AppFrameProps } from '@deepseek-ai/dsh-client-ui-layout/src/client/AppFrame.tsx'
 import { SIDEBAR_COLLAPSED } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
 import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
-import { DEFAULT_SHELL } from '@deepseek-ai/dsh-client-ui-layout/src/client/shell.ts'
 import type {
   SessionId, SessionListState, WorkspaceListState,
 } from '@deepseek-ai/dsh-client-runtime/client'
@@ -143,7 +142,7 @@ describe('AppFrame', () => {
     expect(keys).toContain('conversation')
     expect(keys).toContain('details')
     expect(keys).not.toContain('conversation.empty')
-    expect(slotCalls.find(c => c.key === 'conversation')!.props).toEqual({ detailsOpen: false, composer: 'full', header: 'full', density: 'comfortable', measure: null })
+    expect(slotCalls.find(c => c.key === 'conversation')!.props).toEqual({ detailsOpen: false })
     expect(slotCalls.find(c => c.key === 'details')!.props).toEqual({})
   })
 
@@ -209,7 +208,7 @@ describe('AppFrame', () => {
 
   it('sidebar slot receives live concession output as owner props', () => {
     const { slotCalls } = mountFrame()
-    expect(slotCalls.find(c => c.key === 'sidebar')!.props).toEqual({ collapsed: false, width: 280, sheet: false })
+    expect(slotCalls.find(c => c.key === 'sidebar')!.props).toEqual({ collapsed: false, width: 280 })
   })
 
   it('sidebar drag widens through rAF-batched pointer moves', () => {
@@ -246,12 +245,12 @@ describe('AppFrame', () => {
 
   it('closed sidebar keeps its compact rail with mounted slot content and collapsed owner props', () => {
     const { frame, instance, slotCalls, getByTestId } = mountFrame()
-    act(() => { instance.actions.toggleSidebar(false) })
+    act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
     expect(getByTestId('sidebar-content')).toBeTruthy()
     expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
     const lastSidebarCall = slotCalls.filter(c => c.key === 'sidebar').at(-1)!
-    expect(lastSidebarCall.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED, sheet: false })
+    expect(lastSidebarCall.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED })
   })
 
   it('viewport shrink triggers the concession chain via ResizeObserver', () => {
@@ -272,111 +271,95 @@ describe('AppFrame', () => {
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(2)
     act(() => { instance.actions.closeDetails() })
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(1)
-    act(() => { instance.actions.toggleSidebar(false) })
+    act(() => { instance.actions.toggleSidebar() })
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
   })
 })
 
-describe('AppFrame — the device decides what docks', () => {
-  it('docks both surfaces on a wide device', () => {
-    const { frame, instance } = mountFrame()
-    act(() => { instance.actions.openDetails() })
-    expect(tracks(frame)).toEqual([280, 360])
-    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(2)
-  })
-
-  it('renders the sidebar as a sheet on a phone, and the trigger opens it', () => {
-    frameWidth = 390
-    window.innerHeight = 844
-    const { frame, instance, getByTestId, queryByTestId } = mountFrame()
-    // No column at all on a sheet device: a phone's session list is an overlay.
-    expect(frame.querySelector('[class*="sidebarCol"]')).toBeNull()
+describe('AppFrame — narrow-viewport auto-collapse', () => {
+  it('mounts collapsed below the breakpoint with no sidebar handle', () => {
+    frameWidth = 980
+    const { frame, slotCalls } = mountFrame()
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
     expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
-    expect(queryByTestId('sidebar-content')).toBeNull()
-
-    act(() => { instance.actions.toggleSidebar(true) })
-    expect(getByTestId('sidebar-content')).toBeTruthy()
-    expect(frame.querySelector('[data-sidebar-sheet]')).not.toBeNull()
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED })
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
   })
 
-  it('opens the pane as a sheet where it cannot dock: the request is never dropped', () => {
-    // The defect this replaces: on a tablet in portrait, a layout asking for the
-    // pane produced nothing at all, and nothing said why.
-    frameWidth = 834
-    window.innerHeight = 1112
-    const { frame, instance, getByTestId } = mountFrame()
-    act(() => { instance.actions.setShell({ ...DEFAULT_SHELL, details: 'column', detailsShown: true, detailsWidth: 'wide' }) })
-    expect(getByTestId('details-content')).toBeTruthy()
-    expect(frame.querySelector('[data-details-sheet]')).not.toBeNull()
-  })
-
-  it('docks the pane beside the work on a tablet in landscape', () => {
-    frameWidth = 1194
-    window.innerHeight = 834
+  it('narrow toggle re-expands over the squeezed center and back', () => {
+    frameWidth = 980
     const { frame, instance } = mountFrame()
-    act(() => { instance.actions.setShell({ ...DEFAULT_SHELL, details: 'column', detailsShown: true, detailsWidth: 'wide' }) })
-    expect(tracks(frame)[1]).toBe(560)
-    expect(frame.hasAttribute('data-details-open')).toBe(true)
-    expect(frame.querySelector('[data-details-sheet]')).toBeNull()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+    expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(false)
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(1)
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
   })
 
-  it('drops the surfaces a layout asks to drop', () => {
-    const { instance, queryByTestId } = mountFrame()
-    act(() => { instance.actions.setShell({ ...DEFAULT_SHELL, sidebar: 'none', details: 'none' }) })
-    expect(queryByTestId('sidebar-content')).toBeNull()
-    expect(queryByTestId('details-content')).toBeNull()
-  })
-
-  it('passes the layout chrome, composer shape, density and measure to the conversation', () => {
-    const { instance, slotCalls } = mountFrame()
-    act(() => {
-      instance.actions.setShell({ ...DEFAULT_SHELL, header: 'compact', composer: 'none', density: 'roomy', measure: 760 })
-    })
-    const props = slotCalls.filter(c => c.key === 'conversation').at(-1)!.props as Record<string, unknown>
-    expect(props.composer).toBe('none')
-    expect(props.header).toBe('compact')
-    expect(props.density).toBe('roomy')
-    expect(props.measure).toBe(760)
-  })
-
-  it('applies the reading measure to the conversation column', () => {
-    const { frame, instance } = mountFrame()
-    act(() => { instance.actions.setShell({ ...DEFAULT_SHELL, measure: 760 }) })
-    const column = frame.querySelector('[data-conversation-column]') as HTMLElement
-    expect(column.style.maxWidth).toBe('760px')
-  })
-
-  it('opening a session dismisses the sheet, blank Sessions included', () => {
-    frameWidth = 390
-    window.innerHeight = 844
-    const { instance, rerenderFrame, getByTestId } = mountFrame()
-    act(() => { instance.actions.openSidebarSheet() })
-    expect(getByTestId('sidebar-content')).toBeTruthy()
+  it('opening a session dismisses the narrow drawer, blank Sessions included', () => {
+    frameWidth = 980
+    const { frame, instance, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
 
     selectedSession.current = 's-next' as SessionId
     act(() => { rerenderFrame() })
-    expect(instance.getSnapshot().sidebarSheetOpen).toBe(false)
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+
+    // New Session from the drawer is blank: the drawer still leaves with it.
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+    selectedSession.current = 's-blank' as SessionId
+    selectedSessionBlank.current = true
+    act(() => { rerenderFrame() })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
   })
 
-  it('the first session picked from the sheet dismisses it', () => {
-    frameWidth = 390
-    window.innerHeight = 844
+  it('the first session picked from the narrow drawer dismisses it', () => {
+    // Boot with nothing current: the drawer is open over the conversation, and
+    // the first pick has to leave it — the gesture is the same whether or not
+    // another session was already open.
+    frameWidth = 980
     selectedSession.current = undefined
-    const { instance, rerenderFrame } = mountFrame()
-    act(() => { instance.actions.openSidebarSheet() })
+    const { frame, instance, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+
     selectedSession.current = 's-first' as SessionId
     act(() => { rerenderFrame() })
-    expect(instance.getSnapshot().sidebarSheetOpen).toBe(false)
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
   })
 
-  it('a docking device keeps its column when the session changes', () => {
+  it('a wide sidebar stays open when the session changes', () => {
     const { frame, rerenderFrame } = mountFrame()
     selectedSession.current = 's-next' as SessionId
     act(() => { rerenderFrame() })
     expect(tracks(frame)).toEqual([280, 0])
   })
-})
 
+  it('a wide-closed preference re-expands at the contract default while narrow', () => {
+    frameWidth = 1920
+    const { frame, instance } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() }) // close while wide: preference 0
+    frameWidth = 980
+    act(() => { fireResize?.(); vi.advanceTimersByTime(20) })
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+    expect(instance.getSnapshot().sidebar).toBe(0) // preference untouched
+  })
+
+  it('shrinking across the breakpoint auto-collapses; re-widening restores the drag width', () => {
+    const { frame, instance } = mountFrame()
+    act(() => { instance.actions.setSidebar(400) })
+    frameWidth = 980
+    act(() => { fireResize?.(); vi.advanceTimersByTime(20) })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+    frameWidth = 1920
+    act(() => { fireResize?.(); vi.advanceTimersByTime(20) })
+    expect(tracks(frame)).toEqual([400, 0])
+  })
+})
 
 describe('AppFrame — guard branches', () => {
   it('pointer moves without capture are ignored (no width write)', () => {

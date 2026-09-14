@@ -13,12 +13,10 @@ import css from './DeployedAppsModal.module.css'
 export interface DeployedAppsModalProps {
   store: DeployedAppsStore
   useSnapshot: <T>(selector: (state: ReturnType<DeployedAppsStore['store']['getSnapshot']>) => T) => T
-  /** True when panes open as sheets on this device; absent in tests means docking. */
-  panesAreSheets?: (() => boolean) | undefined
   onClose: () => void
 }
 
-export function DeployedAppsModal({ store, useSnapshot, panesAreSheets, onClose }: DeployedAppsModalProps) {
+export function DeployedAppsModal({ store, useSnapshot, onClose }: DeployedAppsModalProps) {
   const { apps, loading, activeLogs, actionInFlight } = useSnapshot(s => s)
 
   useEffect(() => {
@@ -57,9 +55,7 @@ export function DeployedAppsModal({ store, useSnapshot, panesAreSheets, onClose 
    * @param event - The anchor's click event, cancelled only where the pane takes over.
    */
   const openInWorkbenchOnMobile = (url: string, event: { preventDefault: () => void }): void => {
-    // The pane is the destination on any device that cannot dock it; the
-    // device model answers that, not a width measured here.
-    if (typeof window === 'undefined' || panesAreSheets?.() !== true) return
+    if (typeof window === 'undefined' || window.innerWidth > 768) return
     event.preventDefault()
     window.dispatchEvent(new CustomEvent('workbench:open-browser', { detail: { url, openDrawer: true } }))
   }

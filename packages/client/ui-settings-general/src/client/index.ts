@@ -25,8 +25,6 @@ import { GeneralSection } from './GeneralSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
-// Type-only: pulls the ui-layout Context merge (ctx.device).
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { DeployedAppsButton, type DeployedAppsButtonInjected } from './DeployedAppsButton.tsx'
 import { DeployedAppsStore } from './apps-store.ts'
 import { ScheduledTasksButton, type ScheduledTasksButtonInjected } from './ScheduledTasksButton.tsx'
@@ -89,11 +87,6 @@ export function apply(ctx: ClientContext): void {
   const appsInjected = (): DeployedAppsButtonInjected => ({
     controller: appsController,
     hooks: { snapshot: appsController.store },
-    // The docking answer comes from the shell's device model at the moment of
-    // the tap; a surface plugin keeps no device rule of its own. The model is
-    // optional — a composition without a shell docks, which is what this surface
-    // did before the model existed.
-    panesAreSheets: () => ctx.get('device')?.facts().sheetPanes ?? false,
   })
   ctx.effect(() => () => { appsController.dispose() }, 'ui-settings-general: apps controller')
 

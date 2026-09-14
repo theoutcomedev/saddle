@@ -58,15 +58,10 @@ describe('ui-layout client apply', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     const actions = {
-      setSidebar: vi.fn(), setDetails: vi.fn(), toggleSidebar: vi.fn(), closeSidebar: vi.fn(),
-      openSidebarSheet: vi.fn(), closeSidebarSheet: vi.fn(), setDevice: vi.fn(), setShell: vi.fn(),
-      openDetails: vi.fn(), closeDetails: vi.fn(), toggleDetails: vi.fn(),
+      setSidebar: vi.fn(), setDetails: vi.fn(), toggleSidebar: vi.fn(), openDetails: vi.fn(), closeDetails: vi.fn(),
     }
     const injected = (slots.entries('root')[0]!.inject as (actions: never) => object)(actions as never)
     expect(injected).toEqual({})
-    // The wiring hook connects both faces: the layout actions and the device
-    // facts the frame renders against.
-    expect(actions.setDevice).toHaveBeenCalledOnce()
     const layout = ctx.get('layout') as LayoutController
     layout.toggleSidebar()
     expect(actions.toggleSidebar).toHaveBeenCalledOnce()

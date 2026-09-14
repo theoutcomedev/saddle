@@ -11,8 +11,8 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PanelActions } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
-import { DeviceController, LayoutController } from './service.ts'
 import { createLayoutStore } from './stores.ts'
+import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
 
 // Contract exports only (export-convergence rule: cross-package consumers
@@ -20,20 +20,13 @@ import { ThemePresenter } from './theme-presenter.ts'
 // ILayout: the ctx.layout face consumers and test fakes type against.
 // OwnerShare contracts below are the render-side halves registrants compose
 // against; the frame components and the store factory are package-internal.
-export { LayoutController, DeviceController } from './service.ts'
-export type { PanelActions } from './service.ts'
-export type { ILayout, IDevice } from './service.ts'
-export type { ShellSpec, SurfacePlacement, ChromeLevel, ComposerShape, Density, ShellResolution } from './shell.ts'
-export type { DeviceClass, DeviceFacts, InputProfile } from './device.ts'
-export { DEVICE_ATTRIBUTE, INPUT_ATTRIBUTE, PANES_ATTRIBUTE, classifyDevice, panesAreSheets } from './device.ts'
-export { DEFAULT_SHELL, resolveShell } from './shell.ts'
+export { LayoutController } from './service.ts'
+export type { ILayout, PanelArrangement, PanelShape } from './service.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** The outward face only; the concrete service stays inside this plugin. */
     layout: import('./service.ts').ILayout
-    /** What the browser says about the device in front of the person. */
-    device: import('./service.ts').IDevice
   }
 }
 
@@ -140,22 +133,12 @@ export interface SidebarOwnerProps {
   collapsed: boolean
   /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
   width: number
-  /** True when the surface is a sheet over the work rather than a docked column. */
-  sheet: boolean
 }
 
 /** Conversation owner share: business state and actions belong to the registrant. */
 export interface ConvOwnerProps {
   /** True when the details/workbench panel is currently open. */
   detailsOpen?: boolean
-  /** The composer shape the active layout asks for. */
-  composer?: import('./shell.ts').ComposerShape
-  /** The header chrome the active layout asks for. */
-  header?: import('./shell.ts').ChromeLevel
-  /** The density the active layout asks for. */
-  density?: import('./shell.ts').Density
-  /** Reading measure for the centre column in px, or null for the full width. */
-  measure?: number | null
 }
 
 /** Details owner share: empty — sessionId arrives as a framework-standard prop. */
@@ -177,11 +160,8 @@ export const inject = ['slots', 'theme']
  */
 export function apply(ctx: ClientContext): void {
   const layout = new LayoutController()
-  const device = new DeviceController()
-  ctx.effect(() => device.start(), 'ui-layout: device watcher')
   ctx.effect(() => {
-    const disposeLayout = ctx.reflect.provide('layout', layout)
-    const disposeDevice = ctx.reflect.provide('device', device)
+    const disposeService = ctx.reflect.provide('layout', layout)
     const disposeRegistration = ctx.slots.register({
       name: 'root',
       children: {
@@ -198,15 +178,13 @@ export function apply(ctx: ClientContext): void {
       // conversation business actions belong to their registrants.
       inject: (actions: PanelActions) => {
         layout.attachPanels(actions)
-        device.attachStore(actions.setDevice)
         return {}
       },
     }, AppFrame)
     return () => {
       disposeRegistration()
-      // provide()'s disposers settle asynchronously; teardown is synchronous fire-and-forget.
-      void disposeLayout()
-      void disposeDevice()
+      // provide()'s disposer settles asynchronously; teardown is synchronous fire-and-forget.
+      void disposeService()
     }
   }, 'ui-layout: service + root registration')
 

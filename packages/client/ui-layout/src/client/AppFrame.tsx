@@ -14,8 +14,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { ReactNode } from 'react'
 import { LoginScreen } from './LoginScreen.tsx'
 import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-import { SIDEBAR_COLLAPSED, SIDEBAR_SHEET } from './columns.ts'
-import { resolveShell } from './shell.ts'
+import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
 
@@ -25,23 +24,12 @@ export type AppFrameProps =
   & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay' | 'shell.mobile_trigger'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
-/**
- * Center column grid item (session-body building block). The reading measure is
- * applied here rather than by a stylesheet keyed on a layout id: any layout may
- * ask for one, and the shell is what knows the column's box.
- */
-function CenterColumn(props: { children?: ReactNode; measure?: number | null | undefined }) {
-  // `data-conversation-column` is the stable hook shell-level styles key on.
-  const measure = props.measure ?? null
-  return (
-    <div
-      className={css.centerCol}
-      data-conversation-column=""
-      style={measure === null ? undefined : { maxWidth: measure, marginInline: 'auto' }}
-    >
-      {props.children}
-    </div>
-  )
+/** Center column grid item (session-body building block). */
+function CenterColumn(props: { children?: ReactNode }) {
+  // `data-conversation-column` is the stable hook shell-level styles key on
+  // (a workspace mode holding the column to a reading measure); the class name
+  // is this package's private detail.
+  return <div className={css.centerCol} data-conversation-column="">{props.children}</div>
 }
 
 /** Details column grid item; width 0 keeps the subtree mounted (never unmount on close). */
@@ -134,9 +122,7 @@ function AppFrameInner({
   useLayoutEffect(() => {
     if (currentSession === undefined) return
     if (lastOpened.current !== currentSession) {
-      // Only the sheet form leaves with the session: a wide sidebar is a column
-      // beside the conversation, not an overlay over the one it just replaced.
-      actions.closeSidebarSheet()
+      actions.closeSidebar()
     }
     lastOpened.current = currentSession
   }, [actions, currentSession])
@@ -161,29 +147,19 @@ function AppFrameInner({
     }
   }, [])
 
-  // The device decides what can be docked; the active layout decides what should
-  // be shown; shell.ts resolves the two into placements. Nothing here re-derives
-  // a device rule from a width — that is what the five old breakpoints did, and
-  // why the shell could not answer "what device is this?" at all.
-  const facts = panels.device
-  const resolution = resolveShell(panels.shell, facts, viewport, {
-    sidebarOpen: facts.sheetPanes ? panels.sidebarSheetOpen : panels.sidebar !== 0,
-    detailsOpen: panels.details !== 0,
-    sidebarPreference: panels.sidebar,
-    detailsPreference: panels.details,
-    requested: panels.surfaceRequested,
-  })
-  const cols = resolution.columns
-  const sidebarDocked = resolution.sidebar.placement === 'column'
-  const sidebarSheet = resolution.sidebar.placement === 'sheet'
-  // "Collapsed" is the surface not showing, in either form: a rail column on a
-  // docking device, an unopened sheet on a phone. It reads the resolved width
-  // rather than the stored preference, because resolution may have put the list
-  // on its rail to keep a docked pane beside the work.
-  const sidebarCollapsed = sidebarDocked ? cols.sidebar <= SIDEBAR_COLLAPSED : !panels.sidebarSheetOpen
-  const detailsDocked = resolution.details.placement === 'column'
-  const detailsSheet = resolution.details.placement === 'sheet'
-  const detailsOpen = panels.details !== 0
+  // Narrow viewports auto-collapse the sidebar; the store mirror keeps
+  // toggleSidebar's semantics right (narrow toggles flip the manual
+  // re-expand override, stores.ts). Collapsed is decided here, so the
+  // solver stays breakpoint-free: a narrow re-expand passes the preference
+  // (or the default when the wide preference is closed) and the center
+  // absorbs the squeeze.
+  const narrow = viewport < SIDEBAR_AUTO_COLLAPSE
+  useEffect(() => { actions.setNarrow(narrow) }, [actions, narrow])
+  const sidebarCollapsed = narrow ? !panels.narrowExpanded : panels.sidebar === 0
+  const sidebarPreference = sidebarCollapsed
+    ? 0
+    : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
+  const cols = computeColumns(viewport, sidebarPreference, panels.details)
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -205,9 +181,10 @@ function AppFrameInner({
     actions.setDetails(detailsBase.current - dx)
   }, [actions])
 
-  // Whether the navigation surface is showing at all, in either form. The
-  // mobile trigger and the backdrop both ask this rather than re-deriving it.
-  const sidebarVisible = (): boolean => sidebarSheet ? panels.sidebarSheetOpen : !sidebarCollapsed
+  const isMobile = viewport <= 768
+  const detailsOpen = isMobile
+    ? panels.details > 0
+    : cols.details > 0
 
   return (
     <div
@@ -219,17 +196,15 @@ function AppFrameInner({
         '--details-width': `${cols.details}px`,
       } as React.CSSProperties}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
-      data-sidebar-sheet={sidebarSheet || undefined}
       data-details-collapsed={!detailsOpen || undefined}
       data-details-open={detailsOpen || undefined}
-      data-density={resolution.density}
       data-dragging={dragging || undefined}
     >
       {renderSlot('shell.mobile_trigger', {
-        collapsed: !sidebarVisible(),
+        collapsed: sidebarCollapsed,
         onToggle: () => {
           if (detailsOpen) actions.closeDetails()
-          actions.toggleSidebar(facts.sheetPanes)
+          actions.toggleSidebar()
         },
       }, {
         fallback: (
@@ -237,7 +212,7 @@ function AppFrameInner({
             className={css.mobileHamburger}
             onClick={() => {
               if (detailsOpen) actions.closeDetails()
-              actions.toggleSidebar(facts.sheetPanes)
+              actions.toggleSidebar()
             }}
             title="Open Menu"
           >
@@ -249,63 +224,37 @@ function AppFrameInner({
           </div>
         ),
       })}
-      {/* The sidebar as a docked column: a closed column keeps the mounted slot
-          at the compact-rail width, so the occupant renders the rail UI. A
-          layout that says "none" removes the surface; a device that cannot dock
-          it gets the sheet below instead. */}
-      {sidebarDocked && (
-        <div className={css.sidebarCol}>
-          {renderSlot('sidebar', {
-            collapsed: sidebarCollapsed,
-            width: cols.sidebar,
-            sheet: false,
-          })}
-        </div>
-      )}
-      {sidebarSheet && panels.sidebarSheetOpen && (
-        <>
-          <div className={css.sheetBackdrop} onClick={() => { actions.closeSidebarSheet() }} />
-          <div className={css.sidebarSheet} data-sidebar-sheet="">
-            {renderSlot('sidebar', { collapsed: false, width: SIDEBAR_SHEET, sheet: true })}
-          </div>
-        </>
-      )}
+      <div className={css.sidebarCol}>
+        {/* Render-site slot call with live concession output: a closed
+            sidebar keeps the mounted slot at the compact-rail width, and the
+            component sees its rendered state as owner params decided here
+            (collapsed follows the resolved rail, so a derived auto-collapse
+            renders the rail UI too). */}
+        {renderSlot('sidebar', {
+          collapsed: sidebarCollapsed,
+          width: cols.sidebar,
+        })}
+      </div>
       <>
         {/* Both column occupants stay at fixed tree positions from first
             paint — no loading gate: a bare status line reads worse than
             the shell's own pending rendering. The conversation
             is session-maybe; the strict details entry naturally renders
             empty while no session is current. */}
-        <CenterColumn measure={resolution.measure}>
-          {renderSlot('conversation', {
-            detailsOpen,
-            composer: resolution.composer,
-            header: resolution.header,
-            density: resolution.density,
-            measure: resolution.measure,
-          })}
-        </CenterColumn>
-        {detailsDocked && <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>}
+        <CenterColumn>{renderSlot('conversation', { detailsOpen })}</CenterColumn>
+        <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
       </>
-      {detailsSheet && (
-        <>
-          <div className={css.sheetBackdrop} onClick={() => { actions.closeDetails() }} />
-          <div className={css.detailsSheet} data-details-sheet="">
-            {renderSlot('details', {})}
-          </div>
-        </>
-      )}
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {sidebarDocked && !sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
-      {detailsDocked && cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
-      {facts.sheetPanes && (sidebarVisible() || detailsOpen) && (
+      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {(!sidebarCollapsed || detailsOpen) && narrow && (
         <div
           className={css.mobileBackdrop}
           onClick={() => {
-            if (sidebarVisible()) actions.closeSidebarSheet()
+            if (!sidebarCollapsed) actions.toggleSidebar()
             if (detailsOpen) actions.closeDetails()
           }}
         />

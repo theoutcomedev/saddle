@@ -1,84 +1,129 @@
 // @vitest-environment jsdom
 /**
- * The layout store: panel widths the person drags, the shell specification the
- * active layout writes, and the device facts the browser publishes. The three
- * are different owners on purpose — a store that remembered a crossed breakpoint
- * is what made the shell disagree with itself.
+ * createLayoutStore unit account: init shape, the action write set (clamp
+ * inside actions), and the absence of browser persistence. Uses the
+ * test-sanctioned path: factory self-call + .create() gives the
+ * real engine instance (same create path as production).
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createLayoutStore } from '../src/client/stores.ts'
-import { classifyDevice } from '../src/client/device.ts'
-import { DEFAULT_SHELL, type ShellSpec } from '../src/client/shell.ts'
-import { DETAILS_DEFAULT, DETAILS_WIDE, SIDEBAR_DEFAULT } from '../src/client/columns.ts'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
+import {
+  DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
+  SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN,
+} from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
 
-beforeEach(() => {
-  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }))
-  window.innerWidth = 1440
-  window.innerHeight = 900
-})
+const PERSIST_KEY = 'dsh.layout.panels'
 
-describe('the layout store', () => {
-  it('starts at the default shape on the device it was created on', () => {
-    const store = createLayoutStore().create()
+beforeEach(() => { localStorage.clear() })
+
+describe('createLayoutStore', () => {
+  it('initializes the sidebar at its default width, details closed, wide viewport assumed', () => {
+    const { store } = createLayoutStore().create()
+    expect(store.getSnapshot()).toEqual({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false })
+  })
+
+  it('each create() is an independent instance (factory is not a singleton)', () => {
+    const a = createLayoutStore().create()
+    const b = createLayoutStore().create()
+    a.actions.setSidebar(400)
+    expect(b.store.getSnapshot().sidebar).toBe(SIDEBAR_DEFAULT)
+  })
+
+  it('setSidebar/setDetails clamp into the contract ranges', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setSidebar(1)
+    expect(store.getSnapshot().sidebar).toBe(SIDEBAR_MIN)
+    actions.setSidebar(9999)
+    expect(store.getSnapshot().sidebar).toBe(SIDEBAR_MAX)
+    actions.setDetails(1)
+    expect(store.getSnapshot().details).toBe(DETAILS_MIN)
+    actions.setDetails(9999)
+    expect(store.getSnapshot().details).toBe(DETAILS_MAX)
+  })
+
+  it('toggleSidebar flips closed <-> contract default (drag width forgotten)', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setSidebar(400)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().sidebar).toBe(0)
+    actions.toggleSidebar()
     expect(store.getSnapshot().sidebar).toBe(SIDEBAR_DEFAULT)
-    expect(store.getSnapshot().details).toBe(0)
-    expect(store.getSnapshot().shell).toEqual(DEFAULT_SHELL)
-    expect(store.getSnapshot().device.class).toBe('laptop')
   })
 
-  it('clamps a drag into the panel range and never crosses the open line', () => {
-    const store = createLayoutStore().create()
-    store.actions.setSidebar(10)
-    expect(store.getSnapshot().sidebar).toBe(264)
-    store.actions.setDetails(10)
-    expect(store.getSnapshot().details).toBe(300)
+  it('narrow toggleSidebar flips only the re-expand override; the width preference survives', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setSidebar(400)
+    actions.setNarrow(true)
+    actions.toggleSidebar()
+    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true })
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(false)
+    expect(store.getSnapshot().sidebar).toBe(400)
   })
 
-  it('toggles a column on a docking device and a sheet on a sheet device', () => {
-    const store = createLayoutStore().create()
-    store.actions.toggleSidebar(false)
-    expect(store.getSnapshot().sidebar).toBe(0)
-    store.actions.toggleSidebar(false)
-    expect(store.getSnapshot().sidebar).toBe(SIDEBAR_DEFAULT)
-
-    store.actions.toggleSidebar(true)
-    expect(store.getSnapshot().sidebarSheetOpen).toBe(true)
-    store.actions.toggleSidebar(true)
-    expect(store.getSnapshot().sidebarSheetOpen).toBe(false)
+  it('crossing the breakpoint drops the override; a same-value setNarrow keeps it', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setNarrow(true)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+    actions.setNarrow(true)
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+    actions.setNarrow(false)
+    expect(store.getSnapshot()).toMatchObject({ narrow: false, narrowExpanded: false })
+    actions.setNarrow(true)
+    expect(store.getSnapshot().narrowExpanded).toBe(false)
   })
 
-  it('closes both forms in one action, because "not showing" is one state', () => {
-    const store = createLayoutStore().create()
-    store.actions.openSidebarSheet()
-    store.actions.closeSidebar()
-    expect(store.getSnapshot().sidebar).toBe(0)
-    expect(store.getSnapshot().sidebarSheetOpen).toBe(false)
-  })
-
-  it('applying a layout writes the specification and the openness it implies', () => {
-    const store = createLayoutStore().create()
-    const zen: ShellSpec = { ...DEFAULT_SHELL, sidebar: 'none', details: 'none', composer: 'none' }
-    store.actions.setShell(zen)
-    expect(store.getSnapshot().shell).toEqual(zen)
-    expect(store.getSnapshot().sidebar).toBe(0)
-    expect(store.getSnapshot().details).toBe(0)
-
-    const focus: ShellSpec = { ...DEFAULT_SHELL, details: 'column', detailsShown: true, detailsWidth: 'wide' }
-    store.actions.setShell(focus)
-    expect(store.getSnapshot().details).toBe(DETAILS_WIDE)
-
-    const workbench: ShellSpec = { ...DEFAULT_SHELL, details: 'column', detailsShown: true, detailsWidth: 'default' }
-    store.actions.setShell(workbench)
+  it('openDetails uses the contract default, preserves an open width, and closeDetails zeroes', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.openDetails()
     expect(store.getSnapshot().details).toBe(DETAILS_DEFAULT)
+    actions.setDetails(500)
+    actions.openDetails()
+    expect(store.getSnapshot().details).toBe(500)
+    actions.closeDetails()
+    expect(store.getSnapshot().details).toBe(0)
   })
 
-  it('keeps the device facts as the device controller reports them', () => {
-    const store = createLayoutStore().create()
-    const phone = classifyDevice(390, 844, true)
-    store.actions.setDevice(phone)
-    expect(store.getSnapshot().device).toEqual(phone)
-    const before = store.getSnapshot().device
-    store.actions.setDevice({ ...phone })
-    expect(store.getSnapshot().device).toBe(before)
+  it('opening the dock collapses the narrow sidebar drawer instead of stacking over it', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setNarrow(true)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+    actions.openDetails()
+    expect(store.getSnapshot()).toMatchObject({ details: DETAILS_DEFAULT, narrowExpanded: false })
+    // The width preference is untouched, so re-expanding restores the drawer.
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+  })
+
+  it('closeSidebar dismisses the narrow drawer and leaves the wide preference alone', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setNarrow(true)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().narrowExpanded).toBe(true)
+    actions.closeSidebar()
+    expect(store.getSnapshot()).toMatchObject({ narrowExpanded: false, sidebar: SIDEBAR_DEFAULT })
+
+    // Wide: the sidebar is a column, not a drawer — nothing closes.
+    actions.setNarrow(false)
+    actions.closeSidebar()
+    expect(store.getSnapshot()).toMatchObject({ sidebar: SIDEBAR_DEFAULT, narrowExpanded: false })
+  })
+
+  it('does not persist panel geometry', () => {
+    const first = createLayoutStore().create()
+    first.actions.setSidebar(400)
+    first.actions.openDetails()
+    first.actions.setDetails(500)
+    expect(localStorage.getItem(PERSIST_KEY)).toBeNull()
+
+    const second = createLayoutStore().create()
+    expect(second.store.getSnapshot()).toEqual({
+      sidebar: SIDEBAR_DEFAULT,
+      details: 0,
+      narrow: false,
+      narrowExpanded: false,
+    })
   })
 })

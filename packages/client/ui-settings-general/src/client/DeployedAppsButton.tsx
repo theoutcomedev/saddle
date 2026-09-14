@@ -28,19 +28,15 @@ export interface DeployedAppsButtonInjected {
   hooks: {
     snapshot: DeployedAppsStore['store']
   }
-  /** True when this device cannot dock panes, so a tapped app link opens the pane as a sheet. */
-  panesAreSheets: () => boolean
 }
 
 export interface DeployedAppsButtonProps {
   wide?: boolean
   controller?: DeployedAppsStore
   useSnapshot?: <T>(selector: (state: ReturnType<DeployedAppsStore['store']['getSnapshot']>) => T) => T
-  /** Injected by the plugin body from the shell's device model. */
-  panesAreSheets?: (() => boolean) | undefined
 }
 
-export function DeployedAppsButton({ wide = true, controller, useSnapshot, panesAreSheets }: DeployedAppsButtonProps) {
+export function DeployedAppsButton({ wide = true, controller, useSnapshot }: DeployedAppsButtonProps) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -80,7 +76,6 @@ export function DeployedAppsButton({ wide = true, controller, useSnapshot, panes
         <DeployedAppsModal
           store={controller}
           useSnapshot={useSnapshot}
-          panesAreSheets={panesAreSheets}
           onClose={() => { setOpen(false) }}
         />
       )}

@@ -25,10 +25,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Required services: the slot registry, the locale catalog, and ctx.layout. */
 export const inject = ['slots', 'locale', 'layout', 'workspaces']
 
-// Type-only: pulls the ui-layout Context merge (ctx.device), the shell's device
-// model. It is read through ctx.get because a composition without a shell
-// docks, which is what this package did before the model existed.
-
 /**
  * Client plugin body: register the dictionary, the details occupant (the
  * Workbench), and the job pane.
@@ -47,14 +43,9 @@ export function apply(ctx: ClientContext): void {
       'workbench.pane.files': { kind: 'single', scope: 'session-maybe' },
       'workbench.pane.app': { kind: 'single', scope: 'session-maybe' },
     },
-    inject: (): { closeDetails: () => void; openDetails: () => void; panesAreSheets: () => boolean } => ({
+    inject: (): { closeDetails: () => void; openDetails: () => void } => ({
       closeDetails: () => { ctx.layout.closeDetails() },
       openDetails: () => { ctx.layout.openDetails() },
-      // The docking answer comes from the shell's device model, read at the
-      // moment of the gesture. It is a callback rather than a boolean because a
-      // rotation between render and click must not be answered from stale props,
-      // and because a surface plugin should not hold device state of its own.
-      panesAreSheets: () => ctx.get('device')?.facts().sheetPanes ?? false,
     }),
   }, Workbench), 'ui-workbench: details occupant')
 
