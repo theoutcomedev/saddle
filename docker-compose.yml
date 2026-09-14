@@ -138,11 +138,8 @@ services:
     networks:
       - saddle-network
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.steel.rule=Host(`steel.${HOST_PUBLIC_IP:-91.99.165.95}.sslip.io`) || Host(`steel.91.99.165.95.sslip.io`)"
-      - "traefik.http.routers.steel.entrypoints=web"
-      - "traefik.http.services.steel.loadbalancer.server.port=3000"
+    # No Traefik router: the Steel API has no authentication of its own, so it
+    # answers only on saddle-network (saddle-app reaches it as saddle-steel:3000).
 
 networks:
   saddle-network:

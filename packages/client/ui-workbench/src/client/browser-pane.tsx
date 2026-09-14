@@ -20,7 +20,6 @@ interface BrowserTab {
   id: string
   title: string
   url: string
-  streamUrl?: string | null
 }
 
 /** Crisp fullscreen expand icon */
@@ -78,71 +77,33 @@ function toHref(raw: string): string | null {
   return `https://${value}`
 }
 
-/** Check if a URL represents a Steel session stream or debugger endpoint. */
-function isSteelStreamUrl(url: string): boolean {
-  return url.includes('/v1/sessions/') && (url.includes('/debug') || url.includes('/viewer'))
-}
-
-/** Extract clean target URL if stored or embedded in params or stream query. */
-function resolveDisplayUrl(url?: string, streamUrl?: string): string {
-  if (url && !isSteelStreamUrl(url)) return url
-  if (streamUrl) {
-    try {
-      const parsed = new URL(streamUrl)
-      const inner = parsed.searchParams.get('url')
-      if (inner) return inner
-    } catch {}
-  }
-  return url || streamUrl || ''
-}
-
 /** Derive a concise tab label from a URL. */
-function getTabTitle(url: string, streamUrl?: string | null): string {
-  const display = resolveDisplayUrl(url, streamUrl ?? undefined)
-  if (!display) return 'New Tab'
+function getTabTitle(url: string): string {
+  if (!url) return 'New Tab'
   try {
-    const host = new URL(display).hostname
+    const host = new URL(url).hostname
     return host.replace(/^www\./, '') || 'Tab'
   } catch {
-    return display.slice(0, 16) || 'Tab'
+    return url.slice(0, 16) || 'Tab'
   }
 }
 
-/** Construct optimal streaming iframe src with theme and interactivity. */
-function buildStreamIframeSrc(streamUrl: string, interactive: boolean, theme: string): string {
-  try {
-    const url = new URL(streamUrl)
-    url.searchParams.set('showControls', 'false')
-    url.searchParams.set('interactive', interactive ? 'true' : 'false')
-    url.searchParams.set('theme', theme === 'dark' ? 'dark' : 'light')
-    return url.toString()
-  } catch {
-    const sep = streamUrl.includes('?') ? '&' : '?'
-    return `${streamUrl}${sep}showControls=false&interactive=${interactive}&theme=${theme}`
-  }
-}
-
-/** Render the browser pane with native controls, multi-tabs in sub-row, and live stream takeover. */
+/** Render the browser pane: native controls plus multi-tabs in the sub-row. */
 export function BrowserPane({ params, t }: BrowserPaneProps) {
   const initialUrl = typeof params?.url === 'string' ? params.url : ''
-  const initialStream = typeof params?.streamUrl === 'string' ? params.streamUrl : null
 
   const initialTab: BrowserTab = {
     id: 'tab-1',
-    title: getTabTitle(initialUrl, initialStream),
+    title: getTabTitle(initialUrl),
     url: initialUrl,
-    streamUrl: initialStream,
   }
 
   const [tabs, setTabs] = useState<BrowserTab[]>([initialTab])
   const [activeTabId, setActiveTabId] = useState<string>('tab-1')
 
   const activeTab = tabs.find(t => t.id === activeTabId) ?? tabs[0] ?? initialTab
-  const [value, setValue] = useState(() => resolveDisplayUrl(activeTab.url, activeTab.streamUrl ?? undefined))
-  const [streamEndpoint, setStreamEndpoint] = useState<string | null>(activeTab.streamUrl ?? null)
+  const [value, setValue] = useState(() => activeTab.url)
   const [rawTargetUrl, setRawTargetUrl] = useState<string | null>(activeTab.url || null)
-  const [interactive, setInteractive] = useState(true)
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [error, setError] = useState(false)
   const [isFrameBlocked, setIsFrameBlocked] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
@@ -174,67 +135,33 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
     }
   }, [])
 
-  // Track system theme changes for stream background matching
-  useEffect(() => {
-    const detectTheme = () => {
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-        || document.documentElement.classList.contains('dark')
-      setTheme(isDark ? 'dark' : 'light')
-    }
-    detectTheme()
-    const observer = new MutationObserver(detectTheme)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] })
-    return () => observer.disconnect()
-  }, [])
-
-  // Follow a new owner-supplied URL or streamUrl without remounting.
+  // Follow a new owner-supplied URL without remounting.
   useEffect(() => {
     const nextUrl = typeof params?.url === 'string' ? params.url : ''
-    const nextStream = typeof params?.streamUrl === 'string' ? params.streamUrl : null
-
-    if (!nextUrl && !nextStream) return
+    if (!nextUrl) return
 
     setTabs((prev) => {
       const current = prev.find(t => t.id === activeTabId)
-      if (current && (current.url !== nextUrl || current.streamUrl !== nextStream)) {
+      if (current && current.url !== nextUrl) {
         return prev.map(t => t.id === activeTabId ? {
           ...t,
-          title: getTabTitle(nextUrl, nextStream),
+          title: getTabTitle(nextUrl),
           url: nextUrl,
-          streamUrl: nextStream,
         } : t)
       }
       return prev
     })
 
-    if (nextStream) {
-      setStreamEndpoint(nextStream)
-      if (nextUrl) {
-        setRawTargetUrl(nextUrl)
-        setValue(nextUrl)
-      } else {
-        setValue(resolveDisplayUrl(undefined, nextStream))
-      }
-      setError(false)
-      setIsFrameBlocked(false)
-    } else if (nextUrl) {
-      setRawTargetUrl(nextUrl)
-      setValue(nextUrl)
-      if (isSteelStreamUrl(nextUrl)) {
-        setStreamEndpoint(nextUrl)
-      } else {
-        setStreamEndpoint(null)
-      }
-      setError(false)
-      setIsFrameBlocked(false)
-    }
-  }, [params?.url, params?.streamUrl, activeTabId])
+    setRawTargetUrl(nextUrl)
+    setValue(nextUrl)
+    setError(false)
+    setIsFrameBlocked(false)
+  }, [params?.url, activeTabId])
 
   // Switch tabs
   const handleSelectTab = (tab: BrowserTab) => {
     setActiveTabId(tab.id)
-    setValue(resolveDisplayUrl(tab.url, tab.streamUrl ?? undefined))
-    setStreamEndpoint(tab.streamUrl ?? null)
+    setValue(tab.url)
     setRawTargetUrl(tab.url || null)
     setError(false)
     setIsFrameBlocked(false)
@@ -247,12 +174,10 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
       id: newId,
       title: 'New Tab',
       url: '',
-      streamUrl: null,
     }
     setTabs(prev => [...prev, newTab])
     setActiveTabId(newId)
     setValue('')
-    setStreamEndpoint(null)
     setRawTargetUrl(null)
     setError(false)
     setIsFrameBlocked(false)
@@ -263,10 +188,9 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
     e.stopPropagation()
     if (tabs.length <= 1) {
       // Don't close last tab, just reset it
-      setTabs([{ id: 'tab-1', title: 'New Tab', url: '', streamUrl: null }])
+      setTabs([{ id: 'tab-1', title: 'New Tab', url: '' }])
       setActiveTabId('tab-1')
       setValue('')
-      setStreamEndpoint(null)
       setRawTargetUrl(null)
       setError(false)
       setIsFrameBlocked(false)
@@ -295,21 +219,13 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
     // Update active tab title & url
     setTabs(prev => prev.map(t => t.id === activeTabId ? {
       ...t,
-      title: getTabTitle(next, t.streamUrl),
+      title: getTabTitle(next),
       url: next,
     } : t))
-
-    if (streamEndpoint) {
-      window.dispatchEvent(new CustomEvent('workbench:open-browser', {
-        detail: { url: next, streamUrl: streamEndpoint },
-      }))
-    }
   }
 
-  // Calculate actual iframe src
-  const activeSrc = streamEndpoint
-    ? buildStreamIframeSrc(streamEndpoint, interactive, theme)
-    : (rawTargetUrl ? toHref(rawTargetUrl) : null)
+  // The address bar is the single navigation source for this pane.
+  const activeSrc = rawTargetUrl ? toHref(rawTargetUrl) : null
 
   const handleBack = () => {
     try {
@@ -417,20 +333,6 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
           </button>
         </form>
 
-        {streamEndpoint && (
-          <button
-            type="button"
-            className={`${css.takeoverBtn} ${interactive ? css.takeoverActive : ''}`}
-            onClick={() => setInteractive(!interactive)}
-            title={interactive ? t('workbench.browser.takeover') : t('workbench.browser.viewOnly')}
-          >
-            <span className={css.takeoverDot} />
-            <span className={css.takeoverLabel}>
-              {interactive ? t('workbench.browser.takeover') : t('workbench.browser.viewOnly')}
-            </span>
-          </button>
-        )}
-
         <button
           type="button"
           className={css.open}
@@ -487,7 +389,7 @@ export function BrowserPane({ params, t }: BrowserPaneProps) {
         ) : (
           <iframe
             ref={iframeRef}
-            key={`${activeSrc}-${interactive}-${theme}`}
+            key={activeSrc}
             className={css.frame}
             title={value || activeSrc}
             src={activeSrc}

@@ -12,6 +12,9 @@ import { SteelClient, type SteelSession } from './steel-client.ts'
 import { CdpSession } from './cdp.ts'
 import { loadProfile, saveProfile, listProfiles } from './profiles.ts'
 
+/** The attachment a screenshot block carries, taken from the block itself. */
+type ImageAttachment = Extract<ContentBlock, { type: 'image' }>['attachment']
+
 export const name = 'tool-browser'
 export const inject = ['tools', 'systemPrompt', 'credentials']
 
@@ -33,21 +36,15 @@ function resolveBaseUrl(config: Config, credentialUrl?: string): string {
     ?? 'http://steel:3000'
 }
 
-function resolveViewerUrl(rawDebugUrl?: string): string {
-  if (process.env.STEEL_PUBLIC_VIEWER_URL) {
-    return process.env.STEEL_PUBLIC_VIEWER_URL
-  }
-  const hostIp = process.env.HOST_PUBLIC_IP || process.env.SADDLE_SERVER_IP
-  const serverIp = (!hostIp || hostIp === 'auto') ? '91.99.165.95' : hostIp
-  const fallback = `http://steel.${serverIp}.sslip.io/v1/sessions/debug?showControls=false&interactive=true`
-
-  if (!rawDebugUrl) return fallback
-  if (rawDebugUrl.includes('0.0.0.0') || rawDebugUrl.includes('127.0.0.1') || rawDebugUrl.includes('steel:')
-    || rawDebugUrl.includes('saddle-steel:') || /^https?:\/\/172\./.test(rawDebugUrl)) {
-    return fallback
-  }
-  const sep = rawDebugUrl.includes('?') ? '&' : '?'
-  return `${rawDebugUrl}${sep}showControls=false&interactive=true`
+/**
+ * Viewer URL a person can open, or the empty string when this deployment
+ * exposes no viewer. Steel's own debug and session URLs are reachable only
+ * inside the container network, so they are never handed out.
+ *
+ * @returns The configured public viewer URL, empty when unset.
+ */
+function resolveViewerUrl(): string {
+  return process.env.STEEL_PUBLIC_VIEWER_URL ?? ''
 }
 
 async function resolveModelAdmitsImages(ctx: Context, exec?: ToolRunContext): Promise<boolean> {
@@ -74,7 +71,7 @@ async function ensureSession(
   profileName?: string,
 ): Promise<{ steel: SteelSession; cdp: CdpSession; viewerUrl: string }> {
   if (steelSession && cdpSession) {
-    const publicViewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
+    const publicViewerUrl = resolveViewerUrl()
     return { steel: steelSession, cdp: cdpSession, viewerUrl: publicViewerUrl }
   }
 
@@ -118,7 +115,7 @@ async function ensureSession(
     throw new Error(`Steel browser not configured or reachable. Detail: ${error}`)
   }
 
-  const publicViewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
+  const publicViewerUrl = resolveViewerUrl()
   return { steel: steelSession, cdp: cdpSession, viewerUrl: publicViewerUrl }
 }
 
@@ -180,15 +177,12 @@ export function apply(ctx: Context, config: Config = {}): void {
       const val = value as {
         result: string
         viewerUrl: string
-        attachment?: unknown
+        attachment?: ImageAttachment
         admitsImages?: boolean
       }
       const blocks: ContentBlock[] = [{ type: 'text' as const, text: val.result }]
       if (val.attachment && val.admitsImages) {
-        blocks.push({
-          type: 'image' as const,
-          attachment: val.attachment as any,
-        })
+        blocks.push({ type: 'image' as const, attachment: val.attachment })
       }
       return blocks
     },
@@ -356,7 +350,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       const client = new SteelClient(baseUrl, apiKey)
       const context = await client.getSessionContext(steelSession.id)
       const cleanName = await saveProfile(args.name, context)
-      const viewerUrl = resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl)
+      const viewerUrl = resolveViewerUrl()
       return {
         viewerUrl,
         result: `Browser session state successfully saved to profile "${cleanName}". Future sessions can use browser_navigate with profile: "${cleanName}" to resume.`,
@@ -371,7 +365,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     output: outputBase,
     async execute(_args: unknown, _exec) {
       const profiles = await listProfiles()
-      const viewerUrl = steelSession ? resolveViewerUrl(steelSession.debugUrl || steelSession.viewerUrl) : ''
+      const viewerUrl = steelSession ? resolveViewerUrl() : ''
       if (profiles.length === 0) {
         return { viewerUrl, result: 'No saved browser profiles found.' }
       }
@@ -507,7 +501,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     output: outputBase,
     async execute(_args: unknown, _exec) {
       if (steelSession && cdpSession) {
-        const viewerUrl = steelSession.viewerUrl
+        const viewerUrl = resolveViewerUrl()
         await closeActiveSession()
         return { viewerUrl, result: 'Session ended.' }
       }

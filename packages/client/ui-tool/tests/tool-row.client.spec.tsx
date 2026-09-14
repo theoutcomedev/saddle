@@ -239,6 +239,21 @@ describe('ToolRow', () => {
     expect(view.container.querySelector('[aria-expanded]')?.getAttribute('aria-expanded')).toBe('false')
   })
 
+  it('never opens the Workbench browser pane on its own', () => {
+    // A browser_* call used to dispatch workbench:open-browser with a Steel
+    // debug URL, so every agent browse hijacked the dock with a fixed-size
+    // third-party UI. The row renders the call and nothing else.
+    const opened: unknown[] = []
+    const listener = (event: Event): void => { opened.push((event as CustomEvent).detail) }
+    window.addEventListener('workbench:open-browser', listener)
+    try {
+      render(<ToolRow {...rowProps} toolName="browser_navigate" body={'{"url":"https://example.com"}'} />)
+      expect(opened).toEqual([])
+    } finally {
+      window.removeEventListener('workbench:open-browser', listener)
+    }
+  })
+
   it('row click expands: chevron leading, summary kept inline, body in the scrolling card', () => {
     const view = render(<ToolRow {...rowProps} />)
     fireEvent.click(view.getByRole('button'))

@@ -218,16 +218,12 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
   // Custom event listener for programmatic browser opening from browser tools
   useEffect(() => {
     const onOpenBrowser = (event: Event): void => {
-      const custom = event as CustomEvent<{ url?: string; streamUrl?: string; openDrawer?: boolean }>
-      if (custom.detail?.url || custom.detail?.streamUrl) {
-        openPane('browser', {
-          url: custom.detail.url,
-          streamUrl: custom.detail.streamUrl,
-        })
+      const custom = event as CustomEvent<{ url?: string; openDrawer?: boolean }>
+      if (custom.detail?.url) {
+        openPane('browser', { url: custom.detail.url })
         const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
         // Desktop opens the dock beside the conversation. On mobile the drawer
-        // opens only when the caller asks (a tapped app link), so a browser
-        // stream an agent starts never takes over the screen by itself.
+        // opens only when the caller asks (a tapped app link).
         if (!isMobile || custom.detail.openDrawer === true) {
           openDetails()
         }

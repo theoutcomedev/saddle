@@ -17,7 +17,7 @@
 // independent); an error row's collapsed summary is the failure's first line in
 // the error color.
 
-import { useEffect, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   CodeBlock, DiffBlock, DisclosureRow, IconInspectOutline12, ReadBlock, SearchBlock, StateDot, TerminalBlock, WebBlock,
@@ -160,34 +160,6 @@ export function ToolRow({
   const expandable = body !== null || outputText !== null || card !== null
   const open = expanded && expandable
 
-  // Automatically open the Workbench browser pane with live stream when browser tools run
-  useEffect(() => {
-    if (typeof toolName === 'string' && toolName.startsWith('browser_') && toolName !== 'browser_session_end' && typeof window !== 'undefined') {
-      try {
-        let url: string | undefined
-        if (body) {
-          const parsed = JSON.parse(body) as { url?: string }
-          if (parsed.url) url = parsed.url
-        }
-
-        const hostname = window.location.hostname
-        let streamHost = '91.99.165.95'
-        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-          const parts = hostname.split('.')
-          if (parts.length >= 4 && parts.slice(-2).join('.') === 'sslip.io') {
-            streamHost = parts.slice(-6, -2).join('.') || '91.99.165.95'
-          } else {
-            streamHost = hostname
-          }
-        }
-        const streamUrl = `http://steel.${streamHost}.sslip.io/v1/sessions/debug?interactive=true`
-
-        window.dispatchEvent(new CustomEvent('workbench:open-browser', {
-          detail: { url, streamUrl },
-        }))
-      } catch {}
-    }
-  }, [toolName, body])
   // The run-state label AT needs: the StateDot and the running sweep are both
   // aria-hidden / colour-only, so a stopped or running row is otherwise silent.
   const status = stateStatus(state, t)
