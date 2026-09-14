@@ -98,4 +98,19 @@ describe('client stylesheet token vocabulary', () => {
       .filter(entry => !allowed.has(entry.slice(0, entry.indexOf(' @ '))))
     expect(unexpected).toEqual([])
   })
+
+  it('overrides only names the sheets define', () => {
+    // A palette token that no sheet defines is inert: nothing that reads the
+    // theme's vocabulary can reach it, so the override looks like theming and
+    // does nothing.
+    const registry = readFileSync(
+      fileURLToPath(new URL('../src/client/index.ts', import.meta.url)),
+      'utf8',
+    )
+    const defined = definedTokens()
+    const overridden = [...new Set([...registry.matchAll(/'(--dsw-[a-z0-9-]+)':/g)]
+      .flatMap(match => match[1] === undefined ? [] : [match[1]]))]
+    expect(overridden.length).toBeGreaterThan(0)
+    expect(overridden.filter(name => !defined.has(name))).toEqual([])
+  })
 })
