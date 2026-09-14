@@ -316,6 +316,21 @@ describe('AppFrame — narrow-viewport auto-collapse', () => {
     expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
   })
 
+  it('the first session picked from the narrow drawer dismisses it', () => {
+    // Boot with nothing current: the drawer is open over the conversation, and
+    // the first pick has to leave it — the gesture is the same whether or not
+    // another session was already open.
+    frameWidth = 980
+    selectedSession.current = undefined
+    const { frame, instance, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([280, 0])
+
+    selectedSession.current = 's-first' as SessionId
+    act(() => { rerenderFrame() })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+  })
+
   it('a wide sidebar stays open when the session changes', () => {
     const { frame, rerenderFrame } = mountFrame()
     selectedSession.current = 's-next' as SessionId

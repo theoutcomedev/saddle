@@ -113,12 +113,15 @@ function AppFrameInner({
 
   // The selected id (blank Sessions included): opening one from the narrow
   // drawer dismisses the drawer, which is an overlay covering exactly the
-  // conversation it just replaced. The wide sidebar is unaffected.
+  // conversation it just opened. The wide sidebar is unaffected. The first pick
+  // counts too: on a phone the person's gesture is the same whether or not some
+  // session was already open, and leaving the drawer over the conversation they
+  // just chose reads as the tap having failed.
   const currentSession = useSessions(s => s.current)
   const lastOpened = useRef(currentSession)
   useLayoutEffect(() => {
     if (currentSession === undefined) return
-    if (lastOpened.current !== undefined && lastOpened.current !== currentSession) {
+    if (lastOpened.current !== currentSession) {
       actions.closeSidebar()
     }
     lastOpened.current = currentSession

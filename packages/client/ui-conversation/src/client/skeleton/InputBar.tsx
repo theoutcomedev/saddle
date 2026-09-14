@@ -254,10 +254,16 @@ export function InputBar({
   // offset while the value swap puts the caret at the new draft's end, which is
   // off screen (measured on all three engines: offset 0 with the caret 940px
   // down). Suppress the walk, then reveal in our own box.
+  // A coarse pointer means a software keyboard: on a phone, focusing here would
+  // raise it over the conversation the person just asked for. The caret waits
+  // for their tap on the box instead; the reveal below still runs, so a restored
+  // draft is shown at its end either way.
   useEffect(() => {
     const el = inputRef.current
     if (locked || el === null) return
-    el.focus({ preventScroll: true })
+    const coarse = typeof window !== 'undefined'
+      && window.matchMedia?.('(pointer: coarse)')?.matches === true
+    if (!coarse) el.focus({ preventScroll: true })
     revealSelectionFocus(el)
   }, [locked, sessionId])
 

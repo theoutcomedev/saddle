@@ -745,6 +745,21 @@ describe('running and lock semantics', () => {
     expect(document.activeElement).toBe(textarea)
   })
 
+  it('a coarse pointer keeps the software keyboard down on unlock', () => {
+    // A phone opening a session must not have the keyboard thrown over the
+    // conversation it just asked for; the caret waits for a tap on the box.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(pointer: coarse)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    onTestFinished(() => { vi.unstubAllGlobals() })
+    const { view } = bench()
+    const textarea = view.container.querySelector('textarea')!
+    expect(document.activeElement).not.toBe(textarea)
+  })
+
   it('typing forwards through the machine (draft state echoes back)', () => {
     const { textarea, wiring } = bench()
     fireEvent.change(textarea, { target: { value: 'typed' } })

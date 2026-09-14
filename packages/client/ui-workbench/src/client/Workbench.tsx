@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { IconPlusOutline16, IconFullscreenOutline16, IconCloseOutline16, IconListPenOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { handleDocumentLinkClick } from './link-routing.ts'
 import type { WorkbenchPaneKind } from './types.ts'
 import { NS } from './locales.ts'
 import type {} from './contract/slots.ts'
@@ -244,20 +245,12 @@ export function Workbench({ renderSlot, t, openDetails, closeDetails }: Workbenc
 
   // URL auto-open: clicking any http(s) link anywhere opens it in the Browser
   // pane instead of navigating away. Delegated at document level so agent-
-  // surfaced URLs in the conversation open here by default.
+  // surfaced URLs in the conversation open here by default. The pane is
+  // revealed on every viewport — see link-routing.ts for why a phone is not a
+  // special case here.
   useEffect(() => {
     const onClick = (event: MouseEvent): void => {
-      const target = event.target as HTMLElement | null
-      const anchor = target?.closest('a[href^="http"]') as HTMLAnchorElement | null
-      if (anchor === null) return
-      const href = anchor.getAttribute('href')
-      if (href === null) return
-      event.preventDefault()
-      openPane('browser', { url: href })
-      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
-      if (!isMobile) {
-        openDetails()
-      }
+      handleDocumentLinkClick(event, { openPane, openDetails })
     }
     document.addEventListener('click', onClick)
     return () => document.removeEventListener('click', onClick)
