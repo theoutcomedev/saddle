@@ -29,7 +29,7 @@ DeepSeek Harness 的服务连接：一个通用的 `api-key` 授权流程，加�
 | `ctx.tools` | 注册 `request_credential` |
 | `ctx.userQuestions` | 呈现掩码提示 |
 
-## 已知限制
+## 已知限制与暂缓事项
 
 - 目前只提供 `api-key` 方法；`device-flow` 与 `oauth-app` 是授权接缝的其他方法，
   需要各自添加流程。

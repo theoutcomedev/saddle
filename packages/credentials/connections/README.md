@@ -34,7 +34,7 @@ for the at-rest guarantee.
 | `ctx.tools` | register `request_credential` |
 | `ctx.userQuestions` | surface the masked prompt |
 
-## Known limitations
+## Known Limitations and Deferred Work
 
 - Only the `api-key` method ships today; `device-flow` and `oauth-app` are the
   authorization seam's other methods and would add their own flows.

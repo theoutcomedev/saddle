@@ -34,8 +34,8 @@
 version: 1
 
 refs:
-  DEEPSEEK_API_KEY: sk-…
-  OPENAI_API_KEY: sk-…
+  DEEPSEEK_API_KEY: enc:v1:…     # sealed at rest
+  OPENAI_API_KEY: enc:v1:…
 
 records:
   llm-pi-ai/openai-codex:
@@ -48,7 +48,7 @@ records:
   llm-pi-ai/amazon-bedrock:
     kind: api-key               # environment values, no key: this route uses an AWS profile
     env:
-      AWS_PROFILE: prod
+      AWS_PROFILE: enc:v1:…      # sealed at rest
   llm-pi-ai/amazon-bedrock-dev:
     kind: api-key               # neither: the owner confirmed the ambient credential chain
 ```
@@ -67,6 +67,14 @@ records:
 
 提供方以 `0700` 创建目录，以 `0600` 创建或原子替换文档。它对*读取*同样守住这条界线：在 POSIX 上，只要文档带有任何 group 或 other 权限位，就会在解析其内容之前失败——启动时与每次 reload 都检查——并在错误里给出 `chmod 600` 的修复命令。Windows 没有可检查的 mode，因此在那里跳过该检查而不是伪造它。
 
+## 静态加密
+
+引用值与 `api-key` 记录的 `key`、`env` 值在写入前即被封印：每个条目用自己的随机 AES-256-GCM 数据密钥加密，数据密钥再由密钥加密密钥包裹（信封加密）。文档中只留下密文（`enc:v1:…`），因此泄漏了一份文档却没有它的密钥时，这份文档是无效的。
+
+密钥加密密钥位于 `<harness home>/.credentials.key`：首次使用时在写锁下以 `0600` 创建；也可通过 base64url 形式的环境变量 `DSH_CREDENTIALS_KEY` 提供（后者优先，并抑制该文件）。密钥丢失即所有已封印的值都无法恢复——这是它应有的性质，而不是一种失败模式。
+
+迁移是惰性的：旧的明文值照常读取，并在该条目下一次被写入时封印。`grant` 记录的 `payload` 不参与封印——它按拥有者的格式逐字写入，因此 OAuth grant 的 refresh token 在授权接缝本身具备封印能力之前仍是明文。
+
 ## 热重载
 
 外部编辑在快照**整体替换**后按变更引用逐个发布 `credentials/reference-updated`——磁盘上删掉的条目绝不在内存滞留。在 Chokidar 打开目标之前，提供方会对层级最深的现有祖先路径执行 realpath 解析，再拼回缺失的后缀；文件访问和诊断仍使用配置路径，从而避免 Windows 混用 8.3 别名与 libuv 的长格式事件路径。提供方自己的写入按内容识别，只发布属于该次提交的一个事件。运行期文档不可读或无效时保留最后可用快照并告警；文件不存在即空存储；启动时不可读或无效则明确报错。
@@ -77,7 +85,7 @@ records:
 
 文档在 `0700` 目录下以 `0600` 权限存放，这挡得住其他 OS 用户，**挡不住**模型。工具进程（bash、文件系统工具）以同一用户身份运行，而已交付的 `workspace-write` 文件策略限制的是修改而非读取，因此它们读这个文件与读该用户拥有的任何其他文件毫无二致；也没有任何沙箱模式会把它单独挑出来。harness 真正守住的更窄：它绝不把该文档的解析后路径交给模型，也绝不把它载入进程环境——这与用户的普通环境层 `$DSH_HOME/.env` 不同（见 [app-boot 的 Harness home 各层](../../boot/app-boot/README.zh.md#profiles)）——因此要拿到这个值，需要刻意去读一条并未交给 agent（智能体）的路径。
 
-这是审慎，不是边界。必须让提供方密钥远离自身 agent 的部署无法靠文件权限做到；OS 钥匙串提供方——一种模型运行所在进程根本无法读取的存储——才是延后的答案，它应当作为平级包与本提供方并列。
+这是审慎，不是边界。静态加密为文档的字节增加了一层机密性——只泄漏文档而没有其密钥文件的泄漏是无效的——但密钥文件对同一用户可读，因此同 UID 进程仍可解开它。必须让提供方密钥远离自身 agent 的部署无法靠文件权限或静态加密做到；OS 钥匙串提供方——一种模型运行所在进程根本无法读取的存储——才是延后的答案，它应当作为平级包与本提供方并列。
 
 ## 模型体验
 
@@ -90,6 +98,7 @@ records:
 ## 已知限制与暂缓事项
 
 - **同一引用的并发写入是后写胜出**——写锁加读-改-写让并发写入者不会丢掉彼此的条目，但两个写入者编辑同一个引用时仍以较后的写入为准；没有修订检查。
-- **同 UID 进程可以读取该文档**——见[安全边界](#security-boundary)：文件效果沙箱模式不会拒绝读取，OS 钥匙串提供方仍是延后项。
+- **同 UID 进程可以读取该文档及其密钥文件**——见[安全边界](#security-boundary)：文件效果沙箱模式不会拒绝读取，OS 钥匙串提供方仍是延后项。
 - **环境变化不可见**：快照在启动时冻结，因此启动之后 export 的变量既不会进入解析，也不会进入 `describe`；要更换来自环境的凭据需要重启。
 - **原子但不具备崩溃持久性**——继承自 `dsh-atomic-write`；存储在启动时重新读取。
+- **grant payload 不参与封印**——`api-key` 记录的 `key` 与 `env` 在静态时封印，但 `grant` 的 `payload` 仍以其拥有者的格式明文存放；对它的封印要等授权接缝具备该能力。
