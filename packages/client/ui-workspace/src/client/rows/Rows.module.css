@@ -287,8 +287,8 @@
 }
 
 /* Hover-card body (figma 169:16903): the preview card's own surface and label
-   ramp, consumed from the --dsw-specific-hovercard-* tokens so a creative
-   palette repaints the card with the rest of the shell. */
+   ramp, consumed from the --dsw-specific-hovercard-* tokens so each palette
+   repaints the card with the rest of the shell. */
 .hoverContent {
   display: flex;
   flex-direction: column;

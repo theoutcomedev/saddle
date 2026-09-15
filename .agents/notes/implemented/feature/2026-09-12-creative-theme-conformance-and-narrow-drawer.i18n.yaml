@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-creative-theme-conformance-and-narrow-drawer.md
-2026-09-12-creative-theme-conformance-and-narrow-drawer.md: 04af807a8905f68568ecccc5a03372efdca8ccbb
-2026-09-12-creative-theme-conformance-and-narrow-drawer.zh.md: e92f25adeeaa93d1b6021059b7a55132cfa6dfc2
+2026-09-12-creative-theme-conformance-and-narrow-drawer.md: 46156ef7cb626e2b95ff34da8eb336ff1381a4f6
+2026-09-12-creative-theme-conformance-and-narrow-drawer.zh.md: 9df8f114c8ca9922a50a13a64f2cfad5490f933f

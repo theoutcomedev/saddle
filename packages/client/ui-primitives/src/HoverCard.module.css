@@ -7,8 +7,9 @@
 
 /* Preview card (figma session hover card): 244 wide, r12, pad 12/16, the
  * menu card's elevation. Surface and label ramp are the
- * --dsw-specific-hovercard-* tokens: the light and dark sheets fix the figma
- * neutrals, every other palette derives them from its own elevations.
+ * --dsw-specific-hovercard-* tokens: the light sheet and every creative
+ * palette derive them from their own elevations, the dark sheet fixes the
+ * figma neutrals.
  * Hit-testable on purpose: resting the pointer on the card holds it open
  * (HoverCard's grace close), which a `pointer-events: none` card cannot do. */
 .card {

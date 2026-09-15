@@ -142,9 +142,9 @@ const CHAT_CONTENT_TOKENS: ThemeTokens = Object.freeze({
 
 /**
  * The floating preview card (sidebar session and Workspace hover). The light
- * and dark sheets fix the figma card's neutral surface and label ramp; the
- * creative themes point those tokens at their own elevations so the card sits
- * in the palette instead of over it.
+ * sheet derives the surface and label ramp from its own aliases and the dark
+ * sheet pins the figma neutrals; the creative themes point those tokens at
+ * their own elevations so the card sits in the palette instead of over it.
  */
 const HOVER_CARD_TOKENS: ThemeTokens = Object.freeze({
   '--dsw-specific-hovercard-bg': 'var(--dsw-alias-bg-layer-3)',
