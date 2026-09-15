@@ -2360,6 +2360,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       const dummyRequest = { rpcId: RpcId(randomUUID()), payload: { sessionId: targetSessionId } }
       const turn = await turnAgentFor<{ accepted: true }>(dummyRequest, targetSessionId)
       if ('agent' in turn) {
+        // A task that pinned a route runs on it; without one the run inherits
+        // the session's own selection, which is what an unpinned task always did.
+        if (task.provider !== undefined && task.model !== undefined) {
+          selectionFor(turn.agent).current = { provider: task.provider, model: task.model }
+        }
         const source: MessageSource = {
           kind: 'user',
           rpcId: RpcId(randomUUID()),
@@ -5144,6 +5149,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           sessionId: p.sessionId,
           workspacePath: p.workspacePath,
           clientTimeZone,
+          ...p.provider?.trim() ? { provider: p.provider.trim() } : {},
+          ...p.model?.trim() ? { model: p.model.trim() } : {},
           createdAt,
           nextRunAt: nextRunAt ? new Date(nextRunAt).toISOString() : undefined,
         }
@@ -5201,6 +5208,13 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           sessionId: current.sessionId,
           workspacePath: current.workspacePath,
           clientTimeZone: current.clientTimeZone,
+          // An omitted field keeps the pinned route; an explicitly empty one clears it.
+          ...(p.provider === undefined
+            ? current.provider === undefined ? {} : { provider: current.provider }
+            : p.provider.trim() ? { provider: p.provider.trim() } : {}),
+          ...(p.model === undefined
+            ? current.model === undefined ? {} : { model: current.model }
+            : p.model.trim() ? { model: p.model.trim() } : {}),
           createdAt: current.createdAt,
           lastRunAt: current.lastRunAt,
           lastStatus: current.lastStatus,

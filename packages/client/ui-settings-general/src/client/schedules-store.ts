@@ -119,6 +119,71 @@ export class ScheduledTasksStore {
     }
   }
 
+  /**
+   * The host's model catalog, flattened into the provider/model pairs a task can
+   * pin. Catalog membership is advisory, so an empty list means "unknown", not
+   * "nothing is runnable": a task without a pin runs on its session's own route.
+   */
+  async listModels(): Promise<Array<{ provider: string; model: string; label: string }>> {
+    try {
+      const res = await this.api.llm.models({})
+      if (!res.result.ok) return []
+      const options: Array<{ provider: string; model: string; label: string }> = []
+      for (const group of res.result.value.groups) {
+        for (const model of group.models) {
+          options.push({
+            provider: group.id,
+            model: model.id,
+            label: `${group.name} — ${model.name || model.id}`,
+          })
+        }
+      }
+      return options
+    } catch {
+      return []
+    }
+  }
+
+  /** Edit one stored task in place; an omitted field keeps its stored value. */
+  async updateTask(params: {
+    id: string
+    name?: string | undefined
+    prompt?: string | undefined
+    cadenceType?: 'cron' | 'interval' | 'once' | undefined
+    cadenceValue?: string | undefined
+    targetMode?: 'new-session' | 'current-session' | undefined
+    /** Empty string clears the pin back to the session's own route. */
+    provider?: string | undefined
+    model?: string | undefined
+  }): Promise<boolean> {
+    this.store.update((state) => {
+      state.actionInFlight = `update:${params.id}`
+      state.error = null
+    })
+
+    try {
+      const response = await this.api.schedules.update(params)
+      if (response.result.ok) {
+        await this.refresh()
+        return true
+      }
+      const errorMsg = response.result.error.message
+      this.store.update((state) => {
+        state.error = errorMsg || 'Failed to update task'
+      })
+      return false
+    } catch (error) {
+      this.store.update((state) => {
+        state.error = error instanceof Error ? error.message : String(error)
+      })
+      return false
+    } finally {
+      this.store.update((state) => {
+        state.actionInFlight = null
+      })
+    }
+  }
+
   async createTask(params: {
     name: string
     prompt: string
@@ -128,6 +193,8 @@ export class ScheduledTasksStore {
     sessionId?: string | undefined
     workspacePath?: string | undefined
     clientTimeZone?: string | undefined
+    provider?: string | undefined
+    model?: string | undefined
   }): Promise<boolean> {
     this.store.update((state) => {
       state.actionInFlight = 'create'

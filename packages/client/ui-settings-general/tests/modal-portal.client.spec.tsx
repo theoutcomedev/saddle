@@ -58,6 +58,7 @@ describe('settings overlays', () => {
           stopPolling: vi.fn(),
           listSessions: vi.fn(async () => []),
           listWorkspaces: vi.fn(async () => []),
+          listModels: vi.fn(async () => []),
         } as never}
         useSnapshot={snapshotOf({ tasks: [], activeLogs: null, actionInFlight: null })}
         onClose={() => {}}

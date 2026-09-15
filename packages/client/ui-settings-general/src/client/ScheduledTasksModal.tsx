@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { Button, IconCloseOutline16, IconRefreshOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { ScheduledTaskView } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { ScheduledTasksStore } from './schedules-store.ts'
 import { IconScheduleOutline16 } from './ScheduledTasksButton.tsx'
 import css from './ScheduledTasksModal.module.css'
@@ -15,6 +16,44 @@ export interface ScheduledTasksModalProps {
   useSnapshot: <T>(selector: (state: ReturnType<ScheduledTasksStore['store']['getSnapshot']>) => T) => T
   openSession?: ((id: string) => void) | undefined
   onClose: () => void
+}
+
+/**
+ * Separator inside one <option> value. A NUL cannot occur in a provider or
+ * model id, so a flattened pair stays unambiguous without a nested control.
+ */
+const MODEL_SEP = '\u0000'
+
+/** One select value for a provider/model pair. */
+function modelRef(provider: string, model: string): string {
+  return `${provider}${MODEL_SEP}${model}`
+}
+
+/** Split a select value back into its pair; the empty value means "no pin". */
+function parseModelRef(value: string): { provider?: string; model?: string } {
+  const at = value.indexOf(MODEL_SEP)
+  if (at === -1) return {}
+  return { provider: value.slice(0, at), model: value.slice(at + 1) }
+}
+
+function IconPencil({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      aria-hidden="true"
+    >
+      <path
+        d="M11.5 2.5L13.5 4.5M2.5 13.5L3 11L10.5 3.5L12.5 5.5L5 13L2.5 13.5Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 function extractSessionId(snippet?: string, explicitSessionId?: string): string | null {
@@ -118,6 +157,17 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
   const [availableSessions, setAvailableSessions] = useState<Array<{ id: string; title: string; cwd?: string | undefined }>>([])
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Array<{ id: string; title: string; path: string }>>([])
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  /** Task being edited; null while the form is creating a new one. */
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  /** Selected provider/model pair, or '' to inherit the session's own route. */
+  const [modelValue, setModelValue] = useState('')
+  const [availableModels, setAvailableModels] = useState<Array<{ provider: string; model: string; label: string }>>([])
+  /**
+   * Whether the reader touched the cadence controls. A stored task can carry a
+   * cadence the form cannot express ('once'), so an untouched form omits the
+   * cadence from its update rather than silently rewriting it.
+   */
+  const [cadenceTouched, setCadenceTouched] = useState(false)
   const clientTimeZone = useMemo(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
@@ -140,6 +190,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
   useEffect(() => {
     void store.listSessions().then(items => setAvailableSessions(items))
     void store.listWorkspaces().then(items => setAvailableWorkspaces(items))
+    void store.listModels().then(items => setAvailableModels(items))
   }, [store])
 
   useEffect(() => {
@@ -161,11 +212,57 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
     return () => { document.removeEventListener('keydown', onKeyDown) }
   }, [activeLogs, onClose, store])
 
+  /** Clear the form back to its creating state. */
+  const resetForm = () => {
+    setEditingTaskId(null)
+    setName('')
+    setPrompt('')
+    setSelectedSessionId('')
+    setSelectedWorkspacePath('')
+    setModelValue('')
+    setCadenceTouched(false)
+  }
+
+  /** Open the form over an existing task, prefilled from its stored values. */
+  const startEdit = (task: ScheduledTaskView) => {
+    setEditingTaskId(task.id)
+    setName(task.name)
+    setPrompt(task.prompt)
+    setCadenceType(task.cadenceType === 'cron' ? 'cron' : 'interval')
+    if (task.cadenceType === 'cron') setCronValue(task.cadenceValue)
+    else if (task.cadenceType === 'interval') setIntervalValue(task.cadenceValue)
+    setCadenceTouched(false)
+    setTargetMode(task.targetMode)
+    setSelectedSessionId(task.sessionId ?? '')
+    setSelectedWorkspacePath(task.workspacePath ?? '')
+    setModelValue(task.provider && task.model ? modelRef(task.provider, task.model) : '')
+    setActiveTab('create')
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !prompt.trim()) return
 
     const cadenceValue = cadenceType === 'interval' ? intervalValue : cronValue
+    const route = parseModelRef(modelValue)
+
+    if (editingTaskId !== null) {
+      const saved = await store.updateTask({
+        id: editingTaskId,
+        name: name.trim(),
+        prompt: prompt.trim(),
+        ...cadenceTouched ? { cadenceType, cadenceValue } : {},
+        targetMode,
+        provider: route.provider ?? '',
+        model: route.model ?? '',
+      })
+      if (saved) {
+        resetForm()
+        setActiveTab('list')
+      }
+      return
+    }
+
     const ok = await store.createTask({
       name: name.trim(),
       prompt: prompt.trim(),
@@ -175,18 +272,18 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
       sessionId: targetMode === 'current-session' && selectedSessionId ? selectedSessionId : undefined,
       workspacePath: selectedWorkspacePath.trim() || undefined,
       clientTimeZone,
+      ...route,
     })
 
     if (ok) {
-      setName('')
-      setPrompt('')
-      setSelectedSessionId('')
-      setSelectedWorkspacePath('')
+      resetForm()
       setActiveTab('list')
     }
   }
 
   const activeCount = tasks.filter(t => t.enabled).length
+  const submitting = actionInFlight === 'create'
+    || (editingTaskId !== null && actionInFlight === `update:${editingTaskId}`)
 
   return createPortal(
     <div className={css.mask} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -214,12 +311,14 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                   variant="outline"
                   size="sm"
                   className={css.backBtn}
-                  onClick={() => setActiveTab('list')}
+                  onClick={() => { resetForm(); setActiveTab('list') }}
                   title="Back to task list"
                 >
                   ← Back
                 </Button>
-                <h2 id="schedules-title" className={`${css.title} ${css.titleCenter}`}>New Scheduled Task</h2>
+                <h2 id="schedules-title" className={`${css.title} ${css.titleCenter}`}>
+                  {editingTaskId === null ? 'New Scheduled Task' : 'Edit Scheduled Task'}
+                </h2>
               </>
             ) : (
               <>
@@ -236,7 +335,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => setActiveTab('create')}
+                onClick={() => { resetForm(); setActiveTab('create') }}
               >
                 + New Task
               </Button>
@@ -423,7 +522,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                   <select
                     className={css.select}
                     value={cadenceType}
-                    onChange={e => setCadenceType(e.target.value as 'interval' | 'cron')}
+                    onChange={e => { setCadenceTouched(true); setCadenceType(e.target.value as 'interval' | 'cron') }}
                   >
                     <option value="interval">Recurring Interval (minutes)</option>
                     <option value="cron">Standard Cron Expression</option>
@@ -438,7 +537,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                     <select
                       className={css.select}
                       value={intervalValue}
-                      onChange={e => setIntervalValue(e.target.value)}
+                      onChange={e => { setCadenceTouched(true); setIntervalValue(e.target.value) }}
                     >
                       <option value="15">Every 15 minutes</option>
                       <option value="30">Every 30 minutes</option>
@@ -454,7 +553,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                       className={css.input}
                       placeholder="0 9 * * *"
                       value={cronValue}
-                      onChange={e => setCronValue(e.target.value)}
+                      onChange={e => { setCadenceTouched(true); setCronValue(e.target.value) }}
                       required
                     />
                   )}
@@ -503,6 +602,31 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
               )}
 
               <div className={css.formGroup}>
+                <label className={css.formLabel} htmlFor="task-model">Model</label>
+                <select
+                  id="task-model"
+                  className={css.select}
+                  value={modelValue}
+                  onChange={e => setModelValue(e.target.value)}
+                >
+                  <option value="">Session default (resolve per run)</option>
+                  {availableModels.map(option => (
+                    <option
+                      key={modelRef(option.provider, option.model)}
+                      value={modelRef(option.provider, option.model)}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <span className={css.formHint}>
+                  {availableModels.length === 0
+                    ? 'No catalog reported by the host; each run uses the target session\'s own route.'
+                    : 'The route each run dispatches on. Session default follows the target session.'}
+                </span>
+              </div>
+
+              <div className={css.formGroup}>
                 <label className={css.formLabel} htmlFor="workspace-path">Target Workspace Directory (Optional)</label>
                 {availableWorkspaces.length > 0 ? (
                   <select
@@ -534,11 +658,17 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
               </div>
 
               <div className={css.formActions}>
-                <Button type="button" variant="ghost" onClick={() => setActiveTab('list')}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => { resetForm(); setActiveTab('list') }}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" disabled={actionInFlight === 'create'}>
-                  {actionInFlight === 'create' ? 'Creating…' : 'Create Scheduled Task'}
+                <Button type="submit" variant="primary" disabled={submitting}>
+                  {editingTaskId === null
+                    ? (submitting ? 'Creating…' : 'Create Scheduled Task')
+                    : (submitting ? 'Saving…' : 'Save Changes')}
                 </Button>
               </div>
             </form>
@@ -562,6 +692,7 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                 const inFlight = actionInFlight === `trigger:${task.id}`
                   || actionInFlight === `toggle:${task.id}`
                   || actionInFlight === `delete:${task.id}`
+                  || actionInFlight === `update:${task.id}`
                 return (
                   <div key={task.id} className={css.card}>
                     <div className={css.cardTop}>
@@ -606,6 +737,16 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                         >
                           {task.enabled ? <IconPause size={11} /> : <IconPlay size={11} />}
                           {task.enabled ? 'Pause' : 'Resume'}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={inFlight}
+                          title="Edit task"
+                          onClick={() => startEdit(task)}
+                        >
+                          <IconPencil size={12} />
                         </Button>
 
                         <Button
@@ -696,6 +837,11 @@ export function ScheduledTasksModal({ store, useSnapshot, openSession, onClose }
                           <strong className={css.metaHighlight}>
                             {task.workspacePath.split('/').pop() || task.workspacePath}
                           </strong>
+                        </span>
+                      )}
+                      {task.provider && task.model && (
+                        <span className={css.metaItem}>
+                          Model: <strong className={css.metaHighlight}>{task.model}</strong>
                         </span>
                       )}
                       {task.clientTimeZone && (

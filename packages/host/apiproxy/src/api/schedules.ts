@@ -19,6 +19,10 @@ export interface ScheduledTaskView {
   sessionId?: string | undefined
   workspacePath?: string | undefined
   clientTimeZone?: string | undefined
+  /** Provider route each run's agent uses; absent leaves the session/default route. */
+  provider?: string | undefined
+  /** Model id each run's agent uses; absent leaves the session/default route. */
+  model?: string | undefined
   createdAt: string
   lastRunAt?: string | undefined
   lastStatus?: 'success' | 'failed' | 'running' | undefined
@@ -51,6 +55,8 @@ export interface SchedulesApi {
     sessionId?: string | undefined
     workspacePath?: string | undefined
     clientTimeZone?: string | undefined
+    provider?: string | undefined
+    model?: string | undefined
   }>): Promise<RpcResponse<{ task: ScheduledTaskView }>>
 
   /** Update or toggle an existing scheduled task. */
@@ -62,6 +68,10 @@ export interface SchedulesApi {
     cadenceValue?: string | undefined
     enabled?: boolean | undefined
     targetMode?: 'new-session' | 'current-session' | undefined
+    /** Empty string clears the pinned route back to the session/default one. */
+    provider?: string | undefined
+    /** Empty string clears the pinned model back to the session/default one. */
+    model?: string | undefined
   }>): Promise<RpcResponse<{ task: ScheduledTaskView }>>
 
   /** Delete a scheduled task. */

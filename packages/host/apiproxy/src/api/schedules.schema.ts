@@ -20,6 +20,8 @@ export const scheduledTaskViewSchema = z.object({
   sessionId: z.string().optional(),
   workspacePath: z.string().optional(),
   clientTimeZone: z.string().optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
   createdAt: z.string(),
   lastRunAt: z.string().optional(),
   lastStatus: z.enum(['success', 'failed', 'running']).optional(),
@@ -57,6 +59,8 @@ export const schedulesCreateRequestSchema = z.object({
   sessionId: z.string().optional(),
   workspacePath: z.string().optional(),
   clientTimeZone: z.string().optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'schedules.create'>>>
 
 /** schedules.create response value. */
@@ -73,6 +77,8 @@ export const schedulesUpdateRequestSchema = z.object({
   cadenceValue: z.string().optional(),
   enabled: z.boolean().optional(),
   targetMode: z.enum(['new-session', 'current-session']).optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'schedules.update'>>>
 
 /** schedules.update response value. */
