@@ -2,6 +2,10 @@
   border-radius: 6px;
 }
 
+.callImages {
+  margin: 6px 0 2px;
+}
+
 .subCalls {
   display: flex;
   flex-direction: column;
